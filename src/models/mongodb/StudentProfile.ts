@@ -16,7 +16,7 @@ const StudentProfileSchema = new Schema<IStudentProfile>({
   tipoDeficiencia: { type: String, required: true },
   necessidadesAcessibilidade: { type: String, default: "" },
   enderecoResidencial: { type: String, required: true },
-  location: {
+  location: {   
     type: {
       type: String,
       enum: ['Point'],
