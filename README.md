@@ -1,102 +1,135 @@
-# 📚 Conecta Ensino — Backend (API Node.js & MongoDB)
+# 🎓 Conecta Ensino — Backend Service
+
+Plataforma de impacto social focada em inclusão educacional, conectando voluntários a estudantes para sessões de reforço escolar presencial, com suporte a localização geoespacial e governança por instituições de ensino.
 
 ---
 
-O **Conecta Ensino** é uma plataforma de impacto social voltada para a inclusão educacional, conectando estudantes a monitores voluntários para sessões de reforço escolar presencial.
+## 🚀 Tecnologias Utilizadas
 
-Este repositório contém a infraestrutura do **backend**, responsável pela persistência de dados, suporte a dados geoespaciais e rotas da API REST.
-
----
-
-## 🚀 Status do Projeto
-
-- [x] **Configuração do Ambiente**: Node.js com TypeScript e `tsx` em modo de desenvolvimento.
-- [x] **Variáveis de Ambiente**: Gerenciamento seguro com `dotenv`.
-- [x] **Banco de Dados**: Conexão estável com **MongoDB Atlas** e fallback com DNS customizado (`8.8.8.8`) para resolver timeouts SRV em ambientes locais.
-- [x] **Modelagem Mongoose**: Criação do schema `StudentProfile` com suporte a coordenadas **GeoJSON (Point)** e validações de dados.
-- [x] **Validação e Persistência**: Teste de escrita e leitura em banco de dados validado com sucesso.
-- [x] **Git & Segurança**: Definição de regras no `.gitignore` para proteção de credenciais e arquivos temporários.
+- **Runtime:** Node.js + TypeScript
+- **Executor / Dev Tools:** `tsx` (Watch Mode)
+- **Framework Web:** Express.js
+- **Banco de Dados:** MongoDB (com suporte a índices `2dsphere` para GeoJSON)
+- **ORM / ODM:** Mongoose
+- **Validação de Schemas:** Zod
+- **Containerização:** Docker & Docker Compose
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 📊 Arquitetura de Dados & Entidades
 
-- **Runtime**: Node.js
-- **Linguagem**: TypeScript
-- **Servidor HTTP**: Express
-- **Execução/Reload**: `tsx`
-- **Banco de Dados**: MongoDB Atlas
-- **ODM (Object Data Modeling)**: Mongoose
-- **Variáveis de Ambiente**: `dotenv`
+### 🏢 1. `Institution` (Instituição de Ensino)
+
+Entidade de governança responsável pela administração dos cadastros.
+
+**Campos:**
+
+- `nome`
+- `cnpj`
+- `codigoInep`
+- `diretorResponsavel` (`nome`, `email`, `telefone`)
+- `endereco`
+- `location` (`Point`)
+- `ativa`
+
+### 👨‍🏫 2. `MonitorProfile` (Monitor / Voluntário)
+
+Perfil de monitoria associado a uma instituição cadastrada.
+
+**Campos:**
+
+- `userId`
+- `institutionId` (referência para `Institution`)
+- `disciplinas`
+- `disponibilidade`
+- `telefoneContato`
+- `enderecoResidencial`
+- `location` (`Point`)
+- `ativo`
+
+### 🎓 3. `Student` (Estudante)
+
+Perfil do aluno assistido na plataforma.
+
+**Campos:**
+
+- `userId`
+- `institutionId` (referência para `Institution`)
+- `serieEscolar`
+- `enderecoResidencial`
+- `location` (`Point`)
+- `ativo`
 
 ---
 
-## 📂 Estrutura do Projeto
+## 🔗 Endpoints da API
 
-```text
-.
-├── src/
-│   ├── config/
-│   │   └── mongo.ts              # Configuração da conexão com MongoDB Atlas e DNS
-│   ├── models/
-│   │   └── mongodb/
-│   │       └── StudentProfile.ts # Schema e Model do Perfil do Estudante (GeoJSON)
-│   ├── controllers/              # Controladores das rotas
-│   └── server.ts                 # Ponto de entrada da aplicação Express
-├── .env                          # Variáveis de ambiente (não versionado)
-├── .env.example                  # Exemplo do arquivo de variáveis de ambiente
-├── .gitignore                    # Arquivos ignorados pelo Git
-├── package.json                  # Dependências e scripts do projeto
-└── tsconfig.json                 # Configurações do TypeScript
-```
+### 🏢 Instituições (`/api/institutions`)
 
----
+| Método | Rota | Descrição |
+| :---: | :--- | :--- |
+| `POST` | `/api/institutions` | Cadastra uma nova instituição (validação com Zod). |
+| `GET` | `/api/institutions` | Lista todas as instituições cadastradas. |
+| `GET` | `/api/institutions/:id` | Obtém os detalhes de uma instituição específica. |
 
-## 🗄️ Modelagem de Dados (StudentProfile)
+### 👨‍🏫 Monitores (`/api/monitors`)
 
-O modelo de perfil do estudante inclui suporte a consultas geoespaciais via **GeoJSON (2dsphere)** para localização de monitores e escolas próximas.
+| Método | Rota | Descrição |
+| :---: | :--- | :--- |
+| `POST` | `/api/monitors` | Cadastra um monitor vinculado a uma instituição. |
+| `GET` | `/api/monitors` | Lista todos os monitores (com `populate` da instituição). |
+| `GET` | `/api/monitors/:userId` | Busca um monitor pelo `userId`. |
+| `GET` | `/api/monitors/institution/:institutionId` | Lista os monitores de uma instituição. |
+| `GET` | `/api/monitors/nearby` | Busca monitores por proximidade utilizando `lng`, `lat` e `maxDistanceInMeters`. |
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `userId` | String | Sim | Identificador do usuário |
-| `enderecoResidencial` | String | Sim | Endereço completo do aluno |
-| `tipoDeficiencia` | String | Sim | Tipo de deficiência (para acessibilidade) |
-| `necessidadesAcessibilidade` | String | Não | Detalhes adicionais de acessibilidade |
-| `location` | GeoJSON Point | Sim | Coordenadas `[Longitude, Latitude]` |
+### 🎓 Estudantes (`/api/students`)
+
+| Método | Rota | Descrição |
+| :---: | :--- | :--- |
+| `POST` | `/api/students` | Cadastra um estudante vinculado a uma instituição. |
+| `GET` | `/api/students` | Lista todos os estudantes (com `populate` da instituição). |
+| `GET` | `/api/students/:userId` | Busca um estudante pelo `userId`. |
+| `GET` | `/api/students/institution/:institutionId` | Lista os estudantes pertencentes a uma instituição. |
 
 ---
 
-## ⚙️ Como Executar o Projeto
+## 🛠️ Como Executar o Projeto
 
-### 1. Pré-requisitos
+### Pré-requisitos
 
-- Node.js instalado (v18+)
-- NPM, Yarn ou PNPM
+- Node.js **v18** ou superior
+- Docker e Docker Compose (para executar o MongoDB localmente)
 
-### 2. Clonar o repositório e instalar dependências
+### 1. Clonar o repositório e instalar as dependências
 
 ```bash
-git clone https://github.com/seu-usuario/conecta-ensino-backend.git
-cd conecta-ensino-backend
+git clone <url-do-repositorio>
+cd ConectaEnsino
 npm install
 ```
 
-### 3. Configurar Variáveis de Ambiente
+### 2. Configurar as variáveis de ambiente
 
-Crie um arquivo `.env` na raiz do projeto com base no `.env.example`:
+Crie um arquivo `.env` na raiz do projeto:
 
 ```env
 PORT=3000
-MONGO_URI=mongodb+srv://<usuario>:<senha>@cluster0.jkc8xgh.mongodb.net/conecta_ensino?retryWrites=true&w=majority
+MONGO_URI=mongodb://localhost:27017/conecta_ensino
 ```
 
-### 4. Rodar o servidor em modo de desenvolvimento
+### 3. Subir o banco de dados com Docker
+
+```bash
+docker compose up -d
+```
+
+### 4. Iniciar a aplicação em modo de desenvolvimento
 
 ```bash
 npm run dev
 ```
 
-O servidor estará rodando em:
+A API estará disponível em:
 
 ```text
 http://localhost:3000
@@ -104,9 +137,20 @@ http://localhost:3000
 
 ---
 
-## 📌 Próximos Passos
+## 📍 Padrão GeoJSON Utilizado
 
-- [ ] Implementar rotas para cadastro de alunos e monitores pelas instituições.
-- [ ] Criar endpoints de busca geoespacial (`$near`) baseados em coordenadas GeoJSON.
-- [ ] Adicionar validação de payload das requisições com Zod.
-- [ ] Configurar autenticação e autorização (JWT).
+Para requisições que utilizam localização geoespacial, envie o campo `location` no formato GeoJSON:
+
+```json
+{
+  "location": {
+    "type": "Point",
+    "coordinates": [-38.563, -6.885]
+  }
+}
+```
+
+> **⚠️ Atenção:** No padrão GeoJSON utilizado pelo MongoDB, a ordem das coordenadas é sempre **[Longitude, Latitude]**.
+>
+> - **Longitude:** entre **-180** e **180**
+> - **Latitude:** entre **-90** e **90**
