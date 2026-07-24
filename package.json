@@ -1,0 +1,9 @@
+{
+  "name": "conecta-ensino-backend",
+  "version": "1.0.0",
+  "description": "Backend com persistência poliglota (MongoDB, PostgreSQL/Supabase e Redis)",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts"
+  }
+}
