@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-
+import { supabase } from './config/supabase';
 import { studentRoutes } from './routes/student.routes';
 import { monitorRoutes } from './routes/monitor.routes'; 
 import { institutionRoutes } from './routes/institution.routes';
@@ -32,3 +32,18 @@ async function start() {
 }
 
 start();
+
+app.get('/api/teste-supabase', async (req, res) => {
+  try {
+    // Fazemos uma consulta numa tabela que nem precisa existir ainda
+    const { data, error } = await supabase.from('tabela_teste_conexao').select('*').limit(1);
+
+    res.json({
+      status: "Requisição finalizada",
+      dados: data,
+      erro: error
+    });
+  } catch (err) {
+    res.status(500).json({ falha_na_rede: err });
+  }
+});
