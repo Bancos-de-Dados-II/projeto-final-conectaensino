@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const CreateStudentSchema = z.object({
   userId: z.string({ error: 'userId é obrigatório.' }),
+  email: z.string({ error: 'O e-mail é obrigatório.' }).email('Formato de e-mail inválido.'),
   enderecoResidencial: z
     .string({ error: 'Endereço residencial é obrigatório.' })
     .min(5, 'Endereço muito curto.'),

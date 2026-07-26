@@ -5,15 +5,20 @@ import { supabase } from './config/supabase';
 import { studentRoutes } from './routes/student.routes';
 import { monitorRoutes } from './routes/monitor.routes'; 
 import { institutionRoutes } from './routes/institution.routes';
+import rotasPrincipais from './routes'; 
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
+// Seus middlewares atuais
 app.use('/api/students', studentRoutes);
 app.use('/api/monitors', monitorRoutes); 
 app.use('/api/institutions', institutionRoutes); 
+
+//Plugando as rotas de disciplinas, sessoes, avaliacoes e certificados
+app.use('/api', rotasPrincipais);
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/conecta_ensino';
@@ -21,13 +26,13 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/conecta_en
 async function start() {
   try {
     await mongoose.connect(MONGO_URI);
-    console.log('✅ Conectado ao MongoDB com sucesso!');
+    console.log(' Conectado ao MongoDB com sucesso!');
 
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+      console.log(` Servidor rodando em http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error('❌ Erro de conexão com o banco de dados:', error);
+    console.error(' Erro de conexão com o banco de dados:', error);
   }
 }
 

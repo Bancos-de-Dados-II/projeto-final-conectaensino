@@ -11,6 +11,6 @@ studentRoutes.post(
   StudentController.create
 );
 studentRoutes.get('/', StudentController.listAll);
-studentRoutes.get('/:userId', StudentController.getByUserId);
+studentRoutes.get('/:userId', StudentController.getById);
 
 export { studentRoutes }
