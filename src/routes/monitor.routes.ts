@@ -8,7 +8,7 @@ const monitorRoutes = Router();
 monitorRoutes.get('/nearby', MonitorController.findNearby);
 monitorRoutes.get('/institution/:institutionId', MonitorController.getByInstitution); // 👈 Nova rota
 monitorRoutes.get('/', MonitorController.listAll);
-monitorRoutes.get('/:userId', MonitorController.getByUserId);
+monitorRoutes.get('/:userId', MonitorController.getById);
 
 monitorRoutes.post(
   '/',

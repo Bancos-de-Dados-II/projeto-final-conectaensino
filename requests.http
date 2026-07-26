@@ -1,0 +1,33 @@
+### Variáveis globais
+@baseUrl = http://localhost:3000/api
+
+### 1. Testar conexão com Supabase (Sua rota de teste)
+GET {{baseUrl}}/teste-supabase
+
+### 2. Criar Estudante (Teste de Orquestração Mongo + Supabase)
+POST http://localhost:3000/api/students
+Content-Type: application/json
+
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "estudante.teste@email.com",
+  "enderecoResidencial": "Rua Principal, 123 - Centro",
+  "tipoDeficiencia": "Nenhuma",
+  "necessidadesAcessibilidade": "Nenhuma",
+  "location": {
+    "type": "Point",
+    "coordinates": [-38.56, -6.89]
+  }
+}
+
+### 3. Listar Estudantes
+GET {{baseUrl}}/students
+
+### Criar Disciplina
+POST http://localhost:3000/api/disciplinas
+Content-Type: application/json
+
+{
+  "nome": "Desenvolvimento Web",
+  "carga_horaria": 60
+}

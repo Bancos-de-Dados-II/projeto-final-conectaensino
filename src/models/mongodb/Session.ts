@@ -3,7 +3,7 @@ import { Schema, model, Document } from 'mongoose';
 export interface ISession extends Document {
   alunoId: string;
   monitorId: string;
-  disciplinaId: string; // ID da disciplina vindo do Postgres
+  disciplinaId: string;
   dataHora: Date;
   tipoLocal: 'casa_aluno' | 'escola' | 'local_publico';
   enderecoEncontro: string;
@@ -11,7 +11,9 @@ export interface ISession extends Document {
     type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]
   };
-  status: 'pendente' | 'confirmada' | 'realizada' | 'cancelada';
+  status: 'pendente' | 'confirmada' | 'em_andamento' | 'aguardando_avaliacao' | 'finalizada' | 'cancelada';
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const SessionSchema = new Schema<ISession>({
@@ -31,9 +33,11 @@ const SessionSchema = new Schema<ISession>({
   },
   status: {
     type: String,
-    enum: ['pendente', 'confirmada', 'realizada', 'cancelada'],
+    enum: ['pendente', 'confirmada', 'em_andamento', 'aguardando_avaliacao', 'finalizada', 'cancelada'],
     default: 'pendente'
   }
+}, {
+  timestamps: true,
 });
 
 SessionSchema.index({ locationMeeting: '2dsphere' });
