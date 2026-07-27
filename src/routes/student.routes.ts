@@ -1,16 +1,20 @@
 import { Router } from 'express';
 import { StudentController } from '../controllers/StudentController';
-import { validateSchema } from '../middlewares/validateSchema';
+import { validateQuerySchema, validateSchema } from '../middlewares/validateSchema';
+import { requireAuth } from '../middlewares/authenticate';
 import { CreateStudentSchema } from '../schemas/StudentSchema';
+import { GeoSearchSchema } from '../schemas/GeoSearchSchema';
 
 const studentRoutes = Router();
 
 studentRoutes.post(
   '/',
+  requireAuth,
   validateSchema(CreateStudentSchema),
   StudentController.create
 );
 studentRoutes.get('/', StudentController.listAll);
+studentRoutes.get('/proximos', validateQuerySchema(GeoSearchSchema), StudentController.proximos);
 studentRoutes.get('/:userId', StudentController.getById);
 
 export { studentRoutes }

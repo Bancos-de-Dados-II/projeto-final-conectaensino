@@ -1,6 +1,43 @@
 import { Request, Response } from 'express';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
 import { supabase } from '../config/supabase';
+import type { GeoSearchQuery } from '../schemas/GeoSearchSchema';
+
+type StudentGeoDTO = {
+  id: string;
+  userId: string;
+  tipoDeficiencia: string;
+  necessidadesAcessibilidade: string;
+  enderecoResidencial: string;
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+};
+
+function toStudentGeoDTO(student: {
+  _id: unknown;
+  userId: string;
+  tipoDeficiencia: string;
+  necessidadesAcessibilidade: string;
+  enderecoResidencial: string;
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+}): StudentGeoDTO {
+  return {
+    id: String(student._id),
+    userId: student.userId,
+    tipoDeficiencia: student.tipoDeficiencia,
+    necessidadesAcessibilidade: student.necessidadesAcessibilidade,
+    enderecoResidencial: student.enderecoResidencial,
+    location: {
+      type: 'Point',
+      coordinates: [student.location.coordinates[0], student.location.coordinates[1]],
+    },
+  };
+}
 
 export class StudentController {
   // Criar Perfil de Estudante (Orquestrando MongoDB + Supabase)
@@ -94,6 +131,44 @@ export class StudentController {
     } catch (error: any) {
       return res.status(500).json({
         message: 'Erro ao buscar estudante.',
+        error: error.message,
+      });
+    }
+  }
+
+  static async proximos(req: Request, res: Response): Promise<Response> {
+    try {
+      const { lat, lng, raioKm } = req.query as unknown as GeoSearchQuery;
+      const raioEmMetros = raioKm * 1000;
+      const raioEmRadianos = raioEmMetros / 6378100;
+
+      const students = await StudentProfile.find({
+        location: {
+          $geoWithin: {
+            $centerSphere: [[lng, lat], raioEmRadianos],
+          },
+        },
+      }).lean();
+
+      const data = students.map((student) => toStudentGeoDTO(student as {
+        _id: unknown;
+        userId: string;
+        tipoDeficiencia: string;
+        necessidadesAcessibilidade: string;
+        enderecoResidencial: string;
+        location: {
+          type: 'Point';
+          coordinates: [number, number];
+        };
+      }));
+
+      return res.status(200).json({
+        count: data.length,
+        data,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: 'Erro ao buscar estudantes próximos.',
         error: error.message,
       });
     }

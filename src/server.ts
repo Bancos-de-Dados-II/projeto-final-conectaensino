@@ -2,23 +2,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { supabase } from './config/supabase';
-import { studentRoutes } from './routes/student.routes';
-import { monitorRoutes } from './routes/monitor.routes'; 
-import { institutionRoutes } from './routes/institution.routes';
-import rotasPrincipais from './routes'; 
+import app from './app';
 
 dotenv.config();
-
-const app = express();
-app.use(express.json());
-
-// Seus middlewares atuais
-app.use('/api/students', studentRoutes);
-app.use('/api/monitors', monitorRoutes); 
-app.use('/api/institutions', institutionRoutes); 
-
-//Plugando as rotas de disciplinas, sessoes, avaliacoes e certificados
-app.use('/api', rotasPrincipais);
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/conecta_ensino';
