@@ -4,12 +4,16 @@ export interface IInstitution extends Document {
   nome: string;
   cnpj?: string;
   codigoInep?: string;
-  diretorResponsavel: {
+  codigoIbge?: string;
+  temRampa?: boolean;
+  temBanheiroPcd?: boolean;
+  acessoTotal?: boolean;
+  diretorResponsavel?: {
     nome: string;
     email: string;
     telefone: string;
   };
-  endereco: string;
+  endereco?: string;
   location: {
     type: 'Point';
     coordinates: [number, number]; // [Longitude, Latitude]
@@ -35,15 +39,31 @@ const InstitutionSchema = new Schema<IInstitution>(
     codigoInep: {
       type: String,
       trim: true,
+      sparse: true,
+    },
+    codigoIbge: {
+      type: String,
+      trim: true,
+    },
+    temRampa: {
+      type: Boolean,
+      default: false,
+    },
+    temBanheiroPcd: {
+      type: Boolean,
+      default: false,
+    },
+    acessoTotal: {
+      type: Boolean,
+      default: false,
     },
     diretorResponsavel: {
-      nome: { type: String, required: true, trim: true },
-      email: { type: String, required: true, trim: true, lowercase: true },
-      telefone: { type: String, required: true, trim: true },
+      nome: { type: String, trim: true },
+      email: { type: String, trim: true, lowercase: true },
+      telefone: { type: String, trim: true },
     },
     endereco: {
       type: String,
-      required: true,
       trim: true,
     },
     location: {
