@@ -1,10 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodError, ZodSchema } from 'zod';
+import { ZodError, ZodTypeAny } from 'zod';
 
-export const validateSchema = (schema: ZodSchema) => {
+const validateSource = (schema: ZodTypeAny, source: 'body' | 'query') => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.body = await schema.parseAsync(req.body);
+      const payload = source === 'query' ? req.query : req.body;
+      const parsed = await schema.parseAsync(payload);
+
+      if (source === 'query') {
+        const requestWithQuery = req as unknown as { query: unknown };
+        requestWithQuery.query = parsed;
+      } else {
+        req.body = parsed;
+      }
+
       return next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -20,3 +29,7 @@ export const validateSchema = (schema: ZodSchema) => {
     }
   };
 };
+
+export const validateSchema = (schema: ZodTypeAny) => validateSource(schema, 'body');
+
+export const validateQuerySchema = (schema: ZodTypeAny) => validateSource(schema, 'query');

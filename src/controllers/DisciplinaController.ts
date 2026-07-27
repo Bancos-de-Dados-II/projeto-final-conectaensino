@@ -71,6 +71,34 @@ export const DisciplinaController = {
         return res.status(400).json({ message: 'usuario_id e disciplina_id são obrigatórios.' });
       }
 
+      const { data: usuario, error: usuarioError } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('id', usuarioId)
+        .maybeSingle();
+
+      if (usuarioError) {
+        return res.status(400).json({ message: 'Erro ao validar usuário.', error: usuarioError.message });
+      }
+
+      if (!usuario) {
+        return res.status(404).json({ message: 'Usuário não encontrado.' });
+      }
+
+      const { data: disciplina, error: disciplinaError } = await supabase
+        .from('disciplinas')
+        .select('id')
+        .eq('id', disciplinaId)
+        .maybeSingle();
+
+      if (disciplinaError) {
+        return res.status(400).json({ message: 'Erro ao validar disciplina.', error: disciplinaError.message });
+      }
+
+      if (!disciplina) {
+        return res.status(404).json({ message: 'Disciplina não encontrada.' });
+      }
+
       const { data, error } = await supabase
         .from('usuario_disciplina')
         .insert({ usuario_id: usuarioId, disciplina_id: disciplinaId })
@@ -78,7 +106,8 @@ export const DisciplinaController = {
         .single();
 
       if (error) {
-        return res.status(400).json({ message: 'Erro ao vincular usuário à disciplina.', error: error.message });
+        const status = error.code === '23505' ? 409 : 400;
+        return res.status(status).json({ message: 'Erro ao vincular usuário à disciplina.', error: error.message });
       }
 
       return res.status(201).json(data);
