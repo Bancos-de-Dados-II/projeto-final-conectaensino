@@ -1,0 +1,15 @@
+import { useEffect, useMemo, useState } from "react";
+import { CalendarClock, Download, Search } from "lucide-react";
+import { getSessionHistory } from "../services/experience.service";
+import type { ExperienceSession, SessionStatus } from "../types/experience";
+
+const labels: Record<SessionStatus,string>={scheduled:"Agendada",completed:"Concluída",cancelled:"Cancelada",in_progress:"Em andamento"};
+export default function SessionHistoryPage(){
+ const [items,setItems]=useState<ExperienceSession[]>([]); const [query,setQuery]=useState(""); const [status,setStatus]=useState("all"); const [loading,setLoading]=useState(true);
+ useEffect(()=>{void getSessionHistory().then(setItems).finally(()=>setLoading(false));},[]);
+ const filtered=useMemo(()=>items.filter((item)=>(status==='all'||item.status===status)&&`${item.title} ${item.subject} ${item.monitorName}`.toLowerCase().includes(query.toLowerCase())),[items,query,status]);
+ function exportCsv(){const rows=[["Data","Disciplina","Monitor","Status"],...filtered.map(i=>[new Date(i.start).toLocaleString('pt-BR'),i.subject,i.monitorName,labels[i.status]])]; const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'); const url=URL.createObjectURL(new Blob(['\ufeff',csv],{type:'text/csv'})); const a=document.createElement('a');a.href=url;a.download='historico-sessoes.csv';a.click();URL.revokeObjectURL(url);}
+ return <section className="experience-page"><header className="experience-heading"><div><span className="page-kicker">Acompanhamento</span><h1>Histórico de sessões</h1><p>Consulte monitorias passadas, atuais e futuras.</p></div><button className="secondary-button" onClick={exportCsv}><Download size={17}/>Exportar CSV</button></header>
+ <div className="history-filters panel"><label><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar disciplina ou monitor..."/></label><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">Todos os status</option><option value="scheduled">Agendadas</option><option value="in_progress">Em andamento</option><option value="completed">Concluídas</option><option value="cancelled">Canceladas</option></select></div>
+ <article className="panel history-panel">{loading?<div className="experience-loading"><span className="route-loader__spinner"/>Carregando histórico...</div>:filtered.length===0?<div className="experience-empty"><CalendarClock size={31}/><strong>Nenhuma sessão encontrada</strong><p>Ajuste os filtros para visualizar outros resultados.</p></div>:<div className="history-list">{filtered.map(item=><div className="history-item" key={item.id}><div className="history-date"><strong>{new Date(item.start).getDate()}</strong><small>{new Date(item.start).toLocaleDateString('pt-BR',{month:'short'})}</small></div><div><strong>{item.subject}</strong><p>{item.monitorName} · {new Date(item.start).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p></div><span className={`status-pill status-pill--${item.status}`}>{labels[item.status]}</span></div>)}</div>}</article></section>;
+}

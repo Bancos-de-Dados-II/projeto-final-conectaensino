@@ -1,0 +1,58 @@
+CORREÇÃO DA ESTRUTURA REAL DO SEU FRONTEND
+
+Pela imagem do VS Code, sua estrutura é:
+
+frontend/
+├── main.tsx
+├── App.tsx
+├── styles/
+│   ├── global.css
+│   └── internal.css
+├── pages/
+├── components/
+└── ...
+
+Os pacotes anteriores estavam usando a estrutura padrão:
+
+frontend/src/main.tsx
+frontend/src/styles/
+
+Por isso os arquivos podiam estar sendo copiados para uma pasta que o Vite
+não estava usando.
+
+COMO APLICAR
+
+1. Extraia o conteúdo deste ZIP DIRETAMENTE dentro de:
+
+projeto-final-conectaensino/frontend
+
+2. Permita substituir:
+
+frontend/main.tsx
+frontend/styles/global.css
+frontend/styles/internal.css
+
+3. Não coloque os arquivos dentro de frontend/src.
+
+4. Pare o servidor:
+
+Ctrl + C
+
+5. Execute novamente:
+
+npm run dev
+
+6. No navegador:
+
+Ctrl + Shift + R
+
+TESTE RÁPIDO
+
+No final de styles/internal.css, adicione temporariamente:
+
+.login-card {
+  border: 5px solid red !important;
+}
+
+Se a borda ficar vermelha, você está alterando o arquivo correto.
+Depois remova esse teste.
