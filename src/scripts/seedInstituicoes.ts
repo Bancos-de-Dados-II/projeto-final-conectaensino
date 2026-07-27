@@ -4,6 +4,7 @@ import csv from 'csv-parser';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Institution } from "../models/mongodb/Institution"; 
+
 dotenv.config();
 
 interface EscolaRow {
@@ -37,35 +38,46 @@ async function seed() {
       .on('end', async () => {
         console.log(`📊 Encontradas ${results.length} escolas no CSV. Processando inserção...`);
 
-        const operations = results.map((row) => {
-          const lat = parseFloat(row.latitude);
-          const lon = parseFloat(row.longitude);
+        const operations = results
+          .filter((row) => {
+            const lat = parseFloat(row.latitude);
+            const lon = parseFloat(row.longitude);
+            return !isNaN(lat) && !isNaN(lon); // Garante apenas coordenadas válidas
+          })
+          .map((row) => {
+            const lat = parseFloat(row.latitude);
+            const lon = parseFloat(row.longitude);
 
-          return {
-            updateOne: {
-              filter: { codigoInep: String(row.codigo_inep) },
-              update: {
-                $set: {
-                  nome: row.nome_escola,
-                  codigoInep: String(row.codigo_inep),
-                  diretorResponsavel: {
-                    nome: 'Não informado',
-                    email: `diretor.inep${row.codigo_inep}@educacao.pb.gov.br`,
-                    telefone: '(83) 0000-0000',
+            return {
+              updateOne: {
+                filter: { codigoInep: String(row.codigo_inep?.trim()) },
+                update: {
+                  $set: {
+                    nome: row.nome_escola?.trim(),
+                    codigoInep: String(row.codigo_inep?.trim()),
+                    codigoIbge: row.codigo_ibge?.trim(),
+                    temRampa: row.tem_rampa?.trim().toLowerCase() === 'true',
+                    temBanheiroPcd: row.tem_banheiro_pcd?.trim().toLowerCase() === 'true',
+                    acessoTotal: row.acesso_total?.trim().toLowerCase() === 'true',
+                    diretorResponsavel: {
+                      nome: 'Não informado',
+                      email: `diretor.inep${row.codigo_inep?.trim()}@educacao.pb.gov.br`,
+                      telefone: '(83) 0000-0000',
+                    },
+                    endereco: `Paraíba, PB (Código IBGE: ${row.codigo_ibge?.trim()})`,
+                    location: {
+                      type: 'Point' as const, 
+                      coordinates: [lon, lat] as [number, number], // [Longitude, Latitude]
+                    },
+                    ativa: true,
                   },
-                  endereco: `Paraíba, PB (Código IBGE: ${row.codigo_ibge})`,
-                  location: {
-                    type: 'Point' as const, 
-                    coordinates: [lon, lat] as [number, number], // Garante a tupla [longitude, latitude]
-                  },
-                  ativa: true,
                 },
+                upsert: true,
               },
-              upsert: true,
-            },
-          };
-        });
-        // Executa em lotes utilizando bulkWrite para alta performance
+            };
+          });
+
+        // Executa em lotes utilizando bulkWrite
         const chunkSize = 500;
         for (let i = 0; i < operations.length; i += chunkSize) {
           const chunk = operations.slice(i, i + chunkSize);

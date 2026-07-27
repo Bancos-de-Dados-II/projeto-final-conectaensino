@@ -4,10 +4,11 @@
   "description": "Backend com persistência poliglota (MongoDB, PostgreSQL/Supabase e Redis)",
   "main": "src/server.ts",
   "scripts": {
-  "dev": "tsx watch src/server.ts",
-  "test": "vitest run",
-  "seed:instituicoes": "tsx src/scripts/seedInstituicoes.ts"
-},
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run",
+    "seed:instituicoes": "tsx src/scripts/seedInstituicoes.ts",
+    "seed:csv": "tsx src/scripts/seedInstituicoes.ts"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
     "@types/pdfkit": "^0.17.6",
