@@ -10,7 +10,6 @@ import {
   Search,
   Star,
   UserRound,
-  UsersRound,
 } from "lucide-react";
 import {
   MapContainer,
@@ -25,8 +24,8 @@ import {
   userMarkerIcon,
 } from "../components/map/MapMarkerIcon";
 import {
+  getInstitutions,
   getNearbyMonitors,
-  getNearbyStudents,
 } from "../services/map.service";
 import type {
   MapCoordinates,
@@ -65,18 +64,15 @@ function MapPage() {
             ...coordinates,
             radiusKm,
           }),
-          getNearbyStudents({
-            ...coordinates,
-            radiusKm,
-          }),
+          getInstitutions(),
         ]);
 
         const monitors =
           results[0].status === "fulfilled" ? results[0].value : [];
-        const students =
+        const institutions =
           results[1].status === "fulfilled" ? results[1].value : [];
 
-        setEntities([...monitors, ...students]);
+        setEntities([...monitors, ...institutions]);
 
         if (results.every((result) => result.status === "rejected")) {
           throw new Error("Nenhum endpoint de localização respondeu.");
@@ -92,7 +88,7 @@ function MapPage() {
           setErrorMessage(
             error.response?.status === 404
               ? "O endpoint de proximidade não foi encontrado no backend."
-              : "Não foi possível carregar os usuários próximos.",
+              : "Não foi possível carregar monitores e instituições.",
           );
         } else {
           setErrorMessage(
@@ -170,7 +166,14 @@ function MapPage() {
         return true;
       }
 
-      return [entity.name, entity.subject, entity.institution, entity.email]
+      return [
+        entity.name,
+        entity.subject,
+        entity.institution,
+        entity.email,
+        entity.address,
+        entity.city,
+      ]
         .filter(Boolean)
         .some((value) =>
           String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
@@ -181,8 +184,8 @@ function MapPage() {
   const monitorCount = entities.filter(
     (entity) => entity.type === "monitor",
   ).length;
-  const studentCount = entities.filter(
-    (entity) => entity.type === "student",
+  const institutionCount = entities.filter(
+    (entity) => entity.type === "institution",
   ).length;
 
   return (
@@ -190,9 +193,9 @@ function MapPage() {
       <section className="real-map-toolbar">
         <div>
           <span className="dashboard__eyebrow">Geolocalização</span>
-          <h1>Mapa de usuários</h1>
+          <h1>Mapa educacional</h1>
           <p>
-            Visualize alunos e monitores próximos da sua localização.
+            Visualize monitores próximos e instituições cadastradas.
           </p>
         </div>
 
@@ -254,7 +257,7 @@ function MapPage() {
               />
             </div>
 
-            <div className="map-filter-tabs" aria-label="Filtrar usuários">
+            <div className="map-filter-tabs" aria-label="Filtrar mapa">
               <button
                 type="button"
                 className={selectedType === "all" ? "active" : ""}
@@ -275,11 +278,11 @@ function MapPage() {
 
               <button
                 type="button"
-                className={selectedType === "student" ? "active" : ""}
-                onClick={() => setSelectedType("student")}
+                className={selectedType === "institution" ? "active" : ""}
+                onClick={() => setSelectedType("institution")}
               >
-                <UsersRound size={15} />
-                Alunos
+                <GraduationCap size={15} />
+                Instituições
               </button>
             </div>
 
@@ -289,8 +292,8 @@ function MapPage() {
                 <strong>{monitorCount}</strong> monitores
               </span>
               <span>
-                <UsersRound size={16} />
-                <strong>{studentCount}</strong> alunos
+                <GraduationCap size={16} />
+                <strong>{institutionCount}</strong> instituições
               </span>
             </div>
           </div>
@@ -299,14 +302,14 @@ function MapPage() {
             {isLoading && (
               <div className="map-list-state">
                 <span className="route-loader__spinner" />
-                <p>Buscando usuários próximos...</p>
+                <p>Buscando monitores e instituições...</p>
               </div>
             )}
 
             {!isLoading && filteredEntities.length === 0 && (
               <div className="map-list-state">
                 <MapPin size={28} />
-                <strong>Nenhum usuário encontrado</strong>
+                <strong>Nenhum resultado encontrado</strong>
                 <p>
                   Tente aumentar o raio ou alterar os filtros da busca.
                 </p>
@@ -320,9 +323,9 @@ function MapPage() {
                     className={`map-person-card__avatar map-person-card__avatar--${entity.type}`}
                   >
                     {entity.type === "monitor" ? (
-                      <GraduationCap size={19} />
-                    ) : (
                       <UserRound size={19} />
+                    ) : (
+                      <GraduationCap size={19} />
                     )}
                   </div>
 
@@ -330,7 +333,7 @@ function MapPage() {
                     <div>
                       <strong>{entity.name}</strong>
                       <span>
-                        {entity.type === "monitor" ? "Monitor" : "Aluno"}
+                        {entity.type === "monitor" ? "Monitor" : "Instituição"}
                       </span>
                     </div>
 
@@ -396,7 +399,7 @@ function MapPage() {
                   <div className="entity-popup">
                     <strong>{entity.name}</strong>
                     <span>
-                      {entity.type === "monitor" ? "Monitor" : "Aluno"}
+                      {entity.type === "monitor" ? "Monitor" : "Instituição"}
                     </span>
                     {entity.subject && <p>{entity.subject}</p>}
                     {entity.institution && <small>{entity.institution}</small>}

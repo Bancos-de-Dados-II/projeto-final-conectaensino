@@ -92,8 +92,14 @@ function extractCollection(payload: unknown): unknown[] {
     payload.results,
     payload.monitors,
     payload.monitor,
-    payload.students,
-    payload.alunos,
+    payload.institutions,
+    payload.institution,
+    payload.instituicoes,
+    payload.instituicao,
+    payload.schools,
+    payload.school,
+    payload.escolas,
+    payload.escola,
   ];
 
   for (const candidate of candidates) {
@@ -129,8 +135,13 @@ function normalizeEntity(
       "location.latitude",
       "location.lat",
       "localizacao.latitude",
+      "localizacao.lat",
       "coordinates.latitude",
+      "coordinates.lat",
       "address.latitude",
+      "address.lat",
+      "endereco.latitude",
+      "endereco.lat",
     ]),
   );
 
@@ -141,12 +152,23 @@ function normalizeEntity(
       "lon",
       "location.longitude",
       "location.lng",
+      "location.lon",
       "localizacao.longitude",
+      "localizacao.lng",
+      "localizacao.lon",
       "coordinates.longitude",
+      "coordinates.lng",
+      "coordinates.lon",
       "address.longitude",
+      "address.lng",
+      "address.lon",
+      "endereco.longitude",
+      "endereco.lng",
+      "endereco.lon",
     ]),
   );
 
+  // Entidades sem coordenadas válidas não podem ser exibidas no Leaflet.
   if (latitude === undefined || longitude === undefined) {
     return null;
   }
@@ -156,6 +178,7 @@ function normalizeEntity(
       readNested(source, [
         "id",
         "_id",
+        "uuid",
         "user_id",
         "user.id",
         "profile.id",
@@ -167,18 +190,29 @@ function normalizeEntity(
       readNested(source, [
         "name",
         "nome",
+        "title",
+        "razao_social",
+        "fantasy_name",
+        "nome_fantasia",
         "full_name",
         "user.name",
         "user.nome",
         "profile.name",
         "user_metadata.name",
       ]),
-    ) || (type === "monitor" ? "Monitor" : "Aluno");
+    ) || (type === "monitor" ? "Monitor" : "Instituição");
 
   return {
     id,
     name,
-    email: asString(readNested(source, ["email", "user.email"])),
+    email: asString(
+      readNested(source, [
+        "email",
+        "contact_email",
+        "contato.email",
+        "user.email",
+      ]),
+    ),
     type,
     latitude,
     longitude,
@@ -189,64 +223,107 @@ function normalizeEntity(
         "distance_km",
         "distancia",
         "distanciaKm",
+        "distancia_km",
       ]),
     ),
-    institution: asString(
-      readNested(source, [
-        "institution.name",
-        "institution",
-        "instituicao.nome",
-        "instituicao",
-      ]),
-    ),
+    institution:
+      type === "institution"
+        ? name
+        : asString(
+            readNested(source, [
+              "institution.name",
+              "institution.nome",
+              "institution",
+              "instituicao.nome",
+              "instituicao.name",
+              "instituicao",
+              "school.name",
+              "school.nome",
+              "escola.nome",
+            ]),
+          ),
     subject: asString(
       readNested(source, [
         "subject.name",
+        "subject.nome",
         "subject",
         "disciplina.nome",
+        "disciplina.name",
         "disciplina",
         "specialty",
+        "especialidade",
       ]),
     ),
     rating: asNumber(
-      readNested(source, ["rating", "avaliacao", "average_rating"]),
+      readNested(source, [
+        "rating",
+        "avaliacao",
+        "average_rating",
+        "media_avaliacao",
+      ]),
     ),
     available: asBoolean(
-      readNested(source, ["available", "disponivel", "is_available"]),
+      readNested(source, [
+        "available",
+        "disponivel",
+        "is_available",
+        "ativo",
+        "active",
+      ]),
+    ),
+    address: asString(
+      readNested(source, [
+        "address",
+        "address.street",
+        "endereco",
+        "endereco.logradouro",
+        "logradouro",
+        "street",
+      ]),
+    ),
+    city: asString(
+      readNested(source, [
+        "city",
+        "cidade",
+        "municipio",
+        "address.city",
+        "endereco.cidade",
+      ]),
     ),
     raw: source,
   };
 }
 
-async function requestNearby(
-  endpoint: string,
-  type: MapEntityType,
+async function requestNearbyMonitors(
   params: NearbySearchParams,
 ): Promise<MapEntity[]> {
-  const { data } = await api.get(endpoint, {
+  const { data } = await api.get("/monitors/nearby", {
     params: {
       latitude: params.latitude,
       longitude: params.longitude,
       lat: params.latitude,
       lng: params.longitude,
       radius: params.radiusKm,
+      radiusKm: params.radiusKm,
       raio: params.radiusKm,
     },
   });
 
   return extractCollection(data)
-    .map((item, index) => normalizeEntity(item, type, index))
+    .map((item, index) => normalizeEntity(item, "monitor", index))
     .filter((item): item is MapEntity => item !== null);
 }
 
 export function getNearbyMonitors(
   params: NearbySearchParams,
 ): Promise<MapEntity[]> {
-  return requestNearby("/monitors/nearby", "monitor", params);
+  return requestNearbyMonitors(params);
 }
 
-export function getNearbyStudents(
-  params: NearbySearchParams,
-): Promise<MapEntity[]> {
-  return requestNearby("/students/proximos", "student", params);
+export async function getInstitutions(): Promise<MapEntity[]> {
+  const { data } = await api.get("/institutions");
+
+  return extractCollection(data)
+    .map((item, index) => normalizeEntity(item, "institution", index))
+    .filter((item): item is MapEntity => item !== null);
 }

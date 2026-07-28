@@ -1,4 +1,6 @@
-export type MapEntityType = "monitor" | "student";
+export type MapEntityType =
+  | "monitor"
+  | "institution";
 
 export interface MapCoordinates {
   latitude: number;
@@ -10,13 +12,19 @@ export interface MapEntity {
   name: string;
   email?: string;
   type: MapEntityType;
+
   latitude: number;
   longitude: number;
+
   distanceKm?: number;
   institution?: string;
   subject?: string;
   rating?: number;
   available?: boolean;
+
+  address?: string;
+  city?: string;
+
   raw?: unknown;
 }
 
