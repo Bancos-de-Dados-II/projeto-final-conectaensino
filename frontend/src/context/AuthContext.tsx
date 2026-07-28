@@ -12,11 +12,12 @@ type LoginInput = { email: string; password: string };
 type AuthContextValue = {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (input: LoginInput) => Promise<void>;
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readUser(): User | null {
   try {
@@ -29,13 +30,19 @@ function readUser(): User | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(readUser);
+  const [isLoading, setIsLoading] = useState(false);
 
   async function login(input: LoginInput) {
-    const { data } = await api.post('/auth/login', input);
-    localStorage.setItem('@conecta:access_token', data.access_token);
-    localStorage.setItem('@conecta:refresh_token', data.refresh_token);
-    localStorage.setItem('@conecta:user', JSON.stringify(data.user));
-    setUser(data.user);
+    setIsLoading(true);
+    try {
+      const { data } = await api.post('/auth/login', input);
+      localStorage.setItem('@conecta:access_token', data.access_token);
+      localStorage.setItem('@conecta:refresh_token', data.refresh_token);
+      localStorage.setItem('@conecta:user', JSON.stringify(data.user));
+      setUser(data.user);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function logout() {
@@ -45,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  const value = useMemo(() => ({ user, isAuthenticated: Boolean(user), login, logout }), [user]);
+  const value = useMemo(() => ({ user, isAuthenticated: Boolean(user), isLoading, login, logout }), [user, isLoading]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

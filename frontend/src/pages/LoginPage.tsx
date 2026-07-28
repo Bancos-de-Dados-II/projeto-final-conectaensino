@@ -3,6 +3,7 @@ import { GraduationCap, LockKeyhole, Mail } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { api } from '../services/api';
 
 export function LoginPage() {
   const { login, isLoading, isAuthenticated } = useAuth();
@@ -11,6 +12,12 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [address, setAddress] = useState('');
+  const [disabilityType, setDisabilityType] = useState('');
+  const [accessibilityNeeds, setAccessibilityNeeds] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
@@ -24,6 +31,29 @@ export function LoginPage() {
     } catch (requestError) {
       const axiosError = requestError as AxiosError<{ message?: string }>;
       setError(axiosError.response?.data?.message ?? 'Não foi possível entrar. Verifique os dados e o servidor.');
+    }
+  }
+
+  async function handleStudentRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+
+    try {
+      await api.post('/auth/register/student', {
+        email,
+        password,
+        enderecoResidencial: address,
+        tipoDeficiencia: disabilityType,
+        necessidadesAcessibilidade: accessibilityNeeds,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+      });
+
+      await login({ email, password });
+      navigate('/', { replace: true });
+    } catch (requestError) {
+      const axiosError = requestError as AxiosError<{ message?: string; error?: string }>;
+      setError(axiosError.response?.data?.message ?? axiosError.response?.data?.error ?? 'Não foi possível concluir o cadastro do aluno.');
     }
   }
 
@@ -44,11 +74,11 @@ export function LoginPage() {
       </div>
 
       <div className="login-panel">
-        <form className="login-card" onSubmit={handleSubmit}>
+        <form className="login-card" onSubmit={isRegistering ? handleStudentRegister : handleSubmit}>
           <div className="login-logo"><GraduationCap size={28} /></div>
-          <span className="eyebrow">Bem-vindo de volta</span>
-          <h2>Acesse sua conta</h2>
-          <p>Use seus dados cadastrados no Supabase Auth.</p>
+          <span className="eyebrow">{isRegistering ? 'Cadastro de aluno' : 'Bem-vindo de volta'}</span>
+          <h2>{isRegistering ? 'Cadastre-se como aluno' : 'Acesse sua conta'}</h2>
+          <p>{isRegistering ? 'O cadastro é salvo no banco e fica disponível para conexão com escolas e monitores.' : 'Use seus dados cadastrados no Supabase Auth.'}</p>
 
           <label>
             <span>E-mail</span>
@@ -74,18 +104,93 @@ export function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Digite sua senha"
-                autoComplete="current-password"
+                autoComplete={isRegistering ? 'new-password' : 'current-password'}
                 minLength={6}
                 required
               />
             </div>
           </label>
 
+          {isRegistering && (
+            <>
+              <label>
+                <span>Endereço residencial</span>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                  placeholder="Rua, bairro, cidade"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Tipo de deficiência</span>
+                <input
+                  type="text"
+                  value={disabilityType}
+                  onChange={(event) => setDisabilityType(event.target.value)}
+                  placeholder="Ex.: visual, auditiva, motora"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Necessidades de acessibilidade</span>
+                <input
+                  type="text"
+                  value={accessibilityNeeds}
+                  onChange={(event) => setAccessibilityNeeds(event.target.value)}
+                  placeholder="Ex.: libras, leitura em braille"
+                />
+              </label>
+
+              <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                <label>
+                  <span>Latitude</span>
+                  <input
+                    type="number"
+                    step="any"
+                    value={latitude}
+                    onChange={(event) => setLatitude(event.target.value)}
+                    placeholder="-23.5505"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Longitude</span>
+                  <input
+                    type="number"
+                    step="any"
+                    value={longitude}
+                    onChange={(event) => setLongitude(event.target.value)}
+                    placeholder="-46.6333"
+                    required
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
           {error && <div className="form-error" role="alert">{error}</div>}
 
           <button className="primary-button" type="submit" disabled={isLoading}>
-            {isLoading ? 'Entrando...' : 'Entrar no sistema'}
+            {isLoading ? (isRegistering ? 'Cadastrando...' : 'Entrando...') : (isRegistering ? 'Cadastrar aluno' : 'Entrar no sistema')}
           </button>
+
+          <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering((value) => !value);
+                setError('');
+              }}
+              aria-label="abrir cadastro de aluno"
+              style={{ display: 'block', margin: '0.5rem auto 0', background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700, padding: '0.5rem 0', textDecoration: 'none', width: '100%', maxWidth: '320px' }}
+            >
+              {isRegistering ? 'Voltar para login' : 'CADASTRO'}
+            </button>
+          </div>
 
           <small>Conecta Ensino © 2026 • Plataforma de inclusão educacional</small>
         </form>

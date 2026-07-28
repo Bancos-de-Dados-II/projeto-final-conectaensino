@@ -2,7 +2,7 @@ import { Schema, model, Document } from 'mongoose';
 
 export interface IStudentProfile extends Document {
   userId: string; // UUID referente ao perfil cadastrado no Supabase
-  tipoDeficiencia: string;
+  tipoDeficiencia?: string;
   necessidadesAcessibilidade: string;
   enderecoResidencial: string;
   location: {
@@ -13,7 +13,7 @@ export interface IStudentProfile extends Document {
 
 const StudentProfileSchema = new Schema<IStudentProfile>({
   userId: { type: String, required: true, unique: true },
-  tipoDeficiencia: { type: String, required: true },
+  tipoDeficiencia: { type: String, default: "" },
   necessidadesAcessibilidade: { type: String, default: "" },
   enderecoResidencial: { type: String, required: true },
   location: {   
