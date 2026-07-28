@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
 import {
   ArrowRight,
@@ -9,6 +9,7 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
+import { getInstitutions } from "../services/map.service";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { getApiBaseUrl } from "../api/axios";
@@ -16,6 +17,16 @@ import { useAuth } from "../hooks/useAuth";
 
 interface LocationState {
   from?: string;
+}
+
+interface InstitutionOption {
+  id: string;
+  nome: string;
+  endereco?: string;
+  cidade?: string;
+  latitude?: number;
+  longitude?: number;
+  distanceKm?: number;
 }
 
 function Login() {
@@ -30,6 +41,119 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [address, setAddress] = useState("");
+  const [street, setStreet] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("");
+  const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [schools, setSchools] = useState<InstitutionOption[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+  const [isLoadingSchools, setIsLoadingSchools] = useState(false);
+  const [citySchools, setCitySchools] = useState<InstitutionOption[]>([]);
+  const [schoolSearchMessage, setSchoolSearchMessage] = useState("");
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<InstitutionOption[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    const fullAddress = [street, district, city].filter(Boolean).join(", ");
+    setAddress(fullAddress);
+  }, [street, district, city]);
+
+  useEffect(() => {
+    async function loadSchools() {
+      setIsLoadingSchools(true);
+
+      try {
+        const institutions = await getInstitutions();
+
+        setSchools(
+          institutions
+            .map((item: any) => ({
+              id: String(item.id ?? item._id ?? ""),
+              nome: item.name ?? item.nome ?? "Escola sem nome",
+              endereco: item.address ?? item.endereco,
+              cidade: item.city ?? item.cidade,
+              latitude: item.latitude,
+              longitude: item.longitude,
+            }))
+            .filter((item) => item.id),
+        );
+      } catch {
+        setSchools([]);
+      } finally {
+        setIsLoadingSchools(false);
+      }
+    }
+
+    void loadSchools();
+  }, []);
+
+  useEffect(() => {
+    if (!city.trim()) {
+      setCitySchools([]);
+      setSchoolSearchMessage("");
+      setSelectedSchoolId("");
+      return;
+    }
+
+    const normalizedCity = city.trim().toLowerCase();
+    const matchedSchools = schools.filter((school) => {
+      const cityCandidates = [school.cidade, school.endereco, school.nome]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+
+      return cityCandidates.some((value) => value.includes(normalizedCity));
+    });
+
+    const sortedSchools = [...matchedSchools].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR"),
+    );
+
+    setCitySchools(sortedSchools);
+    setSchoolSearchMessage(
+      sortedSchools.length > 0
+        ? `Escolas encontradas para a cidade ${city}.`
+        : `Nenhuma escola encontrada para a cidade ${city}.`,
+    );
+
+    if (!sortedSchools.some((school) => school.id === selectedSchoolId)) {
+      setSelectedSchoolId("");
+    }
+  }, [city, schools, selectedSchoolId]);
+
+  // Geocode arbitrary school text (returns { lat, lon } or null)
+  async function geocodeAddress(query: string): Promise<{ lat: number; lon: number } | null> {
+    try {
+      const params = new URLSearchParams({ q: query, format: 'jsonv2', limit: '1' });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { Accept: 'application/json' } });
+      const arr = (await res.json()) as Array<any>;
+      if (!arr || arr.length === 0) return null;
+      return { lat: Number(arr[0].lat), lon: Number(arr[0].lon) };
+    } catch {
+      return null;
+    }
+  }
+
+  // Suggestions effect: update suggestions as user types
+  useEffect(() => {
+    if (!schoolQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const q = schoolQuery.trim().toLowerCase();
+    const byName = (list: InstitutionOption[]) =>
+      list.filter((s) => (s.nome || '').toLowerCase().includes(q) || (s.endereco || '').toLowerCase().includes(q));
+
+    const matchedCity = byName(citySchools || []);
+    const matchedAll = byName(schools || []).filter((s) => !matchedCity.includes(s));
+
+    const result = [...matchedCity, ...matchedAll].slice(0, 20);
+    setSuggestions(result);
+  }, [schoolQuery, citySchools, schools]);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -41,7 +165,51 @@ function Login() {
     setIsSubmitting(true);
 
     try {
-      await login({ email: email.trim(), password });
+      if (!isRegistering) {
+        await login({ email: email.trim(), password });
+      } else {
+        if (password !== confirmPassword) {
+          throw new Error('A confirmação da senha não corresponde.');
+        }
+
+        if (!selectedSchoolId && !schoolQuery.trim()) {
+          throw new Error('Selecione ou digite a escola para concluir o cadastro.');
+        }
+
+        // Register student then login
+        const payload: any = {
+          email: email.trim(),
+          password,
+          enderecoResidencial: address,
+          necessidadesAcessibilidade: accessibilityNeeds,
+        };
+
+        if (selectedSchoolId) {
+          // If user selected a CSV school id (fallback), send lat/lng as well
+          if (selectedSchoolId.startsWith("csv-school-")) {
+            const found = (schools as InstitutionOption[]).find((s) => s.id === selectedSchoolId) ||
+              (citySchools as InstitutionOption[]).find((s) => s.id === selectedSchoolId);
+
+            if (found && found.latitude !== undefined && found.longitude !== undefined) {
+              payload.latitude = found.latitude;
+              payload.longitude = found.longitude;
+            }
+          } else {
+            payload.institutionId = selectedSchoolId;
+          }
+        } else {
+          // User typed a free-text school name; try to geocode it
+          const geoQuery = schoolQuery + (city ? `, ${city}` : '');
+          const coords = await geocodeAddress(geoQuery);
+          if (!coords) throw new Error('Não foi possível localizar a escola digitada.');
+          payload.latitude = coords.lat;
+          payload.longitude = coords.lon;
+        }
+
+        await axios.post(`${getApiBaseUrl()}/auth/register/student`, payload);
+
+        await login({ email: email.trim(), password });
+      }
       navigate(destination, { replace: true });
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -163,6 +331,24 @@ function Login() {
               </div>
             </label>
 
+            {isRegistering && (
+              <label className="login-field">
+                <span>Confirmação de senha</span>
+
+                <div className="login-input">
+                  <LockKeyhole size={18} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Confirme sua senha"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
+                  />
+                </div>
+              </label>
+            )}
+
             {errorMessage && (
               <div className="login-error" role="alert">
                 {errorMessage}
@@ -186,6 +372,82 @@ function Login() {
                 </>
               )}
             </button>
+
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <button
+                type="button"
+                className="login-submit"
+                style={{ width: '100%' }}
+                onClick={() => {
+                  setIsRegistering((v) => !v);
+                  setErrorMessage('');
+                  setSelectedSchoolId('');
+                  setCitySchools([]);
+                  setSchoolSearchMessage('');
+                }}
+              >
+                {isRegistering ? 'Voltar para login' : 'CADASTRO'}
+              </button>
+            </div>
+
+            {isRegistering && (
+              <div className="register-fields" style={{ marginTop: 12 }}>
+                <label className="login-field">
+                  <span>Rua</span>
+                  <input type="text" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" required />
+                </label>
+
+                <label className="login-field">
+                  <span>Bairro</span>
+                  <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Ex.: Centro" required />
+                </label>
+
+                <label className="login-field">
+                  <span>Cidade</span>
+                  <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex.: João Pessoa" required />
+                </label>
+
+                <label className="login-field">
+                  <span>Escola próxima</span>
+
+                  <div className="login-input">
+                    <input
+                      type="text"
+                      placeholder={isLoadingSchools ? "Carregando escolas..." : city.trim() ? "Digite ou selecione a escola" : "Informe a cidade primeiro"}
+                      value={schoolQuery}
+                      onChange={(e) => { setSchoolQuery(e.target.value); setShowSuggestions(true); setSelectedSchoolId(''); }}
+                      required
+                      disabled={isLoadingSchools || !city.trim()}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    />
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    {showSuggestions && suggestions.length > 0 && (
+                      <ul style={{ listStyle: 'none', margin: 0, padding: 8, background: '#fff', borderRadius: 4, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#000' }}>
+                        {suggestions.map((s) => (
+                          <li key={s.id} style={{ padding: '6px 8px', cursor: 'pointer' }} onMouseDown={() => { setSelectedSchoolId(s.id); setSchoolQuery(s.nome); setShowSuggestions(false); }}>
+                            {s.nome}{s.endereco ? ` — ${s.endereco}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {schoolSearchMessage && (
+                    <small style={{ marginTop: 6, display: 'block', color: '#5b6b7a' }}>
+                      {schoolSearchMessage}
+                    </small>
+                  )}
+                </label>
+
+                <label className="login-field">
+                  <span>Necessidades de acessibilidade</span>
+                  <input type="text" value={accessibilityNeeds} onChange={(e) => setAccessibilityNeeds(e.target.value)} placeholder="Ex.: libras" />
+                </label>
+              </div>
+            )}
           </form>
 
           <footer className="login-card__footer">

@@ -22,6 +22,31 @@ const DEFAULT_LOCATION: MapCoordinates = {
   longitude: -38.5612,
 };
 
+const MAX_SCHOOL_RADIUS_KM = 25;
+
+function getDistanceKm(
+  fromLatitude: number,
+  fromLongitude: number,
+  toLatitude: number,
+  toLongitude: number,
+): number {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const deltaLatitude = toRadians(toLatitude - fromLatitude);
+  const deltaLongitude = toRadians(toLongitude - fromLongitude);
+  const startLatitude = toRadians(fromLatitude);
+  const endLatitude = toRadians(toLatitude);
+
+  const a =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(startLatitude) *
+      Math.cos(endLatitude) *
+      Math.sin(deltaLongitude / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+}
+
 function MapPage() {
   const [location, setLocation] = useState<MapCoordinates>(DEFAULT_LOCATION);
   const [schools, setSchools] = useState<MapEntity[]>([]);
@@ -104,18 +129,29 @@ function MapPage() {
   const filteredSchools = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
 
+    const schoolsWithinRadius = schools.filter((school) => {
+      const distanceKm = getDistanceKm(
+        location.latitude,
+        location.longitude,
+        school.latitude,
+        school.longitude,
+      );
+
+      return distanceKm <= MAX_SCHOOL_RADIUS_KM;
+    });
+
     if (!normalizedSearch) {
-      return schools;
+      return schoolsWithinRadius;
     }
 
-    return schools.filter((school) =>
+    return schoolsWithinRadius.filter((school) =>
       [school.name, school.email, school.address, school.city]
         .filter(Boolean)
         .some((value) =>
           String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
         ),
     );
-  }, [schools, searchTerm]);
+  }, [location.latitude, location.longitude, schools, searchTerm]);
 
   return (
     <div className="real-map-page">
@@ -123,7 +159,7 @@ function MapPage() {
         <div>
           <span className="dashboard__eyebrow">Geolocalização</span>
           <h1>Mapa de escolas</h1>
-          <p>Visualize as escolas cadastradas no sistema.</p>
+          <p>Visualize as escolas cadastradas dentro de um raio de 25 km.</p>
         </div>
 
         <div className="real-map-toolbar__actions">
@@ -174,7 +210,7 @@ function MapPage() {
             <div className="map-summary">
               <span>
                 <GraduationCap size={16} />
-                <strong>{schools.length}</strong> escolas
+                <strong>{filteredSchools.length}</strong> escolas em até 25 km
               </span>
             </div>
           </div>
@@ -191,31 +227,41 @@ function MapPage() {
               <div className="map-list-state">
                 <MapPin size={28} />
                 <strong>Nenhuma escola encontrada</strong>
-                <p>Verifique se as escolas possuem latitude e longitude.</p>
+                <p>Não há escolas cadastradas dentro de 25 km do seu ponto atual.</p>
               </div>
             )}
 
             {!isLoading &&
-              filteredSchools.map((school) => (
-                <article
-                  className="map-person-card"
-                  key={`institution-${school.id}`}
-                >
-                  <div className="map-person-card__avatar map-person-card__avatar--institution">
-                    <GraduationCap size={19} />
-                  </div>
+              filteredSchools.map((school) => {
+                const distanceKm = getDistanceKm(
+                  location.latitude,
+                  location.longitude,
+                  school.latitude,
+                  school.longitude,
+                );
 
-                  <div className="map-person-card__content">
-                    <div>
-                      <strong>{school.name}</strong>
-                      <span>Escola</span>
+                return (
+                  <article
+                    className="map-person-card"
+                    key={`institution-${school.id}`}
+                  >
+                    <div className="map-person-card__avatar map-person-card__avatar--institution">
+                      <GraduationCap size={19} />
                     </div>
 
-                    {school.address && <p>{school.address}</p>}
-                    {school.city && <small>{school.city}</small>}
-                  </div>
-                </article>
-              ))}
+                    <div className="map-person-card__content">
+                      <div>
+                        <strong>{school.name}</strong>
+                        <span>Escola</span>
+                      </div>
+
+                      {school.address && <p>{school.address}</p>}
+                      {school.city && <small>{school.city}</small>}
+                      <small>{distanceKm.toFixed(1)} km de você</small>
+                    </div>
+                  </article>
+                );
+              })}
           </div>
         </aside>
 
@@ -247,22 +293,32 @@ function MapPage() {
               </Popup>
             </Marker>
 
-            {filteredSchools.map((school) => (
-              <Marker
-                key={`institution-${school.id}`}
-                position={[school.latitude, school.longitude]}
-                icon={createEntityMarkerIcon("institution")}
-              >
-                <Popup>
-                  <div className="entity-popup">
-                    <strong>{school.name}</strong>
-                    <span>Escola</span>
-                    {school.address && <p>{school.address}</p>}
-                    {school.city && <small>{school.city}</small>}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {filteredSchools.map((school) => {
+              const distanceKm = getDistanceKm(
+                location.latitude,
+                location.longitude,
+                school.latitude,
+                school.longitude,
+              );
+
+              return (
+                <Marker
+                  key={`institution-${school.id}`}
+                  position={[school.latitude, school.longitude]}
+                  icon={createEntityMarkerIcon("institution")}
+                >
+                  <Popup>
+                    <div className="entity-popup">
+                      <strong>{school.name}</strong>
+                      <span>Escola</span>
+                      {school.address && <p>{school.address}</p>}
+                      {school.city && <small>{school.city}</small>}
+                      <small>{distanceKm.toFixed(1)} km de você</small>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
 
           <div className="real-map-status">
