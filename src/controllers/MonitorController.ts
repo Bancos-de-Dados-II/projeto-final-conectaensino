@@ -2,16 +2,14 @@ import { Request, Response } from 'express';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Institution } from '../models/mongodb/Institution';
 import { supabase } from '../config/supabase';
+import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
 
 export const MonitorController = {
   // Criar Perfil de Monitor (Orquestrando MongoDB + Supabase)
   async create(req: Request, res: Response) {
     try {
-      console.log('--- INÍCIO DO CADASTRO DE MONITOR ---');
-      console.log('Payload recebido no body:', req.body);
-
-      // Extraímos todas as variações possíveis que o front-end pode enviar para o nome
+      console.log('--- INÍCIO DO CADASTRO DE MONITOR COM AUTH ---');
       const { 
         email, 
         institutionId, 
@@ -25,94 +23,107 @@ export const MonitorController = {
       } = req.body;
 
       if (!email) {
-        console.log('Erro: E-mail não informado.');
-        return res.status(400).json({ message: 'O campo email é obrigatório para o cadastro.' });
+        return res.status(400).json({ message: 'O campo email é obrigatório.' });
       }
 
+      // 1. Validar se o e-mail já existe na tabela usuarios do Supabase (Unicidade)
+      const { data: existingUser } = await supabase
+        .from('usuarios')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUser) {
+        return res.status(400).json({ message: 'Já existe um monitor cadastrado com este e-mail.' });
+      }
+
+      // 2. Resolver localização da instituição ou coordenadas
       let monitorLocation;
       const isMongoId = institutionId && /^[0-9a-fA-F]{24}$/.test(institutionId);
 
       if (isMongoId) {
-        console.log('Buscando instituição no MongoDB por ID:', institutionId);
         const institution = await Institution.findById(institutionId);
         if (!institution) {
-          console.log('Erro: Instituição não encontrada no MongoDB.');
           return res.status(404).json({ message: 'Instituição não encontrada.' });
         }
-
         const instData = institution.toObject() as any;
         monitorLocation = {
           type: 'Point',
-          coordinates: [
-            instData.longitude || instData.lng || 0,
-            instData.latitude || instData.lat || 0
-          ]
+          coordinates: [instData.longitude || instData.lng || 0, instData.latitude || instData.lat || 0]
         };
       } else if (location && location.coordinates && location.coordinates.length === 2) {
-        console.log('Usando coordenadas diretas do payload:', location.coordinates);
         monitorLocation = {
           type: 'Point',
-          coordinates: [
-            parseFloat(location.coordinates[0]), // Longitude
-            parseFloat(location.coordinates[1])  // Latitude
-          ]
+          coordinates: [parseFloat(location.coordinates[0]), parseFloat(location.coordinates[1])]
         };
       } else {
-        console.log('Erro: Nem instituição válida do Mongo nem coordenadas foram fornecidas.');
-        return res.status(400).json({ message: 'A instituição válida ou as coordenadas geográficas são obrigatórias.' });
+        return res.status(400).json({ message: 'Instituição ou coordenadas geográficas são obrigatórias.' });
       }
 
-      // Gerando um ID único aleatório para cada novo cadastro
-      const uniqueUserId = `user-${randomUUID()}`;
-
-      // Prioriza rigorosamente o nome digitado no formulário
+      // 3. Gerar senha aleatória segura para o primeiro acesso
+      const randomPassword = crypto.randomBytes(6).toString('hex') + '!1A'; // Ex: a3f9b2!1A
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
 
+      // 4. Criar usuário no Supabase Auth (Gera credenciais reais de login)
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: email,
+        password: randomPassword,
+        email_confirm: true, // Já deixa o e-mail confirmado
+        user_metadata: { name: resolvedName, role: 'monitor' }
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário no Supabase Auth:', authError);
+        return res.status(400).json({ message: 'Erro ao gerar credenciais de acesso.', error: authError.message });
+      }
+
+      const authUserId = authData.user.id;
+
+      // 5. Salvar perfil detalhado no MongoDB
       const finalMonitorData = {
         ...monitorData,
-        name: resolvedName, // Salva o nome real preenchido no input do modal na raiz do MongoDB
-        userId: uniqueUserId, 
+        name: resolvedName,
+        userId: authUserId, 
         institutionId: isMongoId ? institutionId : undefined,
         location: monitorLocation
       };
 
-      console.log('Salvando MonitorProfile no MongoDB com userId:', uniqueUserId);
       const monitor = await MonitorProfile.create(finalMonitorData);
       const mongoProfileId = monitor._id.toString();
-      console.log('Monitor salvo no MongoDB com ID:', mongoProfileId);
 
-      console.log('Inserindo usuário na tabela usuarios do Supabase...');
-      const { data: usuarioSupabase, error: supabaseError } = await supabase
+      // 6. Inserir na tabela relacional 'usuarios' do Supabase vinculando o Auth e o Mongo
+      const { error: supabaseTableError } = await supabase
         .from('usuarios')
         .insert([
           { 
+            id: authUserId, // ID do Supabase Auth
             email: email, 
             mongo_profile_id: mongoProfileId 
           }
-        ])
-        .select()
-        .single();
+        ]);
 
-      if (supabaseError) {
-        console.error('Erro retornado pelo Supabase:', supabaseError);
-        console.log('Executando rollback: removendo do MongoDB o ID:', monitor._id);
+      if (supabaseTableError) {
+        console.error('Erro na tabela usuarios do Supabase. Executando rollback...', supabaseTableError);
+        await supabase.auth.admin.deleteUser(authUserId);
         await MonitorProfile.findByIdAndDelete(monitor._id);
         
         return res.status(400).json({ 
-          message: 'Erro de integridade relacional. Cadastro desfeito.', 
-          error: supabaseError.message 
+          message: 'Erro de integridade ao salvar usuário. Cadastro desfeito.', 
+          error: supabaseTableError.message 
         });
       }
 
-      console.log('Cadastro realizado com sucesso em ambos os bancos!');
+      console.log(`Monitor cadastrado com sucesso! E-mail: ${email} | Senha gerada: ${randomPassword}`);
+      
       return res.status(201).json({
-        message: 'Monitor cadastrado com sucesso em ambos os bancos!',
-        mongoData: monitor,
-        supabaseData: usuarioSupabase
+        message: 'Monitor cadastrado com sucesso com acesso ao sistema!',
+        email: email,
+        senhaTemporaria: randomPassword, // Você pode exibir isso no console/resposta para teste
+        mongoData: monitor
       });
 
     } catch (error: any) {
-      console.error('Erro crítico no bloco catch do MonitorController:', error);
+      console.error('Erro crítico no cadastro de monitor:', error);
       return res.status(500).json({ message: 'Erro ao criar perfil de monitor.', error: error.message });
     }
   },
@@ -210,6 +221,37 @@ export const MonitorController = {
       return res.status(200).json(monitors);
     } catch (error: any) {
       return res.status(500).json({ message: 'Erro na busca geoespacial.', error: error.message });
+    }
+  },
+
+  async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      console.log('--- INÍCIO DA EXCLUSÃO DE MONITOR --- ID:', id);
+
+      const monitor = await MonitorProfile.findById(id);
+      if (!monitor) {
+        return res.status(404).json({ message: 'Monitor não encontrado.' });
+      }
+
+      // Remove o registro correspondente na tabela 'usuarios' do Supabase
+      const { error: supabaseError } = await supabase
+        .from('usuarios')
+        .delete()
+        .eq('mongo_profile_id', id);
+
+      if (supabaseError) {
+        console.error('Erro ao excluir do Supabase:', supabaseError);
+      }
+
+      // Deleta o perfil do monitor no MongoDB
+      await MonitorProfile.findByIdAndDelete(id);
+
+      console.log('Monitor excluído com sucesso de ambos os bancos!');
+      return res.status(200).json({ message: 'Monitor excluído com sucesso!' });
+    } catch (error: any) {
+      console.error('Erro crítico ao excluir monitor:', error);
+      return res.status(500).json({ message: 'Erro ao excluir monitor.', error: error.message });
     }
   },
 };
