@@ -37,20 +37,19 @@ export const monitorsResource: CrudResourceConfig = {
   title: "Monitores",
   description: "Cadastre e acompanhe os monitores disponíveis.",
   singular: "monitor",
-  endpoint: "/monitors",
+  endpoint: "/monitors", // Alterado de "/api/monitors" para "/monitors"
   searchableFields: [
     "name",
-    "nome",
     "email",
-    "subject",
-    "disciplina",
-    "institution",
+    "disciplinas",
+    "telefoneContato",
+    "enderecoResidencial",
   ],
   fields: [
     {
       key: "name",
-      label: "Nome",
-      placeholder: "Nome completo",
+      label: "Nome Completo",
+      placeholder: "Nome do monitor",
       required: true,
     },
     {
@@ -61,14 +60,37 @@ export const monitorsResource: CrudResourceConfig = {
       required: true,
     },
     {
-      key: "subject",
-      label: "Disciplina",
-      placeholder: "Área de monitoria",
+      key: "institutionId",
+      label: "Instituição",
+      type: "select",
+      placeholder: "Selecione a instituição",
+      required: true,
+      // Se o seu EntityManager suporta carregar opções de uma API, mantenha. 
+      // Caso contrário, se ele usa uma lista estática, preencha o array `options: [...]` com as escolas.
+      optionsEndpoint: "/api/institutions", 
     },
     {
-      key: "institution",
-      label: "Instituição",
-      placeholder: "Nome da instituição",
+      key: "disciplinas",
+      label: "Disciplinas",
+      placeholder: "Ex: Matemática, Física",
+      required: true,
+    },
+    {
+      key: "disponibilidade",
+      label: "Disponibilidade",
+      placeholder: "Ex: Segunda Manhã, Terça Tarde",
+      required: true,
+    },
+    {
+      key: "telefoneContato",
+      label: "Telefone de Contato",
+      placeholder: "(83) 99999-9999",
+    },
+    {
+      key: "enderecoResidencial",
+      label: "Endereço Residencial",
+      placeholder: "Rua Exemplo, 123",
+      required: true,
     },
   ],
 };

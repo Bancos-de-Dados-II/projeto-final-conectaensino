@@ -1,4 +1,4 @@
-export type FieldType = "text" | "email" | "number" | "textarea";
+export type FieldType = "text" | "number" | "email" | "textarea" | "select";
 
 export interface CrudField {
   key: string;
@@ -6,6 +6,8 @@ export interface CrudField {
   type?: FieldType;
   placeholder?: string;
   required?: boolean;
+  options?: { label: string; value: string | number }[];
+  optionsEndpoint?: string; // Endpoint para buscar dados dinâmicos, se o seu EntityManager suportar
 }
 
 export interface CrudEntity {

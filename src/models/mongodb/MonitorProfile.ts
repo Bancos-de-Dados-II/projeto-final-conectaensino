@@ -26,10 +26,9 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     },
     institutionId: {
       type: Schema.Types.ObjectId,
-      ref: 'Institution', // 👈 Popula com dados da Instituição
-      required: true,
-      index: true,
-    },
+      ref: 'Institution',
+      required: false, // Permite que monitores originados do CSV fiquem sem ID do MongoDB
+  },
     disciplinas: {
       type: [String],
       required: true,

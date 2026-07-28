@@ -40,11 +40,20 @@ function getDisplayValue(
   for (const key of keys) {
     const value = entity[key];
 
-    if (
-      typeof value === "string" ||
-      typeof value === "number"
-    ) {
+    if (typeof value === "string" || typeof value === "number") {
       return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(v => typeof v === 'object' && v !== null ? (v.nome || v.name || '') : String(v)).filter(Boolean).join(", ");
+    }
+
+    if (value && typeof value === "object") {
+      const objValue = value as Record<string, unknown>;
+      const resolved = objValue.nome || objValue.name || objValue.title || objValue.email;
+      if (typeof resolved === "string") {
+        return resolved;
+      }
     }
   }
 
@@ -54,8 +63,8 @@ function getDisplayValue(
 function getEntityName(entity: CrudEntity): string {
   return getDisplayValue(
     entity,
-    ["name", "nome", "title", "titulo", "email"],
-    "Registro",
+    ["name", "nome", "fullName", "nomeCompleto", "email"],
+    "Monitor",
   );
 }
 
@@ -72,12 +81,14 @@ function EntityManager({ config }: EntityManagerProps) {
   const [deletingEntity, setDeletingEntity] =
     useState<CrudEntity | null>(null);
 
-  const loadData = useCallback(async () => {
+ const loadData = useCallback(async () => {
     setLoading(true);
     setErrorMessage("");
 
     try {
-      setEntities(await listEntities(config.endpoint));
+      const data = await listEntities(config.endpoint);
+      console.log("Dados REAIS retornados do endpoint:", data);
+      setEntities(data);
     } catch (error) {
       setErrorMessage(
         axios.isAxiosError(error)
@@ -333,17 +344,17 @@ function EntityManager({ config }: EntityManagerProps) {
                       </div>
                     </td>
 
-                    {config.fields.slice(1, 4).map((field) => (
-                      <td key={field.key}>
-                        {getDisplayValue(entity, [
-                          field.key,
-                          field.key === "institution" ? "instituicao" : "",
-                          field.key === "subject" ? "disciplina" : "",
-                          field.key === "city" ? "cidade" : "",
-                          field.key === "code" ? "codigo" : "",
-                        ].filter(Boolean))}
-                      </td>
-                    ))}
+                  {config.fields.slice(1, 4).map((field) => (
+                  <td key={field.key}>
+                    {field.key === "email" ? (
+                      getDisplayValue(entity, ["email", "eMail", "userEmail"])
+                    ) : field.key === "institutionId" ? (
+                      getDisplayValue(entity, ["institutionId", "institution", "instituicao", "nomeInstituicao"])
+                    ) : (
+                      getDisplayValue(entity, [field.key, "disciplinas", "subject", "course", "curso", "disponibilidade"])
+                    )}
+                  </td>
+                ))}
 
                     <td>
                       <div className="crud-row-actions">
