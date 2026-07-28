@@ -1,3 +1,4 @@
+import schoolsCsv from "../../escolas_pb_limpo.csv?raw";
 import { api } from "../api/axios";
 import type {
   MapEntity,
@@ -119,6 +120,52 @@ function extractCollection(payload: unknown): unknown[] {
   return [];
 }
 
+function parseSchoolsFromCsv(csvText: string): MapEntity[] {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const headers = lines[0].split(",").map((header) => header.trim());
+
+  return lines.slice(1).flatMap((line, index) => {
+    const values = line.split(",").map((value) => value.trim());
+    const row = Object.fromEntries(
+      headers.map((header, headerIndex) => [header, values[headerIndex] ?? ""]),
+    );
+
+    const latitude = Number(row.latitude);
+    const longitude = Number(row.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return [];
+    }
+
+    return [
+      {
+        id: `csv-school-${index}`,
+        name: row.nome_escola || `Escola ${index + 1}`,
+        email: undefined,
+        type: "institution" as const,
+        latitude,
+        longitude,
+        distanceKm: undefined,
+        institution: row.nome_escola || `Escola ${index + 1}`,
+        subject: undefined,
+        rating: undefined,
+        available: true,
+        address: undefined,
+        city: undefined,
+        raw: row,
+      },
+    ];
+  });
+}
+
 function normalizeEntity(
   source: unknown,
   type: MapEntityType,
@@ -168,8 +215,22 @@ function normalizeEntity(
     ]),
   );
 
+  const locationCoordinates = readNested(source, [
+    "location.coordinates",
+    "localizacao.coordinates",
+    "coordinates",
+  ]);
+
+  const parsedCoordinates =
+    Array.isArray(locationCoordinates) && locationCoordinates.length >= 2
+      ? [locationCoordinates[1], locationCoordinates[0]]
+      : undefined;
+
+  const resolvedLatitude = latitude ?? asNumber(parsedCoordinates?.[0]);
+  const resolvedLongitude = longitude ?? asNumber(parsedCoordinates?.[1]);
+
   // Entidades sem coordenadas válidas não podem ser exibidas no Leaflet.
-  if (latitude === undefined || longitude === undefined) {
+  if (resolvedLatitude === undefined || resolvedLongitude === undefined) {
     return null;
   }
 
@@ -214,8 +275,8 @@ function normalizeEntity(
       ]),
     ),
     type,
-    latitude,
-    longitude,
+    latitude: resolvedLatitude,
+    longitude: resolvedLongitude,
     distanceKm: asNumber(
       readNested(source, [
         "distance",
@@ -321,9 +382,18 @@ export function getNearbyMonitors(
 }
 
 export async function getInstitutions(): Promise<MapEntity[]> {
-  const { data } = await api.get("/institutions");
+  try {
+    const { data } = await api.get("/institutions");
+    const fromApi = extractCollection(data)
+      .map((item, index) => normalizeEntity(item, "institution", index))
+      .filter((item): item is MapEntity => item !== null);
 
-  return extractCollection(data)
-    .map((item, index) => normalizeEntity(item, "institution", index))
-    .filter((item): item is MapEntity => item !== null);
+    if (fromApi.length > 0) {
+      return fromApi;
+    }
+  } catch {
+    // Fallback para o CSV local quando a API ainda não tiver instituições cadastradas.
+  }
+
+  return parseSchoolsFromCsv(schoolsCsv);
 }

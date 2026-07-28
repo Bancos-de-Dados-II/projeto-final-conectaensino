@@ -1,37 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
-  Crosshair,
   GraduationCap,
-  ListFilter,
   LocateFixed,
   MapPin,
   RefreshCw,
   Search,
-  Star,
-  UserRound,
 } from "lucide-react";
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  TileLayer,
-} from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import MapViewport from "../components/map/MapViewport";
 import {
   createEntityMarkerIcon,
   userMarkerIcon,
 } from "../components/map/MapMarkerIcon";
-import {
-  getInstitutions,
-  getNearbyMonitors,
-} from "../services/map.service";
-import type {
-  MapCoordinates,
-  MapEntity,
-  MapEntityType,
-} from "../types/map";
+import { getInstitutions } from "../services/map.service";
+import type { MapCoordinates, MapEntity } from "../types/map";
 
 const DEFAULT_LOCATION: MapCoordinates = {
   latitude: -6.8897,
@@ -40,11 +24,7 @@ const DEFAULT_LOCATION: MapCoordinates = {
 
 function MapPage() {
   const [location, setLocation] = useState<MapCoordinates>(DEFAULT_LOCATION);
-  const [entities, setEntities] = useState<MapEntity[]>([]);
-  const [selectedType, setSelectedType] = useState<"all" | MapEntityType>(
-    "all",
-  );
-  const [radiusKm, setRadiusKm] = useState(10);
+  const [schools, setSchools] = useState<MapEntity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLocating, setIsLocating] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,83 +33,53 @@ function MapPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadNearbyEntities = useCallback(
-    async (coordinates: MapCoordinates) => {
-      setIsLoading(true);
-      setErrorMessage("");
+  const loadSchools = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage("");
 
-      try {
-        const results = await Promise.allSettled([
-          getNearbyMonitors({
-            ...coordinates,
-            radiusKm,
-          }),
-          getInstitutions(),
-        ]);
-
-        const monitors =
-          results[0].status === "fulfilled" ? results[0].value : [];
-        const institutions =
-          results[1].status === "fulfilled" ? results[1].value : [];
-
-        setEntities([...monitors, ...institutions]);
-
-        if (results.every((result) => result.status === "rejected")) {
-          throw new Error("Nenhum endpoint de localização respondeu.");
-        }
-
-        if (results.some((result) => result.status === "rejected")) {
-          setErrorMessage(
-            "Uma das listas não pôde ser carregada, mas o restante do mapa continua disponível.",
-          );
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          setErrorMessage(
-            error.response?.status === 404
-              ? "O endpoint de proximidade não foi encontrado no backend."
-              : "Não foi possível carregar monitores e instituições.",
-          );
-        } else {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Não foi possível carregar o mapa.",
-          );
-        }
-
-        setEntities([]);
-      } finally {
-        setIsLoading(false);
+    try {
+      const institutions = await getInstitutions();
+      setSchools(institutions);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setErrorMessage(
+          error.response?.status === 404
+            ? "O endpoint de instituições não foi encontrado no backend."
+            : "Não foi possível carregar as escolas.",
+        );
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar o mapa.",
+        );
       }
-    },
-    [radiusKm],
-  );
+
+      setSchools([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const locateUser = useCallback(() => {
     setIsLocating(true);
-    setErrorMessage("");
 
     if (!navigator.geolocation) {
       setLocationMessage(
         "Geolocalização indisponível. Usando a localização padrão.",
       );
       setIsLocating(false);
-      void loadNearbyEntities(DEFAULT_LOCATION);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const currentLocation = {
+        setLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        };
-
-        setLocation(currentLocation);
+        });
         setLocationMessage("Sua localização atual");
         setIsLocating(false);
-        void loadNearbyEntities(currentLocation);
       },
       () => {
         setLocation(DEFAULT_LOCATION);
@@ -137,7 +87,6 @@ function MapPage() {
           "Permissão não concedida. Usando Cajazeiras como referência.",
         );
         setIsLocating(false);
-        void loadNearbyEntities(DEFAULT_LOCATION);
       },
       {
         enableHighAccuracy: true,
@@ -145,78 +94,43 @@ function MapPage() {
         maximumAge: 60000,
       },
     );
-  }, [loadNearbyEntities]);
+  }, []);
 
   useEffect(() => {
     locateUser();
-  }, [locateUser]);
+    void loadSchools();
+  }, [loadSchools, locateUser]);
 
-  const filteredEntities = useMemo(() => {
+  const filteredSchools = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
 
-    return entities.filter((entity) => {
-      const matchesType =
-        selectedType === "all" || entity.type === selectedType;
+    if (!normalizedSearch) {
+      return schools;
+    }
 
-      if (!matchesType) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return [
-        entity.name,
-        entity.subject,
-        entity.institution,
-        entity.email,
-        entity.address,
-        entity.city,
-      ]
+    return schools.filter((school) =>
+      [school.name, school.email, school.address, school.city]
         .filter(Boolean)
         .some((value) =>
           String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
-        );
-    });
-  }, [entities, searchTerm, selectedType]);
-
-  const monitorCount = entities.filter(
-    (entity) => entity.type === "monitor",
-  ).length;
-  const institutionCount = entities.filter(
-    (entity) => entity.type === "institution",
-  ).length;
+        ),
+    );
+  }, [schools, searchTerm]);
 
   return (
     <div className="real-map-page">
       <section className="real-map-toolbar">
         <div>
           <span className="dashboard__eyebrow">Geolocalização</span>
-          <h1>Mapa educacional</h1>
-          <p>
-            Visualize monitores próximos e instituições cadastradas.
-          </p>
+          <h1>Mapa de escolas</h1>
+          <p>Visualize as escolas cadastradas no sistema.</p>
         </div>
 
         <div className="real-map-toolbar__actions">
-          <label className="map-radius-field">
-            <span>Raio</span>
-            <select
-              value={radiusKm}
-              onChange={(event) => setRadiusKm(Number(event.target.value))}
-            >
-              <option value={5}>5 km</option>
-              <option value={10}>10 km</option>
-              <option value={20}>20 km</option>
-              <option value={50}>50 km</option>
-            </select>
-          </label>
-
           <button
             className="secondary-button map-action-button"
             type="button"
-            onClick={() => void loadNearbyEntities(location)}
+            onClick={() => void loadSchools()}
             disabled={isLoading}
           >
             <RefreshCw
@@ -251,49 +165,16 @@ function MapPage() {
               <Search size={17} />
               <input
                 type="search"
-                placeholder="Pesquisar no mapa..."
+                placeholder="Pesquisar escola..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
 
-            <div className="map-filter-tabs" aria-label="Filtrar mapa">
-              <button
-                type="button"
-                className={selectedType === "all" ? "active" : ""}
-                onClick={() => setSelectedType("all")}
-              >
-                <ListFilter size={15} />
-                Todos
-              </button>
-
-              <button
-                type="button"
-                className={selectedType === "monitor" ? "active" : ""}
-                onClick={() => setSelectedType("monitor")}
-              >
-                <GraduationCap size={15} />
-                Monitores
-              </button>
-
-              <button
-                type="button"
-                className={selectedType === "institution" ? "active" : ""}
-                onClick={() => setSelectedType("institution")}
-              >
-                <GraduationCap size={15} />
-                Instituições
-              </button>
-            </div>
-
             <div className="map-summary">
               <span>
                 <GraduationCap size={16} />
-                <strong>{monitorCount}</strong> monitores
-              </span>
-              <span>
-                <GraduationCap size={16} />
-                <strong>{institutionCount}</strong> instituições
+                <strong>{schools.length}</strong> escolas
               </span>
             </div>
           </div>
@@ -302,59 +183,36 @@ function MapPage() {
             {isLoading && (
               <div className="map-list-state">
                 <span className="route-loader__spinner" />
-                <p>Buscando monitores e instituições...</p>
+                <p>Carregando escolas...</p>
               </div>
             )}
 
-            {!isLoading && filteredEntities.length === 0 && (
+            {!isLoading && filteredSchools.length === 0 && (
               <div className="map-list-state">
                 <MapPin size={28} />
-                <strong>Nenhum resultado encontrado</strong>
-                <p>
-                  Tente aumentar o raio ou alterar os filtros da busca.
-                </p>
+                <strong>Nenhuma escola encontrada</strong>
+                <p>Verifique se as escolas possuem latitude e longitude.</p>
               </div>
             )}
 
             {!isLoading &&
-              filteredEntities.map((entity) => (
-                <article className="map-person-card" key={`${entity.type}-${entity.id}`}>
-                  <div
-                    className={`map-person-card__avatar map-person-card__avatar--${entity.type}`}
-                  >
-                    {entity.type === "monitor" ? (
-                      <UserRound size={19} />
-                    ) : (
-                      <GraduationCap size={19} />
-                    )}
+              filteredSchools.map((school) => (
+                <article
+                  className="map-person-card"
+                  key={`institution-${school.id}`}
+                >
+                  <div className="map-person-card__avatar map-person-card__avatar--institution">
+                    <GraduationCap size={19} />
                   </div>
 
                   <div className="map-person-card__content">
                     <div>
-                      <strong>{entity.name}</strong>
-                      <span>
-                        {entity.type === "monitor" ? "Monitor" : "Instituição"}
-                      </span>
+                      <strong>{school.name}</strong>
+                      <span>Escola</span>
                     </div>
 
-                    {entity.subject && <p>{entity.subject}</p>}
-                    {entity.institution && <small>{entity.institution}</small>}
-
-                    <footer>
-                      {typeof entity.rating === "number" && (
-                        <span>
-                          <Star size={13} fill="currentColor" />
-                          {entity.rating.toFixed(1)}
-                        </span>
-                      )}
-
-                      {typeof entity.distanceKm === "number" && (
-                        <span>
-                          <Crosshair size={13} />
-                          {entity.distanceKm.toFixed(1)} km
-                        </span>
-                      )}
-                    </footer>
+                    {school.address && <p>{school.address}</p>}
+                    {school.city && <small>{school.city}</small>}
                   </div>
                 </article>
               ))}
@@ -389,23 +247,18 @@ function MapPage() {
               </Popup>
             </Marker>
 
-            {filteredEntities.map((entity) => (
+            {filteredSchools.map((school) => (
               <Marker
-                key={`${entity.type}-${entity.id}`}
-                position={[entity.latitude, entity.longitude]}
-                icon={createEntityMarkerIcon(entity.type)}
+                key={`institution-${school.id}`}
+                position={[school.latitude, school.longitude]}
+                icon={createEntityMarkerIcon("institution")}
               >
                 <Popup>
                   <div className="entity-popup">
-                    <strong>{entity.name}</strong>
-                    <span>
-                      {entity.type === "monitor" ? "Monitor" : "Instituição"}
-                    </span>
-                    {entity.subject && <p>{entity.subject}</p>}
-                    {entity.institution && <small>{entity.institution}</small>}
-                    {typeof entity.distanceKm === "number" && (
-                      <small>{entity.distanceKm.toFixed(1)} km de distância</small>
-                    )}
+                    <strong>{school.name}</strong>
+                    <span>Escola</span>
+                    {school.address && <p>{school.address}</p>}
+                    {school.city && <small>{school.city}</small>}
                   </div>
                 </Popup>
               </Marker>

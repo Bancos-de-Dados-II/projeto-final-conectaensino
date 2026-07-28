@@ -3,7 +3,7 @@ import L from "leaflet";
 import type { MapEntityType } from "../../types/map";
 
 export function createEntityMarkerIcon(type: MapEntityType) {
-  const label = type === "monitor" ? "M" : "A";
+  const label = type === "monitor" ? "M" : "E";
 
   return L.divIcon({
     className: "entity-marker-wrapper",

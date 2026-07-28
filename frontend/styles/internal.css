@@ -1420,7 +1420,8 @@
   background: rgba(91, 124, 250, .13);
 }
 
-.map-person-card__avatar--student {
+.map-person-card__avatar--student,
+.map-person-card__avatar--institution {
   color: #6edcaf;
   background: rgba(53, 199, 138, .12);
 }
@@ -1594,7 +1595,8 @@
 }
 
 .entity-marker--monitor { background: var(--primary); }
-.entity-marker--student { background: var(--green); }
+.entity-marker--student,
+.entity-marker--institution { background: var(--green); }
 
 .entity-marker::first-letter {
   transform: rotate(45deg);
