@@ -5,13 +5,14 @@ import { MainLayout } from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import { Placeholder } from './pages/Placeholder';
+import MapPage from '../pages/MapPage';
 
 export default function App() {
   return <Routes>
     <Route path="/login" element={<Login />} />
     <Route element={<ProtectedRoute />}><Route element={<MainLayout />}>
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/mapa" element={<Placeholder title="Mapa" description="Mapa interativo e geolocalização serão implementados na Sprint 02." icon={FiMap} />} />
+      <Route path="/mapa" element={<MapPage />} />
       <Route path="/monitores" element={<Placeholder title="Monitores" description="Listagem e busca de monitores já possuem rota preparada." icon={FiMonitor} />} />
       <Route path="/alunos" element={<Placeholder title="Alunos" description="Área destinada aos perfis de estudantes." icon={FiUsers} />} />
       <Route path="/sessoes" element={<Placeholder title="Sessões" description="Solicitações e acompanhamento de sessões." icon={FiBookOpen} />} />

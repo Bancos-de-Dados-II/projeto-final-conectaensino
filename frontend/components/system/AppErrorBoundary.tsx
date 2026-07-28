@@ -1,38 +1,56 @@
+import {
+  Component,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Component, type ErrorInfo, type ReactNode } from "react";
 
-export default class AppErrorBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
+interface Props {
+  children: ReactNode;
+}
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+interface State {
+  hasError: boolean;
+}
+
+export default class AppErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false };
+
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Erro no Conecta Ensino:", error, info);
+    console.error("Erro não tratado no Conecta Ensino:", error, info);
   }
 
   render() {
-    if (!this.state.failed) return this.props.children;
+    if (this.state.hasError) {
+      return (
+        <main className="prototype-system-page">
+          <section className="prototype-system-card">
+            <span className="prototype-system-icon">
+              <AlertTriangle size={35} />
+            </span>
+            <span className="prototype-kicker">ERRO DO SISTEMA</span>
+            <h1>Não foi possível carregar esta tela</h1>
+            <p>
+              Atualize a aplicação para tentar novamente. Seus dados não
+              foram removidos.
+            </p>
+            <button
+              className="prototype-primary-button"
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw size={17} />
+              Atualizar
+            </button>
+          </section>
+        </main>
+      );
+    }
 
-    return (
-      <main className="prototype-system-state">
-        <section className="prototype-card prototype-system-card">
-          <span className="prototype-icon">
-            <AlertTriangle size={31} />
-          </span>
-          <small className="prototype-kicker">ERRO DO SISTEMA</small>
-          <h1>Não foi possível carregar esta página</h1>
-          <p>Atualize a aplicação para tentar novamente.</p>
-          <button type="button" onClick={() => window.location.reload()}>
-            <RefreshCw size={16} />
-            Atualizar
-          </button>
-        </section>
-      </main>
-    );
+    return this.props.children;
   }
 }

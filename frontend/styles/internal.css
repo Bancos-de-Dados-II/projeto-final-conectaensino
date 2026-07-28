@@ -5678,3 +5678,181 @@ select {
     padding: 24px 19px;
   }
 }
+/* =========================================================
+   MAPA — CORREÇÃO FINAL
+   ========================================================= */
+
+.real-map-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 28px;
+}
+
+/* O JSX possui:
+   1º aside.map-results-panel
+   2º div.real-map-container
+
+   As áreas abaixo posicionam o mapa à esquerda e o painel à direita.
+*/
+.real-map-layout {
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: calc(100vh - var(--header-height) - 175px) !important;
+  min-height: 570px !important;
+
+  grid-template-columns: minmax(0, 1fr) 300px !important;
+  grid-template-areas: "map results" !important;
+
+  align-items: stretch !important;
+  overflow: hidden !important;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Painel de usuários à direita */
+.map-results-panel {
+  grid-area: results !important;
+
+  display: flex !important;
+  width: 300px !important;
+  min-width: 0 !important;
+  max-width: 300px !important;
+  height: 100% !important;
+
+  flex-direction: column !important;
+  overflow: hidden !important;
+
+  background: var(--surface);
+  border-right: 0 !important;
+  border-left: 1px solid var(--border) !important;
+}
+
+/* Área principal do mapa */
+.real-map-container {
+  grid-area: map !important;
+
+  position: relative !important;
+  display: block !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: 100% !important;
+  min-height: 570px !important;
+
+  overflow: hidden !important;
+}
+
+/* Elemento raiz criado pelo React Leaflet */
+.real-map-container > .leaflet-container,
+.real-map-container .leaflet-map {
+  position: absolute !important;
+  inset: 0 !important;
+
+  display: block !important;
+
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+
+  height: 100% !important;
+  min-height: 570px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/*
+ * Não definir largura nos panes internos.
+ * O Leaflet controla esses elementos por transformações.
+ */
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-popup-pane,
+.leaflet-tile-container,
+.leaflet-layer {
+  max-width: none !important;
+}
+
+/* Lista interna */
+.map-results-list {
+  min-height: 0 !important;
+  flex: 1 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Mensagem inferior sobre o mapa */
+.real-map-status {
+  right: 14px !important;
+  bottom: 14px !important;
+  left: auto !important;
+}
+
+/* Notebook e telas médias */
+@media (max-width: 1100px) {
+  .real-map-layout {
+    grid-template-columns: minmax(0, 1fr) 270px !important;
+  }
+
+  .map-results-panel {
+    width: 270px !important;
+    max-width: 270px !important;
+  }
+}
+
+/* Celular e tablet */
+@media (max-width: 800px) {
+  .real-map-page {
+    padding: 18px 14px 30px;
+  }
+
+  .real-map-layout {
+    height: auto !important;
+    min-height: 0 !important;
+
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      "map"
+      "results" !important;
+  }
+
+  .real-map-container {
+    width: 100% !important;
+    height: 500px !important;
+    min-height: 500px !important;
+  }
+
+  .real-map-container > .leaflet-container,
+  .real-map-container .leaflet-map {
+    height: 500px !important;
+    min-height: 500px !important;
+  }
+
+  .map-results-panel {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 390px !important;
+
+    border-left: 0 !important;
+    border-top: 1px solid var(--border) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .real-map-container,
+  .real-map-container > .leaflet-container,
+  .real-map-container .leaflet-map {
+    height: 430px !important;
+    min-height: 430px !important;
+  }
+}

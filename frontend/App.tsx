@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import AppErrorBoundary from "./components/system/AppErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { AppearanceProvider } from "./contexts/AppearanceContext";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
@@ -27,6 +27,7 @@ const MonitorProfilePage = lazy(
 const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function Loader() {
@@ -39,54 +40,64 @@ function Loader() {
 }
 
 export default function App() {
+  const maintenanceMode =
+    import.meta.env.VITE_MAINTENANCE_MODE === "true";
+
   return (
     <AppErrorBoundary>
-      <ThemeProvider>
+      <AppearanceProvider>
         <Suspense fallback={<Loader />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+          {maintenanceMode ? (
+            <MaintenancePage />
+          ) : (
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
-            <Route
-              index
-              element={<Navigate to="/dashboard" replace />}
-            />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/mapa" element={<MapPage />} />
-            <Route path="/monitores" element={<MonitorsPage />} />
-            <Route
-              path="/monitores/:id"
-              element={<MonitorProfilePage />}
-            />
-            <Route path="/favoritos" element={<FavoritesPage />} />
-            <Route path="/mensagens" element={<ChatPage />} />
-            <Route path="/alunos" element={<StudentsPage />} />
-            <Route path="/sessoes" element={<SessionsPage />} />
-            <Route path="/agenda" element={<CalendarPage />} />
-            <Route
-              path="/historico"
-              element={<SessionHistoryPage />}
-            />
-            <Route
-              path="/instituicoes"
-              element={<InstitutionsPage />}
-            />
-            <Route path="/disciplinas" element={<SubjectsPage />} />
-            <Route
-              path="/certificados"
-              element={<CertificatesPage />}
-            />
-            <Route path="/avaliacoes" element={<ReviewsPage />} />
-            <Route path="/perfil" element={<ProfilePage />} />
-            <Route path="/configuracoes" element={<SettingsPage />} />
-          </Route>
-        </Route>
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout />}>
+                  <Route
+                    index
+                    element={<Navigate to="/dashboard" replace />}
+                  />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/mapa" element={<MapPage />} />
+                  <Route path="/monitores" element={<MonitorsPage />} />
+                  <Route
+                    path="/monitores/:id"
+                    element={<MonitorProfilePage />}
+                  />
+                  <Route path="/favoritos" element={<FavoritesPage />} />
+                  <Route path="/mensagens" element={<ChatPage />} />
+                  <Route path="/alunos" element={<StudentsPage />} />
+                  <Route path="/sessoes" element={<SessionsPage />} />
+                  <Route path="/agenda" element={<CalendarPage />} />
+                  <Route
+                    path="/historico"
+                    element={<SessionHistoryPage />}
+                  />
+                  <Route
+                    path="/instituicoes"
+                    element={<InstitutionsPage />}
+                  />
+                  <Route path="/disciplinas" element={<SubjectsPage />} />
+                  <Route
+                    path="/certificados"
+                    element={<CertificatesPage />}
+                  />
+                  <Route path="/avaliacoes" element={<ReviewsPage />} />
+                  <Route path="/perfil" element={<ProfilePage />} />
+                  <Route
+                    path="/configuracoes"
+                    element={<SettingsPage />}
+                  />
+                </Route>
+              </Route>
 
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Suspense>
-      </ThemeProvider>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          )}
+        </Suspense>
+      </AppearanceProvider>
     </AppErrorBoundary>
   );
 }

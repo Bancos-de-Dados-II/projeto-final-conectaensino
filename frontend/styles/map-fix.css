@@ -1,0 +1,94 @@
+/* Correção de layout e redimensionamento do mapa Leaflet */
+.real-map-layout {
+  display: grid !important;
+  width: 100% !important;
+  height: clamp(570px, calc(100vh - var(--header-height, 74px) - 150px), 850px) !important;
+  min-height: 570px !important;
+  grid-template-columns: minmax(0, 1fr) 330px !important;
+  grid-template-areas: "map results" !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+}
+
+.real-map-container {
+  grid-area: map !important;
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.map-results-panel {
+  grid-area: results !important;
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  border-right: 0 !important;
+  border-left: 1px solid var(--border) !important;
+}
+
+.leaflet-map,
+.real-map-container > .leaflet-container {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+}
+
+.real-map-status {
+  z-index: 500 !important;
+}
+
+@media (max-width: 1050px) {
+  .real-map-layout {
+    grid-template-columns: minmax(0, 1fr) 290px !important;
+  }
+}
+
+@media (max-width: 800px) {
+  .real-map-layout {
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 480px auto !important;
+    grid-template-areas:
+      "map"
+      "results" !important;
+  }
+
+  .real-map-container {
+    height: 480px !important;
+    min-height: 480px !important;
+  }
+
+  .map-results-panel {
+    height: auto !important;
+    max-height: 390px !important;
+    border-left: 0 !important;
+    border-top: 1px solid var(--border) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .real-map-layout {
+    grid-template-rows: 420px auto !important;
+  }
+
+  .real-map-container {
+    height: 420px !important;
+    min-height: 420px !important;
+  }
+}
