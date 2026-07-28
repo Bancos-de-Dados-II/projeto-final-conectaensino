@@ -7,8 +7,8 @@ import app from './app';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/conecta_ensino';
+const PORT = Number(process.env.PORT) || 3000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ensino';
 
 // Rota de teste do Supabase
 app.get('/api/teste-supabase', async (req, res) => {
@@ -34,9 +34,9 @@ async function start() {
     // 2. Conecta ao Upstash Redis
     await connectRedis();
 
-    // 3. Inicia o Servidor Express
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+    // 3. Inicia o Servidor Express (ouvindo em 0.0.0.0 para compatibilidade com o Render)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Servidor rodando na porta ${PORT}`);
     });
   } catch (error) {
     console.error('🔴 Erro de conexão com os bancos de dados:', error);

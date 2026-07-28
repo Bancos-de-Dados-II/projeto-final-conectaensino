@@ -15,14 +15,13 @@ export const InstitutionController = {
   },
 
   // Listar todas as Instituições
-  async listAll(req: Request, res: Response) {
+async listAll(req: Request, res: Response) {
     try {
-      const institutions = await Institution.find();
+      // Retorna todas as instituições para validação no front-end
+      const institutions = await Institution.find({});
       return res.status(200).json(institutions);
     } catch (error: any) {
-      return res
-        .status(500)
-        .json({ message: 'Erro ao listar instituições.', error: error.message });
+      return res.status(500).json({ message: 'Erro ao listar instituições.', error: error.message });
     }
   },
 

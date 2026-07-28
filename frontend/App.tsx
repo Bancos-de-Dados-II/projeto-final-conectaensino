@@ -7,6 +7,7 @@ import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 const Login = lazy(() => import("./pages/Login"));
+const RegisterDirector = lazy(() => import("./pages/RegisterDirector"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const MapPage = lazy(() => import("./pages/MapPage"));
 const MonitorsPage = lazy(() => import("./pages/MonitorsPage"));
@@ -52,6 +53,7 @@ export default function App() {
           ) : (
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/register/director" element={<RegisterDirector />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
