@@ -10,6 +10,7 @@ import type {
   CrudEntity,
   CrudField,
 } from "../../types/crud";
+import { getInstitutions } from "../../services/map.service";
 
 interface EntityFormModalProps {
   open: boolean;
@@ -52,6 +53,18 @@ function EntityFormModal({
   );
 
   const [values, setValues] = useState(initialValues);
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setLoadingInstitutions(true);
+      getInstitutions()
+        .then((data) => setInstitutions(data))
+        .catch((err) => console.error("Erro ao carregar instituições:", err))
+        .finally(() => setLoadingInstitutions(false));
+    }
+  }, [open]);
 
   useEffect(() => {
     setValues(initialValues);
@@ -61,17 +74,18 @@ function EntityFormModal({
     return null;
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const payload = fields.reduce<Record<string, unknown>>(
+    const rawValues = fields.reduce<Record<string, unknown>>(
       (result, field) => {
-        const value = values[field.key]?.trim() ?? "";
+        const val = values[field.key];
+        const value = typeof val === "string" ? val.trim() : val ?? "";
 
         if (field.type === "number") {
-          result[field.key] = value ? Number(value) : undefined;
+          result[field.key] = value !== "" ? Number(value) : undefined;
         } else {
-          result[field.key] = value || undefined;
+          result[field.key] = value !== "" ? value : undefined;
         }
 
         return result;
@@ -79,7 +93,53 @@ function EntityFormModal({
       {},
     );
 
-    await onSubmit(payload);
+    const selectedInst = institutions.find(
+      (inst, index) => String(inst._id || inst.id || inst.codigo_escola || index) === String(rawValues.institutionId)
+    );
+
+    let lat = 0;
+    let lng = 0;
+
+    if (selectedInst) {
+      if (selectedInst._id) {
+        rawValues.institutionId = selectedInst._id;
+      } else {
+        rawValues.institutionId = String(selectedInst.codigo_escola || selectedInst.id || "csv-inst");
+        lat = Number(selectedInst.latitude || 0);
+        lng = Number(selectedInst.longitude || 0);
+      }
+    }
+
+    // Garante que o nome seja enviado: pega do input ou extrai o nome limpo do e-mail digitado
+    const emailStr = String(rawValues.email || "monitor@email.com");
+    const fallbackName = emailStr.split("@")[0];
+    const formattedFallbackName = fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1);
+    
+    const finalName = rawValues.name || rawValues.nome || rawValues.fullName || formattedFallbackName;
+
+    const payload = {
+      ...rawValues,
+      name: finalName, // Força a inclusão do nome validado aqui
+      userId: rawValues.userId || "temp-user-id",
+      disciplinas: typeof rawValues.disciplinas === "string" 
+        ? rawValues.disciplinas.split(",").map((d: string) => d.trim()).filter(Boolean)
+        : rawValues.disciplinas,
+      disponibilidade: typeof rawValues.disponibilidade === "string"
+        ? rawValues.disponibilidade.split(",").map((d: string) => d.trim()).filter(Boolean)
+        : rawValues.disponibilidade,
+      location: {
+        type: "Point",
+        coordinates: [lng, lat],
+      },
+    };
+
+    console.log("Payload formatado para envio:", payload);
+
+    try {
+      await onSubmit(payload);
+    } catch (err: any) {
+      console.error("Erro capturado no envio:", err.response?.data || err.message);
+    }
   }
 
   return (
@@ -117,7 +177,32 @@ function EntityFormModal({
               <label className="crud-form-field" key={field.key}>
                 <span>{field.label}</span>
 
-                {field.type === "textarea" ? (
+                {field.key === "institutionId" || field.type === "select" ? (
+                  <select
+                    value={values[field.key] ?? ""}
+                    required={field.required}
+                    disabled={loadingInstitutions}
+                    onChange={(event) =>
+                      setValues((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">
+                      {loadingInstitutions ? "Carregando instituições..." : field.placeholder || "Selecione a instituição"}
+                    </option>
+                    {institutions.map((inst, index) => {
+                      const instId = inst._id || inst.id || inst.codigo_escola || index;
+                      const instName = inst.nome || inst.name || "Instituição";
+                      return (
+                        <option key={instId} value={instId}>
+                          {instName} {inst.cidade ? `- ${inst.cidade}` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : field.type === "textarea" ? (
                   <textarea
                     value={values[field.key] ?? ""}
                     placeholder={field.placeholder}
