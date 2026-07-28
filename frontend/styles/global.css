@@ -1,0 +1,198 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap");
+
+/* ── Reset & variáveis do protótipo ───────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root,
+:root[data-theme="original"] {
+  --bg: #0a0e14;
+  --surface: #111720;
+  --border: #1e2d3d;
+  --accent: #00c2ff;
+  --accent2: #ff6b35;
+  --text: #c9d1d9;
+  --text-dim: #556070;
+  --radius: 6px;
+  --font-main: "Syne", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  /* Compatibilidade com os componentes já existentes */
+  --background: var(--bg);
+  --surface-soft: #0d131b;
+  --surface-hover: #17212c;
+  --border-soft: #182534;
+  --text-primary: #ffffff;
+  --text-secondary: var(--text);
+  --text-muted: var(--text-dim);
+  --primary: var(--accent);
+  --primary-hover: #39d0ff;
+  --primary-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+  --green: #35c78a;
+  --purple: #9a76ff;
+  --orange: var(--accent2);
+  --red: #f16d75;
+  --header-height: 74px;
+  --sidebar-width: 340px;
+  --radius-md: var(--radius);
+  --radius-lg: 12px;
+  --shadow: none;
+
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-main);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+:root[data-theme="light"] {
+  --bg: #eef3f7;
+  --surface: #ffffff;
+  --border: #cad7e2;
+  --accent: #008fbd;
+  --accent2: #d94f1d;
+  --text: #243444;
+  --text-dim: #6c7b88;
+
+  --background: var(--bg);
+  --surface-soft: #f5f8fa;
+  --surface-hover: #e8f0f5;
+  --border-soft: #dce6ed;
+  --text-primary: #101820;
+  --text-secondary: var(--text);
+  --text-muted: var(--text-dim);
+  --primary: var(--accent);
+  --primary-hover: #007fa8;
+  --primary-soft: rgba(0, 143, 189, 0.12);
+  --orange: var(--accent2);
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+  min-height: 100%;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  overflow: hidden;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-main);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-main);
+}
+
+button,
+input,
+textarea,
+select {
+  color: inherit;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+::selection {
+  color: #061018;
+  background: var(--accent);
+}
+
+/* Scrollbar interna */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+/* Classes técnicas usam a fonte mono */
+.dashboard__eyebrow,
+.panel__eyebrow,
+.page-placeholder__eyebrow,
+.prototype-kicker,
+.prototype-status,
+.prototype-sidebar-label,
+.prototype-count,
+.prototype-field-title,
+.prototype-settings-form label > span,
+.prototype-panel__header > span,
+.sidebar-group__title,
+.search-shortcut,
+.route-loader,
+.table-helper,
+.status-badge {
+  font-family: var(--font-mono);
+}

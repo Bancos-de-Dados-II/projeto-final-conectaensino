@@ -1,0 +1,9 @@
+import { useEffect, useState } from "react";
+import { Heart, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import FavoriteButton from "../components/favorites/FavoriteButton";
+import { getFavoriteIds } from "../services/favorites.service";
+import { getMonitors } from "../services/experience.service";
+import type { PublicMonitor } from "../types/experience";
+export default function FavoritesPage(){const [items,setItems]=useState<PublicMonitor[]>([]);const [loading,setLoading]=useState(true);useEffect(()=>{void Promise.all([getFavoriteIds(),getMonitors()]).then(([ids,monitors])=>setItems(monitors.filter(m=>ids.includes(m.id)))).finally(()=>setLoading(false));},[]);
+return <section className="experience-page"><header className="experience-heading"><div><span className="page-kicker">Sua seleção</span><h1>Monitores favoritos</h1><p>Acesse rapidamente os profissionais que você salvou.</p></div></header>{loading?<div className="experience-loading"><span className="route-loader__spinner"/>Carregando favoritos...</div>:items.length===0?<div className="experience-empty panel"><Heart size={34}/><strong>Você ainda não possui favoritos</strong><p>Abra o perfil de um monitor e use o botão Favoritar.</p><Link className="primary-button" to="/monitores">Explorar monitores</Link></div>:<div className="favorite-grid">{items.map(m=><article className="favorite-card panel" key={m.id}><div className="favorite-card__avatar">{m.avatar?<img src={m.avatar} alt={m.name}/>:m.name.slice(0,2).toUpperCase()}</div><div><h2>{m.name}</h2><p>{m.institution||m.city||'Monitor Conecta Ensino'}</p><span><Star size={14}/>{m.rating.toFixed(1)}</span></div><FavoriteButton compact monitorId={m.id} onChange={fav=>!fav&&setItems(curr=>curr.filter(i=>i.id!==m.id))}/><Link to={`/monitores/${m.id}`}>Ver perfil</Link></article>)}</div>}</section>}
