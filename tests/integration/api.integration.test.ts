@@ -105,6 +105,18 @@ afterEach(() => {
 });
 
 describe('Fluxo de autenticação e rotas protegidas', () => {
+  it('valida os campos obrigatórios no cadastro de aluno', async () => {
+    const response = await request(app)
+      .post('/api/auth/register/student')
+      .send({
+        email: 'aluno@teste.com',
+        password: '123',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Erro na validação dos dados enviados.');
+  });
+
   it('autentica via Supabase e retorna token JWT', async () => {
     supabaseMock.auth.signInWithPassword.mockResolvedValueOnce({
       data: {

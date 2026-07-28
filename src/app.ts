@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { studentRoutes } from './routes/student.routes';
-import { monitorRoutes } from './routes/monitor.routes';
 import { institutionRoutes } from './routes/institution.routes';
 import rotasPrincipais from './routes';
 

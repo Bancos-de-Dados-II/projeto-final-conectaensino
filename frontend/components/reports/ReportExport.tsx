@@ -99,8 +99,12 @@ function ReportExport({ data }: ReportExportProps) {
       body: reportRows,
     });
 
+    const tableEndY = (
+      document as jsPDF & { lastAutoTable: { finalY: number } }
+    ).lastAutoTable.finalY;
+
     autoTable(document, {
-      startY: document.lastAutoTable.finalY + 12,
+      startY: tableEndY + 12,
       head: [["Mês", "Sessões"]],
       body: data.sessionsByMonth.map((item) => [item.label, item.value]),
     });
