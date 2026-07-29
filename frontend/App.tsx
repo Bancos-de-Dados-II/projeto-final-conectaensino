@@ -28,6 +28,9 @@ const SessionHistoryPage = lazy(
 const MonitorProfilePage = lazy(
   () => import("./pages/MonitorProfilePage"),
 );
+const StudentProfilePage = lazy(
+  () => import("./pages/StudentProfilePage"),
+);
 const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -82,7 +85,7 @@ export default function App() {
                   <Route
                     path="/favoritos"
                     element={
-                      <ProtectedRoute deniedRoles={["director"]}>
+                      <ProtectedRoute deniedRoles={["director", "student", "monitor"]}>
                         <FavoritesPage />
                       </ProtectedRoute>
                     }
@@ -96,12 +99,27 @@ export default function App() {
                     }
                   />
                   <Route path="/alunos" element={<StudentsPage />} />
+                  <Route
+                    path="/alunos/:id"
+                    element={
+                      <ProtectedRoute allowedRoles={["monitor"]}>
+                        <StudentProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/sessoes" element={<SessionsPage />} />
                   <Route
                     path="/sessoes/atividades"
                     element={<SessionActivitiesPage />}
                   />
-                  <Route path="/agenda" element={<CalendarPage />} />
+                  <Route
+                    path="/agenda"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <CalendarPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/historico"
                     element={<SessionHistoryPage />}

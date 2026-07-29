@@ -3,6 +3,11 @@ import { Schema, model, Document, Types } from 'mongoose';
 export interface IMonitorProfile extends Document {
   userId: string;
   name?: string;
+  email?: string;
+  course?: string;
+  lastLoginAt?: Date;
+  mustChangePassword?: boolean;
+  createdByDirectorId?: string;
   institutionId: Types.ObjectId; // 👈 Referência para a Instituição
   disciplinas: string[];
   disponibilidade: string[];
@@ -30,6 +35,26 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     name: {
       type: String,
       trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    course: {
+      type: String,
+      trim: true,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    createdByDirectorId: {
+      type: String,
+      index: true,
     },
     institutionId: {
       type: Schema.Types.ObjectId,

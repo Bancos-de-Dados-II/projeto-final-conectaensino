@@ -169,6 +169,8 @@ function GlobalSearch() {
   function selectDirectoryResult(result: DirectoryResult) {
     if (result.type === "monitor") {
       navigate(`/monitores/${result.id}`);
+    } else {
+      navigate(`/alunos/${encodeURIComponent(result.id)}`);
     }
     closeSearch();
   }
@@ -179,7 +181,61 @@ function GlobalSearch() {
 
     if (mode !== "city") {
       const firstResult = directoryResults[0];
-      if (firstResult) selectDirectoryResult(firstResult);
+      if (firstResult) {
+        selectDirectoryResult(firstResult);
+        return;
+      }
+
+      setLoading(true);
+      setErrorMessage("");
+      try {
+        if (mode === "monitor") {
+          const result = (await getMonitors())
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              subtitle:
+                [item.institution, item.email].filter(Boolean).join(" • ")
+                || "Monitor cadastrado",
+              type: "monitor" as const,
+            }))
+            .find((item) =>
+              `${item.name} ${item.subtitle}`
+                .toLocaleLowerCase("pt-BR")
+                .includes(query.trim().toLocaleLowerCase("pt-BR")),
+            );
+          if (result) {
+            selectDirectoryResult(result);
+            return;
+          }
+        } else {
+          const result = (await getEligibleStudents())
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              subtitle: item.email || "Aluno vinculado às suas sessões",
+              type: "student" as const,
+            }))
+            .find((item) =>
+              `${item.name} ${item.subtitle}`
+                .toLocaleLowerCase("pt-BR")
+                .includes(query.trim().toLocaleLowerCase("pt-BR")),
+            );
+          if (result) {
+            selectDirectoryResult(result);
+            return;
+          }
+        }
+        setErrorMessage(
+          `Nenhum ${entityLabel} encontrado com o nome informado.`,
+        );
+      } catch {
+        setErrorMessage(
+          `Não foi possível pesquisar ${entityLabel}s agora.`,
+        );
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 

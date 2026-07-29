@@ -233,11 +233,20 @@ export async function getProfile(): Promise<ProfileData | null> {
         email:
           asString(readNested(record, ["email", "user.email"])) || "",
         role: asString(readNested(record, ["role", "perfil"])),
-        phone: asString(readNested(record, ["phone", "telefone"])),
+        phone: asString(
+          readNested(record, ["phone", "telefone", "telefoneContato"]),
+        ),
         institution: asString(
           readNested(record, ["institution", "instituicao"]),
         ),
         course: asString(readNested(record, ["course", "curso"])),
+        specialty: asString(
+          readNested(record, [
+            "specialty",
+            "especialidade",
+            "tipoDeficiencia",
+          ]),
+        ),
       };
     } catch {
       // tenta o próximo endpoint

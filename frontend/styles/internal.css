@@ -151,6 +151,13 @@
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
@@ -2025,6 +2032,329 @@
     height: 430px;
     min-height: 430px;
   }
+}
+
+.student-calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-items: start;
+  gap: 16px;
+}
+
+.calendar-day {
+  cursor: pointer;
+}
+
+.calendar-day--selected {
+  background: rgba(91, 124, 250, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(91, 124, 250, 0.45);
+}
+
+.selected-day-agenda {
+  position: sticky;
+  top: calc(var(--header-height) + 20px);
+  overflow: hidden;
+}
+
+.selected-day-agenda > header {
+  padding: 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.selected-day-agenda h2 {
+  margin: 5px 0 0;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.selected-day-agenda__empty {
+  display: flex;
+  min-height: 210px;
+  padding: 20px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.selected-day-agenda__empty strong {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.selected-day-agenda__list {
+  display: flex;
+  padding: 8px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.selected-day-agenda__list > button {
+  display: grid;
+  width: 100%;
+  padding: 11px;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.selected-day-agenda__list > button:hover {
+  border-color: var(--primary);
+}
+
+.selected-day-agenda time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9eb0ff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.selected-day-agenda__list > button > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-day-agenda__list strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-day-agenda__list small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.selected-day-agenda__list i {
+  font-style: normal;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .student-calendar-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-day-agenda {
+    position: static;
+  }
+}
+
+.director-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
+  gap: 16px;
+}
+
+.director-performance {
+  grid-row: span 2;
+}
+
+.director-performance__groups {
+  display: grid;
+  padding: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.director-performance__groups h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.director-performance__groups section > p {
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.director-performance__row {
+  display: grid;
+  padding: 10px 0;
+  grid-template-columns: minmax(110px, 1fr) 100px 34px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.director-performance__row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.director-performance__row strong,
+.director-performance__row b {
+  font-size: 9px;
+}
+
+.director-performance__row small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-performance__row > div {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border-radius: 10px;
+}
+
+.director-performance__row i {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+.director-compose {
+  display: flex;
+  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.director-compose textarea,
+.director-channel__composer input {
+  color: var(--text-primary);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  outline: 0;
+}
+
+.director-compose textarea {
+  min-height: 75px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.director-compose button,
+.director-channel__composer button {
+  padding: 8px 12px;
+  color: #07111b;
+  background: var(--primary);
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.director-notes__list {
+  max-height: 260px;
+  padding: 0 12px 12px;
+  overflow-y: auto;
+}
+
+.director-notes__list > div {
+  display: flex;
+  padding: 9px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.director-notes__list p,
+.director-channel__messages p {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.director-notes__list button {
+  color: var(--danger);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.director-channel {
+  grid-column: 1 / -1;
+}
+
+.director-channel__messages {
+  display: flex;
+  min-height: 180px;
+  max-height: 350px;
+  padding: 14px;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.director-channel__messages > div {
+  padding: 10px;
+  background: var(--surface-soft);
+  border-radius: 8px;
+}
+
+.director-channel__messages strong {
+  display: block;
+  font-size: 9px;
+}
+
+.director-channel__messages small,
+.director-channel__messages time {
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.director-channel__messages p {
+  margin: 6px 0;
+}
+
+.director-channel__composer {
+  display: flex;
+  padding: 12px;
+  gap: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.director-channel__composer input {
+  min-width: 0;
+  padding: 0 11px;
+  flex: 1;
+}
+
+@media (max-width: 1000px) {
+  .director-dashboard-grid,
+  .director-performance__groups {
+    grid-template-columns: 1fr;
+  }
+
+  .director-performance {
+    grid-row: auto;
+  }
+}
+
+.crud-avatar {
+  overflow: hidden;
+}
+
+.crud-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Submenu de materiais vinculados às sessões */
@@ -6785,5 +7115,509 @@ select {
   .real-map-container .leaflet-map {
     height: 430px !important;
     min-height: 430px !important;
+  }
+}
+
+/* =========================================================
+   RESPONSIVIDADE GLOBAL — camada final
+   Mantém todos os módulos utilizáveis entre 320px e desktop.
+   ========================================================= */
+
+.main-content,
+.dashboard,
+.dashboard--analytics,
+.director-dashboard,
+.domain-page,
+.crud-page,
+.experience-page,
+.booking-page,
+.session-activities-page,
+.task-create-page,
+.settings-page,
+.real-map-page {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.panel,
+.profile-form,
+.profile-card,
+.crud-panel,
+.booking-form-card,
+.booking-availability,
+.activity-upload-panel,
+.activity-list-panel {
+  min-width: 0;
+}
+
+.panel img,
+.profile-card img,
+.monitor-hero img,
+.chat-page img {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.dashboard__heading > div,
+.crud-page__heading > div,
+.experience-heading > div,
+.panel__header > div,
+.monitor-hero__content {
+  min-width: 0;
+}
+
+.dashboard__heading h1,
+.crud-page__heading h1,
+.experience-heading h1,
+.monitor-hero h1,
+.panel__header h2 {
+  overflow-wrap: anywhere;
+}
+
+.director-performance__row,
+.director-channel__messages,
+.director-notes__list {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .dashboard,
+  .dashboard--analytics,
+  .director-dashboard,
+  .domain-page,
+  .crud-page,
+  .experience-page,
+  .booking-page,
+  .session-activities-page,
+  .task-create-page,
+  .settings-page,
+  .real-map-page {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .director-dashboard-grid,
+  .director-performance__groups {
+    grid-template-columns: 1fr;
+  }
+
+  .monitor-stat-grid > div {
+    min-width: 0;
+  }
+
+  .monitor-stat-grid strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}
+
+@media (max-width: 900px) {
+  /* A pesquisa deve continuar acessível em tablets e celulares. */
+  .header__search.global-search-trigger {
+    display: flex;
+  }
+
+  .header {
+    gap: 12px;
+    grid-template-columns: auto minmax(80px, 1fr) auto;
+  }
+
+  .header__search.global-search-trigger kbd {
+    display: none;
+  }
+
+  .chat-page {
+    width: calc(100% - 28px);
+    margin: 14px;
+    min-height: calc(100vh - var(--header-height) - 28px);
+  }
+
+  .notification-popover {
+    position: fixed;
+    top: calc(var(--header-height) + 8px);
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .calendar-toolbar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .main-content {
+    height: calc(100dvh - var(--header-height));
+    overflow-x: hidden;
+  }
+
+  .dashboard,
+  .dashboard--analytics,
+  .director-dashboard,
+  .domain-page,
+  .crud-page,
+  .experience-page,
+  .booking-page,
+  .session-activities-page,
+  .task-create-page,
+  .settings-page,
+  .real-map-page {
+    padding: 20px 14px 36px;
+  }
+
+  .dashboard__heading,
+  .crud-page__heading,
+  .experience-heading,
+  .panel__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-heading-actions,
+  .experience-heading > button,
+  .experience-heading > a {
+    width: 100%;
+  }
+
+  .dashboard-heading-actions > *,
+  .experience-heading > button,
+  .experience-heading > a {
+    flex: 1 1 auto;
+  }
+
+  .secondary-button {
+    width: auto;
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 11px;
+  }
+
+  .secondary-button::after {
+    content: none;
+  }
+
+  .primary-button {
+    min-height: 44px;
+  }
+
+  .icon-button,
+  .crud-row-actions button,
+  .global-search-modal header button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .crud-table-wrapper {
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .crud-table {
+    min-width: 680px;
+  }
+
+  .crud-table th,
+  .crud-table td {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .global-search-backdrop {
+    padding: 12px;
+    align-items: start;
+  }
+
+  .global-search-modal {
+    max-height: calc(100dvh - 24px);
+    border-radius: 13px;
+  }
+
+  .global-search-results {
+    max-height: calc(100dvh - 100px);
+  }
+
+  .history-list {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .history-item p,
+  .history-item small {
+    overflow-wrap: anywhere;
+  }
+
+  .monitor-hero {
+    padding: 20px 16px;
+  }
+
+  .monitor-hero__actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .monitor-hero__actions > * {
+    width: 100%;
+  }
+
+  .monitor-meta span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .monitor-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form__grid,
+  .crud-form__fields,
+  .activity-upload-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-input-field--full,
+  .crud-form-field:has(textarea) {
+    grid-column: auto;
+  }
+
+  .profile-school-suggestions {
+    max-height: min(260px, 45dvh);
+  }
+
+  .director-compose,
+  .director-channel__composer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .director-compose button,
+  .director-channel__composer button {
+    width: 100%;
+  }
+
+  .activity-report__footer,
+  .task-create-form__actions,
+  .crud-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .activity-report__footer button,
+  .task-create-form__actions button,
+  .crud-modal__footer button {
+    width: 100%;
+  }
+
+  .real-map-toolbar,
+  .real-map-toolbar__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .real-map-toolbar__actions > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  :root {
+    --sidebar-width: min(86vw, 300px);
+  }
+
+  .header {
+    padding: 0 9px;
+    gap: 7px;
+    grid-template-columns: auto minmax(44px, 1fr) auto;
+  }
+
+  .header__brand {
+    gap: 5px;
+  }
+
+  .brand-logo {
+    display: none;
+  }
+
+  .header__actions {
+    gap: 4px;
+  }
+
+  .header__search.global-search-trigger {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .header__search.global-search-trigger span {
+    font-size: 0;
+  }
+
+  .header__search.global-search-trigger span::after {
+    font-size: 10px;
+    content: "Pesquisar";
+  }
+
+  .profile-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .notification-center .icon-button {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .dashboard__heading h1,
+  .crud-page__heading h1 {
+    font-size: 25px;
+  }
+
+  .experience-heading h1,
+  .monitor-hero h1 {
+    font-size: 22px;
+  }
+
+  .panel__header {
+    min-height: 0;
+    padding: 15px;
+  }
+
+  .stats-grid,
+  .stats-grid--five,
+  .quick-actions__grid,
+  .analytics-grid,
+  .activity-report,
+  .session-grid,
+  .certificate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crud-modal-backdrop,
+  .experience-modal-backdrop {
+    padding: 0;
+    align-items: end;
+  }
+
+  .crud-modal,
+  .experience-modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .crud-modal__header,
+  .crud-form__fields,
+  .crud-modal__footer,
+  .experience-modal header,
+  .experience-modal__body {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .history-item {
+    grid-template-columns: 43px minmax(0, 1fr);
+  }
+
+  .history-item > .status-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .booking-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    min-width: 620px;
+  }
+
+  .chat-page {
+    width: 100%;
+    min-height: calc(100dvh - var(--header-height));
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .conversation-sidebar__header,
+  .chat-panel__header,
+  .chat-composer {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .map-results-panel {
+    max-height: 50dvh !important;
+  }
+
+  .real-map-container,
+  .real-map-container > .leaflet-container,
+  .real-map-container .leaflet-map {
+    height: 58dvh !important;
+    min-height: 360px !important;
+  }
+
+  .login-area,
+  .login-area--register {
+    min-height: 100dvh;
+    padding: 12px;
+  }
+
+  .login-card,
+  .login-card--register {
+    padding: 22px 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    grid-template-columns: auto minmax(40px, 1fr) auto;
+  }
+
+  .header__search.global-search-trigger span::after {
+    content: "";
+  }
+
+  .dashboard,
+  .dashboard--analytics,
+  .director-dashboard,
+  .domain-page,
+  .crud-page,
+  .experience-page,
+  .booking-page,
+  .session-activities-page,
+  .task-create-page,
+  .settings-page,
+  .real-map-page {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .booking-slots {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

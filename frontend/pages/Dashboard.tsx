@@ -17,6 +17,7 @@ import {
 import { Link } from "react-router-dom";
 
 import DashboardCharts from "../components/dashboard/DashboardCharts";
+import DirectorDashboard from "../components/dashboard/DirectorDashboard";
 import DashboardSkeleton from "../components/dashboard/DashboardSkeleton";
 import ReportExport from "../components/reports/ReportExport";
 import StatCard from "../components/StatCard";
@@ -160,6 +161,10 @@ export default function Dashboard() {
       setErrorMessage("Não foi possível atualizar o status da atividade.");
     }
   };
+
+  if (isDirector) {
+    return <DirectorDashboard />;
+  }
 
   if (loading) {
     return <DashboardSkeleton />;

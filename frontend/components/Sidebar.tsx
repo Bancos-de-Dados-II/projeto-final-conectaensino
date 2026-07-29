@@ -37,7 +37,7 @@ const mainItems = [
   { label: "Mapa", path: "/mapa", icon: MapPinned },
   { label: "Monitores", path: "/monitores", icon: GraduationCap },
   { label: "Favoritos", path: "/favoritos", icon: Heart },
-  { label: "Mensagens", path: "/mensagens", icon: MessageCircle },
+  { label: "Tira-dúvidas", path: "/mensagens", icon: MessageCircle },
   { label: "Alunos", path: "/alunos", icon: UsersRound },
   { label: "Sessões", path: "/sessoes", icon: CalendarDays },
   { label: "Agenda", path: "/agenda", icon: CalendarDays },
@@ -64,16 +64,20 @@ export default function Sidebar({
   const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
+  const isStudent = userRole === "student";
 
   // Filtra os itens principais aplicando as regras de perfil (Ex: Monitor não vê Mapa e Favoritos)
   const visibleMainItems = mainItems.filter((item) => {
     if (
       isDirector
-      && ["/mapa", "/mensagens", "/favoritos"].includes(item.path)
+      && ["/mapa", "/mensagens", "/favoritos", "/agenda"].includes(item.path)
     ) {
       return false;
     }
     if (isMonitor && (item.path === "/mapa" || item.path === "/favoritos")) {
+      return false;
+    }
+    if (isStudent && item.path === "/favoritos") {
       return false;
     }
     if (!canManage && item.path === "/alunos") {
@@ -103,7 +107,15 @@ export default function Sidebar({
           <SidebarGroup title="Principal">
             {visibleMainItems.map((item) => (
               <div key={item.path}>
-                <SidebarLink {...item} onNavigate={onNavigate} />
+                <SidebarLink
+                  {...item}
+                  label={
+                    isDirector && item.path === "/sessoes"
+                      ? "Acompanhamento"
+                      : item.label
+                  }
+                  onNavigate={onNavigate}
+                />
                 {item.path === "/sessoes" && (
                   <SidebarLink
                     label={
@@ -166,7 +178,7 @@ export default function Sidebar({
               onNavigate();
             }}
           >
-            Abrir mensagens
+            Abrir tira-dúvidas
           </button>
         </div>}
       </div>

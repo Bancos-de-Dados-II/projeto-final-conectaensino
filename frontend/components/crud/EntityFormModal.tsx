@@ -11,6 +11,9 @@ import type {
   CrudField,
 } from "../../types/crud";
 import { getInstitutions } from "../../services/map.service";
+import { getOwnAccountProfile } from "../../services/monitor-profile.service";
+import { useAuth } from "../../hooks/useAuth";
+import { getApplicationRole } from "../../utils/auth-role";
 
 interface EntityFormModalProps {
   open: boolean;
@@ -47,6 +50,7 @@ function EntityFormModal({
   onClose,
   onSubmit,
 }: EntityFormModalProps) {
+  const { user } = useAuth();
   const initialValues = useMemo(
     () => getInitialValues(fields, entity),
     [entity, fields],
@@ -60,7 +64,28 @@ function EntityFormModal({
     if (open) {
       setLoadingInstitutions(true);
       getInstitutions()
-        .then((data) => setInstitutions(data))
+        .then(async (data) => {
+          if (getApplicationRole(user) !== "director") {
+            setInstitutions(data);
+            return;
+          }
+          const profile = await getOwnAccountProfile();
+          const linked = profile.institutionId;
+          const linkedId =
+            linked && typeof linked === "object"
+              ? linked._id ?? linked.id
+              : linked;
+          const allowed = data.filter(
+            (institution) => String(institution.id) === String(linkedId),
+          );
+          setInstitutions(allowed);
+          if (allowed[0]) {
+            setValues((current) => ({
+              ...current,
+              institutionId: allowed[0].id,
+            }));
+          }
+        })
         .catch((err) => console.error("Erro ao carregar instituições:", err))
         .finally(() => setLoadingInstitutions(false));
     }

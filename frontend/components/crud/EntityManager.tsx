@@ -69,6 +69,20 @@ function getEntityName(entity: CrudEntity): string {
   );
 }
 
+function getInstitutionName(entity: CrudEntity): string {
+  return getDisplayValue(
+    entity,
+    [
+      "institutionName",
+      "nomeInstituicao",
+      "institution",
+      "instituicao",
+      "institutionId",
+    ],
+    "Instituição não informada",
+  );
+}
+
 function EntityManager({ config, readOnly = false }: EntityManagerProps) {
   const [entities, setEntities] = useState<CrudEntity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -342,11 +356,18 @@ function EntityManager({ config, readOnly = false }: EntityManagerProps) {
                     <td>
                       <div className="crud-primary-cell">
                         <span className="crud-avatar">
-                          {getEntityName(entity)
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((part) => part.charAt(0).toUpperCase())
-                            .join("") || "CE"}
+                          {typeof entity.avatar === "string" && entity.avatar ? (
+                            <img
+                              src={entity.avatar}
+                              alt={`Foto de ${getEntityName(entity)}`}
+                            />
+                          ) : (
+                            getEntityName(entity)
+                              .split(" ")
+                              .slice(0, 2)
+                              .map((part) => part.charAt(0).toUpperCase())
+                              .join("") || "CE"
+                          )}
                         </span>
 
                         <div>
@@ -363,7 +384,7 @@ function EntityManager({ config, readOnly = false }: EntityManagerProps) {
                     {field.key === "email" ? (
                       getDisplayValue(entity, ["email", "eMail", "userEmail"])
                     ) : field.key === "institutionId" ? (
-                      getDisplayValue(entity, ["institutionId", "institution", "instituicao", "nomeInstituicao"])
+                      getInstitutionName(entity)
                     ) : (
                       getDisplayValue(entity, [field.key, "disciplinas", "subject", "course", "curso", "disponibilidade"])
                     )}

@@ -26,7 +26,7 @@ monitorRoutes.patch(
   MonitorController.updateOwnAvatar,
 );
 monitorRoutes.get('/institution/:institutionId', MonitorController.getByInstitution);
-monitorRoutes.get('/', MonitorController.listAll);
+monitorRoutes.get('/', requireAuth, MonitorController.listAll);
 monitorRoutes.get('/:userId', MonitorController.getById);
 
 monitorRoutes.post(

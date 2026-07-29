@@ -3,6 +3,7 @@ import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Institution } from '../models/mongodb/Institution';
 import { supabase, supabaseAdmin } from '../config/supabase';
 import * as crypto from 'crypto';
+import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 
 export const MonitorController = {
   async getOwnProfile(req: Request, res: Response) {
@@ -134,6 +135,15 @@ export const MonitorController = {
   // Criar Perfil de Monitor (Orquestrando MongoDB + Supabase)
   async create(req: Request, res: Response) {
     try {
+      if (req.user?.role === 'director') {
+        const director = await DirectorProfile.findOne({
+          userId: req.user.id,
+        }).lean();
+        if (!director) {
+          return res.status(404).json({ message: 'Perfil do diretor não encontrado.' });
+        }
+        req.body.institutionId = String(director.institutionId);
+      }
       console.log('--- INÍCIO DO CADASTRO DE MONITOR COM AUTH ---');
       if (!supabaseAdmin) {
         return res.status(503).json({
@@ -199,7 +209,10 @@ export const MonitorController = {
       }
 
       // 3. Gerar senha aleatória segura para o primeiro acesso
-      const randomPassword = crypto.randomBytes(6).toString('hex') + '!1A'; // Ex: a3f9b2!1A
+      const createdByDirector = req.user?.role === 'director';
+      const randomPassword = createdByDirector
+        ? '12345678'
+        : crypto.randomBytes(6).toString('hex') + '!1A';
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
 
       // 4. Criar usuário no Supabase Auth (Gera credenciais reais de login)
@@ -222,6 +235,8 @@ export const MonitorController = {
         ...monitorData,
         name: resolvedName,
         userId: authUserId, 
+        mustChangePassword: createdByDirector,
+        createdByDirectorId: createdByDirector ? req.user?.id : undefined,
         institutionId: isMongoId ? institutionId : undefined,
         location: monitorLocation
       };
@@ -269,10 +284,17 @@ export const MonitorController = {
     }
   },
 
-  async listAll(_req: Request, res: Response) {
+  async listAll(req: Request, res: Response) {
     try {
+      const director = req.user?.role === 'director'
+        ? await DirectorProfile.findOne({ userId: req.user.id }).lean()
+        : null;
+      const filter = director ? { institutionId: director.institutionId } : {};
       // 1. Busca todos os perfis de monitores no MongoDB populando a instituição
-      const monitors = await MonitorProfile.find().populate('institutionId', 'nome cnpj endereco').lean();
+      const monitors = await MonitorProfile.find(filter)
+        .select('+avatarData +avatarMimeType')
+        .populate('institutionId', 'nome cnpj endereco')
+        .lean();
 
       // 2. Busca todos os registros correspondentes na tabela 'usuarios' do Supabase para recuperar os e-mails
       const { data: usuariosSupabase, error: supError } = await supabase
@@ -296,8 +318,20 @@ export const MonitorController = {
       // 4. Injeta o e-mail correspondente em cada monitor retornado
       const enrichedMonitors = monitors.map((monitor) => {
         const profileId = monitor._id.toString();
+        const populatedInstitution = monitor.institutionId as unknown as {
+          nome?: string;
+        } | null;
+        const institutionName =
+          populatedInstitution?.nome ?? 'Instituição não informada';
+        const avatar = monitor.avatarData && monitor.avatarMimeType
+          ? `data:${monitor.avatarMimeType};base64,${monitor.avatarData.toString('base64')}`
+          : undefined;
+        const { avatarData: _avatarData, ...safeMonitor } = monitor;
         return {
-          ...monitor,
+          ...safeMonitor,
+          institutionName,
+          nomeInstituicao: institutionName,
+          avatar,
           id: profileId, // Garante que o ID mapeado seja compatível com o CRUD do front
           email: emailMap.get(profileId) || '—'
         };

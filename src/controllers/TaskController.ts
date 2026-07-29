@@ -58,11 +58,14 @@ async function eligibleStudents(monitorId: string) {
 
   return students.map((student) => {
     const account = userByProfile.get(String(student._id));
-    const email = String(account?.email ?? '');
+    const email = String(student.email ?? account?.email ?? '');
     return {
       id: String(student._id),
       userId: student.userId,
-      name: authNames.get(student.userId) ?? (email ? email.split('@')[0] : 'Aluno'),
+      name:
+        student.name
+        ?? authNames.get(student.userId)
+        ?? (email ? email.split('@')[0] : 'Aluno'),
       email,
     };
   });

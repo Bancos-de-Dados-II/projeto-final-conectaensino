@@ -3,9 +3,12 @@ import {
   GraduationCap,
   Menu,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import { getOwnAccountProfile } from "../services/monitor-profile.service";
+import { getApplicationRole } from "../utils/auth-role";
 import NotificationCenter from "./notifications/NotificationCenter";
 import GlobalSearch from "./search/GlobalSearch";
 
@@ -16,6 +19,24 @@ interface HeaderProps {
 function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [profileAvatar, setProfileAvatar] = useState("");
+
+  const loadProfileImage = useCallback(() => {
+    if (getApplicationRole(user) === "admin") return;
+    void getOwnAccountProfile()
+      .then((profile) => setProfileAvatar(profile.avatar ?? ""))
+      .catch(() => undefined);
+  }, [user]);
+
+  useEffect(() => {
+    loadProfileImage();
+    const intervalId = window.setInterval(loadProfileImage, 10000);
+    window.addEventListener("profile-updated", loadProfileImage);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("profile-updated", loadProfileImage);
+    };
+  }, [loadProfileImage]);
 
   const displayName =
     typeof user?.user_metadata?.name === "string"
@@ -60,7 +81,13 @@ function Header({ onMenuClick }: HeaderProps) {
           type="button"
           onClick={() => navigate("/perfil")}
         >
-          <span className="profile-avatar">{initials || "CE"}</span>
+          <span className="profile-avatar">
+            {profileAvatar ? (
+              <img src={profileAvatar} alt={`Foto de ${displayName}`} />
+            ) : (
+              initials || "CE"
+            )}
+          </span>
 
           <span className="profile-info">
             <strong>{displayName}</strong>

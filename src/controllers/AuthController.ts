@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 import { Institution } from '../models/mongodb/Institution';
+import { DirectorProfile } from '../models/mongodb/DirectorProfile';
+import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
 import redisClient from '../config/redis';
 
@@ -27,6 +29,7 @@ export const AuthController = {
 
       const accessToken = data.session.access_token;
       const expiresIn = data.session.expires_in || 7200;
+      const applicationRole = data.user.user_metadata?.role ?? data.user.role;
 
       // Salvando a sessão no Upstash Redis
       await redisClient.setEx(
@@ -35,9 +38,25 @@ export const AuthController = {
         JSON.stringify({
           userId: data.user.id,
           email: data.user.email,
-          role: data.user.role,
+          role: applicationRole,
         })
       );
+
+      const lastLoginAt = new Date();
+      await Promise.all([
+        StudentProfile.updateOne(
+          { userId: data.user.id },
+          { $set: { lastLoginAt } },
+        ),
+        MonitorProfile.updateOne(
+          { userId: data.user.id },
+          { $set: { lastLoginAt } },
+        ),
+        DirectorProfile.updateOne(
+          { userId: data.user.id },
+          { $set: { lastLoginAt } },
+        ),
+      ]);
 
       return res.status(200).json({
         access_token: accessToken,
@@ -47,7 +66,7 @@ export const AuthController = {
         user: {
           id: data.user.id,
           email: data.user.email,
-          role: data.user.user_metadata?.role ?? data.user.role,
+          role: applicationRole,
           user_metadata: data.user.user_metadata,
         },
       });
@@ -140,6 +159,7 @@ export const AuthController = {
 
       const student = await StudentProfile.create({
         userId: authUserId,
+        institutionId: institution?._id,
         enderecoResidencial,
         tipoDeficiencia: '',
         necessidadesAcessibilidade: necessidadesAcessibilidade ?? '',

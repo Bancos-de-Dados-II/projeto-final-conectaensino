@@ -5,10 +5,19 @@ type PopulatedInstitution = {
   id?: string;
   nome?: string;
   name?: string;
+  location?: {
+    type: "Point";
+    coordinates: [number, number];
+  };
 };
 
 export interface OwnMonitorProfile {
+  name?: string;
+  email?: string;
   avatar?: string;
+  mustChangePassword?: boolean;
+  tipoDeficiencia?: string;
+  specialty?: string;
   institutionId?: PopulatedInstitution | string;
   location?: {
     type: "Point";
@@ -50,4 +59,35 @@ export async function updateOwnMonitorAvatar(file: File): Promise<string> {
     { contentBase64 },
   );
   return data.avatar;
+}
+
+export async function getOwnAccountProfile(): Promise<OwnMonitorProfile> {
+  const { data } = await api.get<OwnMonitorProfile>("/profile");
+  return data;
+}
+
+export async function updateOwnAccountInstitution(
+  institutionId: string,
+): Promise<{ institutionName: string; distanceKm: number }> {
+  const { data } = await api.patch<{
+    institutionName: string;
+    distanceKm: number;
+  }>("/profile/institution", { institutionId });
+  return data;
+}
+
+export async function updateOwnAccountAvatar(file: File): Promise<string> {
+  const contentBase64 = await readFileAsDataUrl(file);
+  const { data } = await api.patch<{ avatar: string }>(
+    "/profile/avatar",
+    { contentBase64 },
+  );
+  return data.avatar;
+}
+
+export async function updateRequiredPassword(
+  newPassword: string,
+  confirmPassword: string,
+): Promise<void> {
+  await api.patch("/profile/password", { newPassword, confirmPassword });
 }

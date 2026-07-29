@@ -14,6 +14,7 @@ export interface ChatMessage {
   conversationId: string;
   senderId: string;
   senderName?: string;
+  senderRole?: "student" | "monitor";
   content: string;
   createdAt: string;
   status: MessageStatus;

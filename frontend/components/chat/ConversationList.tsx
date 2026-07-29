@@ -55,7 +55,7 @@ function ConversationList({
       <header className="conversation-sidebar__header">
         <div>
           <span className="dashboard__eyebrow">Comunicação</span>
-          <h1>Conversas</h1>
+          <h1>Tira-dúvidas</h1>
         </div>
       </header>
 
@@ -63,7 +63,7 @@ function ConversationList({
         <Search size={17} />
         <input
           value={query}
-          placeholder="Buscar conversa..."
+          placeholder="Buscar dúvida..."
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
@@ -77,8 +77,8 @@ function ConversationList({
         {!loading && filtered.length === 0 && (
           <div className="conversation-empty">
             <MessageCircle size={30} />
-            <strong>Nenhuma conversa</strong>
-            <p>As conversas das monitorias aparecerão aqui.</p>
+            <strong>Nenhuma dúvida recebida</strong>
+            <p>Os contatos relacionados às monitorias aparecerão aqui.</p>
           </div>
         )}
 

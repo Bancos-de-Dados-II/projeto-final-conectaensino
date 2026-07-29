@@ -4,12 +4,14 @@ import { FormEvent, useState } from "react";
 interface ChatComposerProps {
   disabled?: boolean;
   sending?: boolean;
+  disabledPlaceholder?: string;
   onSend: (content: string) => Promise<void> | void;
 }
 
 function ChatComposer({
   disabled,
   sending,
+  disabledPlaceholder,
   onSend,
 }: ChatComposerProps) {
   const [content, setContent] = useState("");
@@ -42,7 +44,7 @@ function ChatComposer({
           disabled={disabled}
           placeholder={
             disabled
-              ? "Selecione uma conversa"
+              ? disabledPlaceholder || "Selecione uma conversa"
               : "Digite sua mensagem..."
           }
           onChange={(event) => setContent(event.target.value)}

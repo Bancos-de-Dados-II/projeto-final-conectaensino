@@ -292,11 +292,11 @@ function SessionsPage() {
       <div className="booking-page director-sessions-page">
         <section className="crud-page__heading">
           <div>
-            <span className="dashboard__eyebrow">Sessões / Agenda institucional</span>
-            <h1>Horários dos monitores</h1>
+            <span className="dashboard__eyebrow">Acompanhamento institucional</span>
+            <h1>Agenda dos monitores</h1>
             <p>
-              Consulte as aulas agendadas. O diretor pode somente desmarcar uma
-              sessão quando necessário.
+              Acompanhe os atendimentos dos monitores cadastrados na sua
+              instituição. Você pode desmarcar uma aula quando necessário.
             </p>
           </div>
         </section>
@@ -316,8 +316,8 @@ function SessionsPage() {
         <section className="director-session-panel">
           <header>
             <div>
-              <strong>Agenda da instituição</strong>
-              <small>{directorSessions.length} sessão(ões)</small>
+              <strong>Atendimentos agendados</strong>
+              <small>{directorSessions.length} atendimento(s)</small>
             </div>
           </header>
 
@@ -360,6 +360,12 @@ function SessionsPage() {
                         <GraduationCap size={14} />
                         {session.monitorName}
                       </small>
+                      {session.studentName && (
+                        <small>
+                          <UserRound size={14} />
+                          {session.studentName}
+                        </small>
+                      )}
                       <small>
                         <Building2 size={14} />
                         {session.institutionName || "Instituição não informada"}

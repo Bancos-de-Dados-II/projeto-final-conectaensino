@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import ChatComposer from "../components/chat/ChatComposer";
 import ConversationList from "../components/chat/ConversationList";
@@ -26,8 +27,24 @@ import type {
   ChatMessage,
   Conversation,
 } from "../types/chat";
+import { useAuth } from "../hooks/useAuth";
+import { getApplicationRole } from "../utils/auth-role";
+
+function formatLastLogin(value?: string) {
+  if (!value) return "Último acesso não informado";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Último acesso não informado";
+  return `Último acesso: ${new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)}`;
+}
 
 function ChatPage() {
+  const { user } = useAuth();
+  const isMonitor = getApplicationRole(user) === "monitor";
+  const [searchParams] = useSearchParams();
+  const requestedStudentId = searchParams.get("student") ?? "";
   const endRef = useRef<HTMLDivElement>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
@@ -36,17 +53,44 @@ function ChatPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [mobileConversationOpen, setMobileConversationOpen] = useState(false);
+  const studentStarted = messages.some(
+    (message) => message.senderRole === "student",
+  );
+  const canSend = !isMonitor || studentStarted;
 
   useEffect(() => {
     void getConversations()
       .then((items) => {
         setConversations(items);
 
-        if (items.length && window.innerWidth > 760) {
-          setSelected(items[0]);
+        const requested = requestedStudentId
+          ? items.find(
+              (conversation) =>
+                conversation.participant.id === requestedStudentId,
+            )
+          : undefined;
+        if (requested || (items.length && window.innerWidth > 760)) {
+          setSelected(requested ?? items[0]);
+          if (requested) setMobileConversationOpen(true);
         }
       })
       .finally(() => setLoadingConversations(false));
+  }, [requestedStudentId]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void getConversations()
+        .then((items) => {
+          setConversations(items);
+          setSelected((current) =>
+            current
+              ? items.find((item) => item.id === current.id) ?? null
+              : current,
+          );
+        })
+        .catch(() => undefined);
+    }, 10000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -77,6 +121,16 @@ function ChatPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const intervalId = window.setInterval(() => {
+      void getMessages(selected.id)
+        .then(setMessages)
+        .catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [selected]);
 
   const handleRealtimeMessage = useCallback(
     (message: ChatMessage) => {
@@ -186,9 +240,11 @@ function ChatPage() {
             <span>
               <MessageCircle size={35} />
             </span>
-            <h2>Suas conversas em um só lugar</h2>
+            <h2>Tire suas dúvidas em um só lugar</h2>
             <p>
-              Selecione uma conversa para falar com um aluno ou monitor.
+              {isMonitor
+                ? "As dúvidas iniciadas pelos alunos aparecerão aqui."
+                : "Selecione um monitor para iniciar o contato."}
             </p>
           </div>
         ) : (
@@ -218,11 +274,7 @@ function ChatPage() {
 
               <div className="chat-panel__identity">
                 <strong>{selected.participant.name}</strong>
-                <small>
-                  {selected.participant.online
-                    ? "Online agora"
-                    : selected.subject || "Conversa da monitoria"}
-                </small>
+                <small>{formatLastLogin(selected.participant.lastSeen)}</small>
               </div>
 
               <div className="chat-panel__actions">
@@ -252,8 +304,16 @@ function ChatPage() {
               {!loadingMessages && messages.length === 0 && (
                 <div className="chat-day-empty">
                   <MessageCircle size={29} />
-                  <strong>Comece a conversa</strong>
-                  <p>Envie uma mensagem sobre sua monitoria.</p>
+                  <strong>
+                    {isMonitor
+                      ? "Aguardando contato do aluno"
+                      : "Comece a conversa"}
+                  </strong>
+                  <p>
+                    {isMonitor
+                      ? "O aluno precisa enviar a primeira mensagem."
+                      : "Envie uma dúvida sobre sua monitoria."}
+                  </p>
                 </div>
               )}
 
@@ -270,6 +330,12 @@ function ChatPage() {
             </section>
 
             <ChatComposer
+              disabled={!canSend || loadingMessages}
+              disabledPlaceholder={
+                isMonitor
+                  ? "Aguarde o aluno iniciar o contato"
+                  : "Carregando conversa..."
+              }
               sending={sending}
               onSend={handleSend}
             />

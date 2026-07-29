@@ -132,6 +132,9 @@ export function normalizeMessage(item: Dict, index = 0): ChatMessage {
     senderName: text(
       get(item, ["sender.name", "remetente.nome", "sender_name"]),
     ),
+    senderRole: text(
+      get(item, ["senderRole", "sender_role", "remetente_tipo"]),
+    ) as ChatMessage["senderRole"],
     content: text(get(item, ["content", "message", "mensagem", "texto"])),
     createdAt: text(
       get(item, ["created_at", "createdAt", "enviada_em"]),
@@ -190,6 +193,9 @@ const mockMessages: Record<string, ChatMessage[]> = {
 };
 
 export async function getConversations(): Promise<Conversation[]> {
+  const response = await api.get("/chat/conversations");
+  return list(response.data).map(normalizeConversation);
+
   try {
     const { data } = await api.get("/chat/conversations");
     const normalized = list(data).map(normalizeConversation);
@@ -205,6 +211,11 @@ export async function getConversations(): Promise<Conversation[]> {
 export async function getMessages(
   conversationId: string,
 ): Promise<ChatMessage[]> {
+  const response = await api.get(
+    `/chat/conversations/${conversationId}/messages`,
+  );
+  return list(response.data).map(normalizeMessage);
+
   try {
     const { data } = await api.get(
       `/chat/conversations/${conversationId}/messages`,
@@ -218,6 +229,19 @@ export async function getMessages(
 export async function sendMessage(
   input: SendMessageInput,
 ): Promise<ChatMessage> {
+  const response = await api.post("/chat/messages", {
+    conversation_id: input.conversationId,
+    content: input.content,
+  });
+  const responseSource =
+    isObject(response.data) && isObject(response.data.data)
+      ? response.data.data
+      : response.data;
+  if (!isObject(responseSource)) {
+    throw new Error("Resposta inválida ao enviar mensagem.");
+  }
+  return normalizeMessage(responseSource);
+
   try {
     const { data } = await api.post("/chat/messages", {
       conversation_id: input.conversationId,
@@ -252,6 +276,9 @@ export async function sendMessage(
 export async function markConversationAsRead(
   conversationId: string,
 ): Promise<void> {
+  await api.patch(`/chat/conversations/${conversationId}/read`);
+  return;
+
   try {
     await api.patch(`/chat/conversations/${conversationId}/read`);
   } catch {

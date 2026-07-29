@@ -27,4 +27,5 @@ export interface ProfileData {
   phone?: string;
   institution?: string;
   course?: string;
+  specialty?: string;
 }
