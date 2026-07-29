@@ -450,11 +450,7 @@ function Login() {
             </button>
           </form>
 
-<<<<<<< HEAD
-          <div style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-=======
           <div className="login-mode-toggle" style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
->>>>>>> ce46a4b (atualizacao das atividades para o aluno)
             <button
               type="button"
               className="secondary-button"

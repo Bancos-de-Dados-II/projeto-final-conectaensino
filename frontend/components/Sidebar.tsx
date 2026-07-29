@@ -28,25 +28,53 @@ interface SidebarProps {
   onNavigate: () => void;
 }
 
+// 1. Definição dos links principais da navegação
+const mainItems = [
+  { label: "Dashboard", path: "/dashboard", icon: Gauge },
+  { label: "Mapa", path: "/mapa", icon: MapPinned },
+  { label: "Monitores", path: "/monitores", icon: GraduationCap },
+  { label: "Favoritos", path: "/favoritos", icon: Heart },
+  { label: "Mensagens", path: "/mensagens", icon: MessageCircle },
+  { label: "Alunos", path: "/alunos", icon: UsersRound },
+  { label: "Sessões", path: "/sessoes", icon: CalendarDays },
+  { label: "Agenda", path: "/agenda", icon: CalendarDays },
+  { label: "Histórico", path: "/historico", icon: History },
+];
+
+// 2. Definição dos links de gerenciamento
+const managementItems = [
+  { label: "Instituições", path: "/instituicoes", icon: Building2 },
+  { label: "Disciplinas", path: "/disciplinas", icon: BookOpen },
+  { label: "Certificados", path: "/certificados", icon: Award },
+  { label: "Avaliações", path: "/avaliacoes", icon: Star },
+];
+
 export default function Sidebar({
   isOpen,
   onNavigate,
 }: SidebarProps) {
-<<<<<<< HEAD
-  const { user, logout } = useAuth();
-=======
   const { logout, user } = useAuth();
->>>>>>> ce46a4b (atualizacao das atividades para o aluno)
   const navigate = useNavigate();
   const canManage = canManageMonitors(user);
-  const visibleMainItems = canManage
-    ? mainItems
-    : mainItems.filter((item) => item.path !== "/alunos");
 
   // Verifica os papéis do usuário logado
   const userRole = user?.user_metadata?.role || (user as any)?.role;
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
+
+  // Filtra os itens principais aplicando as regras de perfil (Ex: Monitor não vê Mapa e Favoritos)
+  const visibleMainItems = mainItems.filter((item) => {
+    if (isMonitor && (item.path === "/mapa" || item.path === "/favoritos")) {
+      return false;
+    }
+    if (!canManage && item.path === "/alunos") {
+      return false;
+    }
+    if (!canManage && item.path === "/monitores") {
+      return false;
+    }
+    return true;
+  });
 
   function handleLogout() {
     logout();
@@ -59,47 +87,6 @@ export default function Sidebar({
       <div className="sidebar__content">
         <nav className="sidebar__navigation">
           <SidebarGroup title="Principal">
-<<<<<<< HEAD
-            <SidebarLink label="Dashboard" path="/dashboard" icon={Gauge} onNavigate={onNavigate} />
-            
-            {/* Mapa e Favoritos: Visíveis APENAS para Alunos */}
-            {!isDirector && !isMonitor && (
-              <>
-                <SidebarLink label="Mapa" path="/mapa" icon={MapPinned} onNavigate={onNavigate} />
-                <SidebarLink label="Favoritos" path="/favoritos" icon={Heart} onNavigate={onNavigate} />
-              </>
-            )}
-            
-            {/* Visível apenas para Diretores */}
-            {isDirector && (
-              <SidebarLink label="Monitores" path="/monitores" icon={GraduationCap} onNavigate={onNavigate} />
-            )}
-
-            <SidebarLink label="Mensagens" path="/mensagens" icon={MessageCircle} onNavigate={onNavigate} />
-
-            {/* Visível apenas para Diretores */}
-            {isDirector && (
-              <SidebarLink label="Alunos" path="/alunos" icon={UsersRound} onNavigate={onNavigate} />
-            )}
-
-            {/* Criar Atividade: Visível APENAS para Monitores */}
-            {isMonitor && (
-              <SidebarLink label="Criar Atividade" path="/atividades/nova" icon={BookOpen} onNavigate={onNavigate} />
-            )}
-
-            <SidebarLink label="Sessões" path="/sessoes" icon={CalendarDays} onNavigate={onNavigate} />
-            <SidebarLink label="Agenda" path="/agenda" icon={CalendarDays} onNavigate={onNavigate} />
-            <SidebarLink label="Histórico" path="/historico" icon={History} onNavigate={onNavigate} />
-          </SidebarGroup>
-
-          {/* Seção de Gerenciamento inteira restrita a Diretores */}
-          {isDirector && (
-            <SidebarGroup title="Gerenciamento">
-              <SidebarLink label="Instituições" path="/instituicoes" icon={Building2} onNavigate={onNavigate} />
-              <SidebarLink label="Disciplinas" path="/disciplinas" icon={BookOpen} onNavigate={onNavigate} />
-              <SidebarLink label="Certificados" path="/certificados" icon={Award} onNavigate={onNavigate} />
-              <SidebarLink label="Avaliações" path="/avaliacoes" icon={Star} onNavigate={onNavigate} />
-=======
             {visibleMainItems.map((item) => (
               <div key={item.path}>
                 <SidebarLink {...item} onNavigate={onNavigate} />
@@ -125,7 +112,6 @@ export default function Sidebar({
                   onNavigate={onNavigate}
                 />
               ))}
->>>>>>> ce46a4b (atualizacao das atividades para o aluno)
             </SidebarGroup>
           )}
 
