@@ -443,20 +443,13 @@ function Login() {
                 </>
               ) : (
                 <>
-<<<<<<< HEAD
-                  {isRegistering ? "Cadastrar" : "Entrar"}
-=======
                   {isRegistering ? "Concluir Cadastro" : "Entrar"}
->>>>>>> ea1e8e1d192ef88a07c7d3a7c8644efed6f73722
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
 
-<<<<<<< HEAD
-            <div className="login-mode-toggle" style={{ marginTop: 12, textAlign: 'center' }}>
-=======
           <div style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
               type="button"
@@ -474,7 +467,6 @@ function Login() {
             </button>
 
             {!isRegistering && (
->>>>>>> ea1e8e1d192ef88a07c7d3a7c8644efed6f73722
               <button
                 type="button"
                 className="secondary-button"
