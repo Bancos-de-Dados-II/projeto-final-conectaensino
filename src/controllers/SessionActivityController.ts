@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
+import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { Session } from '../models/mongodb/Session';
 import { SessionActivity } from '../models/mongodb/SessionActivity';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
@@ -43,6 +44,67 @@ async function userProfiles(userId?: string) {
 }
 
 export const SessionActivityController = {
+  async report(req: Request, res: Response): Promise<Response> {
+    try {
+      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+      const director = await DirectorProfile.findOne({ userId: req.user?.id }).lean();
+
+      if (!director && role !== 'admin') {
+        return res.status(403).json({
+          message: 'Relatório disponível somente para diretores.',
+        });
+      }
+
+      const monitorFilter = director
+        ? { institutionId: new Types.ObjectId(String(director.institutionId)) }
+        : {};
+      const monitors = await MonitorProfile.find(monitorFilter).select('_id').lean();
+      const monitorIds = monitors.map((monitor) => String(monitor._id));
+      const sessions = await Session.find({ monitorId: { $in: monitorIds } })
+        .select('_id status')
+        .lean();
+      const sessionIds = sessions.map((session) => String(session._id));
+      const activities = await SessionActivity.find({
+        sessionId: { $in: sessionIds },
+      })
+        .select('sessionId')
+        .lean();
+      const sessionsWithActivity = new Set(
+        activities.map((activity) => activity.sessionId),
+      );
+
+      const completed = sessions.filter(
+        (session) =>
+          session.status === 'finalizada'
+          && sessionsWithActivity.has(String(session._id)),
+      ).length;
+      const pending = sessions.filter(
+        (session) =>
+          session.status !== 'finalizada'
+          && session.status !== 'cancelada'
+          && sessionsWithActivity.has(String(session._id)),
+      ).length;
+      const notDone = sessions.filter(
+        (session) =>
+          session.status !== 'cancelada'
+          && !sessionsWithActivity.has(String(session._id)),
+      ).length;
+
+      return res.status(200).json({
+        sent: activities.length,
+        completed,
+        pending,
+        notDone,
+        totalSessions: sessions.length,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Erro ao gerar relatório.';
+      return res.status(500).json({ message });
+    }
+  },
+
   async upload(req: Request, res: Response): Promise<Response> {
     try {
       const sessionId = typeof req.params.id === 'string' ? req.params.id : '';

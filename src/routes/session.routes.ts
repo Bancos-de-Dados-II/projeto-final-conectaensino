@@ -9,6 +9,11 @@ sessionRoutes.get('/', requireAuth, SessionController.listar);
 sessionRoutes.get('/disponibilidade', requireAuth, SessionController.horariosDisponiveis);
 sessionRoutes.get('/atividades', requireAuth, SessionActivityController.list);
 sessionRoutes.get(
+  '/atividades/relatorio',
+  requireAuth,
+  SessionActivityController.report,
+);
+sessionRoutes.get(
   '/atividades/:activityId/download',
   requireAuth,
   SessionActivityController.download,

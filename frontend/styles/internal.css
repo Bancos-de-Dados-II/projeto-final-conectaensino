@@ -2059,6 +2059,163 @@
   border-radius: var(--radius-lg);
 }
 
+.activity-report {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.activity-report-card {
+  display: flex;
+  min-height: 142px;
+  padding: 20px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid currentColor;
+  border-radius: var(--radius-lg);
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.activity-report-card > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.activity-report-card strong {
+  color: var(--text-primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.activity-report-card span {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.activity-report-card small {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.activity-report-card--sent {
+  color: #38bdf8;
+}
+
+.activity-report-card--completed {
+  color: #22c55e;
+}
+
+.activity-report-card--pending {
+  color: #f59e0b;
+}
+
+.activity-report-card--missing {
+  color: #ef4444;
+}
+
+.activity-report__loading {
+  grid-column: 1 / -1;
+}
+
+.activity-report__footer {
+  grid-column: 1 / -1;
+  padding: 12px 3px 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+/* Consulta institucional de sessões */
+.director-session-panel {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.director-session-panel > header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.director-session-panel > header div {
+  display: grid;
+  gap: 4px;
+}
+
+.director-session-panel > header small {
+  color: var(--text-muted);
+}
+
+.director-session-list {
+  display: grid;
+}
+
+.director-session-card {
+  display: grid;
+  grid-template-columns: 92px minmax(220px, 1fr) auto auto;
+  padding: 16px 20px;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.director-session-card:last-child {
+  border-bottom: 0;
+}
+
+.director-session-card time {
+  display: grid;
+  gap: 3px;
+  color: var(--text-primary);
+}
+
+.director-session-card time span {
+  color: var(--accent);
+  font-size: 0.82rem;
+}
+
+.director-session-card__details {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.director-session-card__details > strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-session-card__details small {
+  display: flex;
+  color: var(--text-muted);
+  align-items: center;
+  gap: 6px;
+}
+
+.director-session-card__cancel {
+  display: flex;
+  min-height: 38px;
+  padding: 0 12px;
+  color: #ef8b94;
+  background: rgba(239, 102, 113, 0.08);
+  border: 1px solid rgba(239, 102, 113, 0.28);
+  border-radius: var(--radius);
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.director-session-card__cancel:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .activity-upload-fields {
   display: grid;
   grid-template-columns: minmax(240px, 0.8fr) minmax(300px, 1.2fr);
@@ -2202,6 +2359,20 @@
 
   .activity-upload-fields {
     grid-template-columns: 1fr;
+  }
+
+  .activity-report {
+    grid-template-columns: 1fr;
+  }
+
+  .director-session-card {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .director-session-card .status-pill,
+  .director-session-card__cancel {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .session-activity-card {

@@ -2,22 +2,30 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import {
   CalendarClock,
+  CheckCircle2,
   Download,
   FileImage,
   FileText,
   Paperclip,
+  Send,
+  Timer,
   Upload,
+  XCircle,
 } from "lucide-react";
 
 import { useAuth } from "../hooks/useAuth";
 import { getSessions } from "../services/experience.service";
 import {
   downloadSessionActivity,
+  getSessionActivityReport,
   listSessionActivities,
   uploadSessionActivity,
 } from "../services/session-activity.service";
 import type { ExperienceSession } from "../types/experience";
-import type { SessionActivity } from "../types/session-activity";
+import type {
+  SessionActivity,
+  SessionActivityReport,
+} from "../types/session-activity";
 import { getApplicationRole } from "../utils/auth-role";
 
 const ALLOWED_TYPES = new Set([
@@ -38,8 +46,10 @@ export default function SessionActivitiesPage() {
   const { user } = useAuth();
   const role = getApplicationRole(user);
   const isStudent = role === "student";
+  const isManagement = role === "director" || role === "admin";
   const [sessions, setSessions] = useState<ExperienceSession[]>([]);
   const [activities, setActivities] = useState<SessionActivity[]>([]);
+  const [report, setReport] = useState<SessionActivityReport | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +58,14 @@ export default function SessionActivitiesPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (isManagement) {
+      void getSessionActivityReport()
+        .then(setReport)
+        .catch(() => setErrorMessage("Não foi possível carregar o relatório."))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     void Promise.all([getSessions(), listSessionActivities()])
       .then(([sessionItems, activityItems]) => {
         setSessions(sessionItems);
@@ -56,7 +74,7 @@ export default function SessionActivitiesPage() {
       })
       .catch(() => setErrorMessage("Não foi possível carregar as atividades."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isManagement]);
 
   const sessionsById = useMemo(
     () => new Map(sessions.map((session) => [session.id, session])),
@@ -115,10 +133,20 @@ export default function SessionActivitiesPage() {
     <div className="session-activities-page">
       <header className="crud-page__heading">
         <div>
-          <span className="dashboard__eyebrow">Sessões / Atividades</span>
-          <h1>{isStudent ? "Enviar lições" : "Atividades recebidas"}</h1>
+          <span className="dashboard__eyebrow">
+            Sessões / {isManagement ? "Relatório" : "Atividades"}
+          </span>
+          <h1>
+            {isManagement
+              ? "Relatório de atividades"
+              : isStudent
+                ? "Enviar lições"
+                : "Atividades recebidas"}
+          </h1>
           <p>
-            {isStudent
+            {isManagement
+              ? "Acompanhe os envios relacionados às sessões da sua instituição."
+              : isStudent
               ? "Compartilhe o material da aula para o monitor se preparar."
               : "Consulte os materiais enviados pelos alunos antes das aulas."}
           </p>
@@ -136,7 +164,57 @@ export default function SessionActivitiesPage() {
         </div>
       )}
 
-      {isStudent && (
+      {isManagement && (
+        <section className="activity-report" aria-label="Resumo de atividades">
+          {loading ? (
+            <div className="domain-empty activity-report__loading">
+              <span className="route-loader__spinner" />
+              <p>Calculando relatório...</p>
+            </div>
+          ) : report ? (
+            <>
+              <article className="activity-report-card activity-report-card--sent">
+                <Send size={22} />
+                <div>
+                  <strong>{report.sent}</strong>
+                  <span>Enviadas</span>
+                  <small>Total de arquivos enviados</small>
+                </div>
+              </article>
+              <article className="activity-report-card activity-report-card--completed">
+                <CheckCircle2 size={22} />
+                <div>
+                  <strong>{report.completed}</strong>
+                  <span>Concluídas</span>
+                  <small>Sessões finalizadas com atividade</small>
+                </div>
+              </article>
+              <article className="activity-report-card activity-report-card--pending">
+                <Timer size={22} />
+                <div>
+                  <strong>{report.pending}</strong>
+                  <span>Pendentes</span>
+                  <small>Enviadas em sessões ainda abertas</small>
+                </div>
+              </article>
+              <article className="activity-report-card activity-report-card--missing">
+                <XCircle size={22} />
+                <div>
+                  <strong>{report.notDone}</strong>
+                  <span>Não feitas</span>
+                  <small>Sessões sem atividade enviada</small>
+                </div>
+              </article>
+              <footer className="activity-report__footer">
+                {report.totalSessions} sessão(ões) analisada(s) • Atualizado em{" "}
+                {new Date(report.generatedAt).toLocaleString("pt-BR")}
+              </footer>
+            </>
+          ) : null}
+        </section>
+      )}
+
+      {isStudent && !isManagement && (
         <section className="activity-upload-panel">
           <div className="activity-upload-fields">
             <label>
@@ -188,7 +266,7 @@ export default function SessionActivitiesPage() {
         </section>
       )}
 
-      <section className="activity-list-panel">
+      {!isManagement && <section className="activity-list-panel">
         <header>
           <div>
             <strong>{isStudent ? "Arquivos enviados" : "Materiais dos alunos"}</strong>
@@ -249,7 +327,7 @@ export default function SessionActivitiesPage() {
             })}
           </div>
         )}
-      </section>
+      </section>}
     </div>
   );
 }

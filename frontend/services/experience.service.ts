@@ -52,6 +52,14 @@ export function normalizeSession(item: Dict, index = 0): ExperienceSession {
     title: str(get(item, ["title", "titulo", "subject.name", "disciplina.nome", "disciplinaId"]), "Sessão de monitoria"),
     subject: str(get(item, ["subject.name", "disciplina.nome", "subject", "disciplina", "disciplinaId"]), "Disciplina não informada"),
     monitorName: str(get(item, ["monitor.name", "monitor.nome", "monitorName", "nome_monitor"]), "Monitor"),
+    institutionName: str(
+      get(item, [
+        "institutionName",
+        "nomeInstituicao",
+        "monitor.institution.nome",
+        "monitor.institutionId.nome",
+      ]),
+    ),
     studentName: str(get(item, ["student.name", "aluno.nome", "studentName", "nome_aluno"])),
     start,
     end: str(get(item, ["end", "ends_at", "end_at", "data_fim"])),
@@ -91,7 +99,16 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
     email: str(get(item, ["email", "user.email", "usuario.email"])),
     avatar: str(get(item, ["avatar", "photo", "foto", "image_url"])),
     bio: str(get(item, ["bio", "biografia", "description", "descricao"]), "Monitor disponível para ajudar estudantes a avançarem nos estudos."),
-    institution: str(get(item, ["institution.name", "instituicao.nome", "institution", "instituicao"])),
+    institution: str(
+      get(item, [
+        "institutionId.nome",
+        "institutionId.name",
+        "institution.name",
+        "instituicao.nome",
+        "institution",
+        "instituicao",
+      ]),
+    ),
     subjects,
     rating: num(get(item, ["rating", "average_rating", "media_avaliacoes", "nota"])),
     sessions: num(get(item, ["sessions", "sessions_count", "total_sessoes", "monitorias"])),
@@ -152,5 +169,11 @@ export async function scheduleMonitorSession(payload: {
       type: "Point",
       coordinates: [0, 0],
     },
+  });
+}
+
+export async function cancelSession(sessionId: string): Promise<void> {
+  await api.patch(`/sessoes/${sessionId}/status`, {
+    status: "cancelada",
   });
 }

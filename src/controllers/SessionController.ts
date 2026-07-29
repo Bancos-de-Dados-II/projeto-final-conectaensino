@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
+import { DirectorProfile } from '../models/mongodb/DirectorProfile';
+import { Institution } from '../models/mongodb/Institution';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Session } from '../models/mongodb/Session';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
@@ -119,15 +121,28 @@ export const SessionController = {
         return res.status(401).json({ message: 'Usuário não autenticado.' });
       }
 
-      const [student, monitor] = await Promise.all([
+      const [student, monitor, director] = await Promise.all([
         StudentProfile.findOne({ userId: authUserId }).lean(),
         MonitorProfile.findOne({ userId: authUserId }).lean(),
+        DirectorProfile.findOne({ userId: authUserId }).lean(),
       ]);
-      const filter = student
+      let filter: Record<string, unknown> | null = student
         ? { alunoId: String(student._id) }
         : monitor
           ? { monitorId: String(monitor._id) }
           : null;
+      if (director) {
+        const institutionMonitors = await MonitorProfile.find({
+          institutionId: new Types.ObjectId(String(director.institutionId)),
+        }).select('_id').lean();
+        filter = {
+          monitorId: {
+            $in: institutionMonitors.map((item) => String(item._id)),
+          },
+        };
+      } else if (req.user?.role?.toLocaleLowerCase('pt-BR') === 'admin') {
+        filter = {};
+      }
       if (!filter) {
         return res.status(200).json([]);
       }
@@ -138,13 +153,38 @@ export const SessionController = {
         MonitorProfile.find({ _id: { $in: monitorIds } }).lean(),
         StudentProfile.find({ _id: { $in: studentIds } }).lean(),
       ]);
+      const institutionIds = [
+        ...new Set(
+          monitors
+            .map((item) => item.institutionId)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ];
+      const institutions = await Institution.find({
+        _id: { $in: institutionIds },
+      })
+        .select('nome')
+        .lean();
       const monitorNames = new Map(monitors.map((item) => [String(item._id), item.name ?? 'Monitor']));
       const studentNames = new Map(students.map((item) => [String(item._id), item.userId]));
+      const institutionNames = new Map(
+        institutions.map((item) => [String(item._id), item.nome]),
+      );
+      const monitorInstitutionNames = new Map(
+        monitors.map((item) => [
+          String(item._id),
+          institutionNames.get(String(item.institutionId)) ?? 'Instituição não informada',
+        ]),
+      );
 
       return res.status(200).json(sessions.map((session) => ({
         ...session,
         monitorName: monitorNames.get(session.monitorId) ?? 'Monitor',
         studentName: studentNames.get(session.alunoId) ?? 'Aluno',
+        institutionName:
+          monitorInstitutionNames.get(session.monitorId)
+          ?? 'Instituição não informada',
       })));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro ao listar sessões.';
@@ -317,6 +357,37 @@ export const SessionController = {
 
       const currentStatus = session.status as SessionStatus;
       const nextStatuses = allowedTransitions[currentStatus] ?? [];
+      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+      const [student, monitor, director] = await Promise.all([
+        StudentProfile.findOne({ userId: req.user?.id }).lean(),
+        MonitorProfile.findOne({ userId: req.user?.id }).lean(),
+        DirectorProfile.findOne({ userId: req.user?.id }).lean(),
+      ]);
+
+      if (director) {
+        if (status !== 'cancelada') {
+          return res.status(403).json({
+            message: 'Diretores podem apenas desmarcar sessões.',
+          });
+        }
+        const institutionMonitor = await MonitorProfile.exists({
+          _id: session.monitorId,
+          institutionId: new Types.ObjectId(String(director.institutionId)),
+        });
+        if (!institutionMonitor) {
+          return res.status(403).json({
+            message: 'Esta sessão não pertence à instituição do diretor.',
+          });
+        }
+      } else if (
+        role !== 'admin'
+        && session.alunoId !== String(student?._id ?? '')
+        && session.monitorId !== String(monitor?._id ?? '')
+      ) {
+        return res.status(403).json({
+          message: 'Você não possui permissão para alterar esta sessão.',
+        });
+      }
 
       if (currentStatus === status) {
         return res.status(200).json(session);

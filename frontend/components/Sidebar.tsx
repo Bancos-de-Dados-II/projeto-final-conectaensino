@@ -105,7 +105,7 @@ export default function Sidebar({
                 <SidebarLink {...item} onNavigate={onNavigate} />
                 {item.path === "/sessoes" && (
                   <SidebarLink
-                    label="Atividades"
+                    label={canManage ? "Relatório de atividades" : "Atividades"}
                     path="/sessoes/atividades"
                     icon={Paperclip}
                     onNavigate={onNavigate}

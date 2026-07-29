@@ -6,20 +6,34 @@ import {
   CheckCircle2,
   Clock3,
   GraduationCap,
+  CalendarX2,
+  Building2,
   UserRound,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import {
+  cancelSession,
+  getSessions,
   getMonitorSchedule,
   getMonitors,
   scheduleMonitorSession,
 } from "../services/experience.service";
 import type {
   MonitorSchedule,
+  ExperienceSession,
   PublicMonitor,
   ScheduleSlot,
 } from "../types/experience";
+import { useAuth } from "../hooks/useAuth";
+import { getApplicationRole } from "../utils/auth-role";
+
+const sessionStatusLabels = {
+  scheduled: "Agendada",
+  completed: "Concluída",
+  cancelled: "Cancelada",
+  in_progress: "Em andamento",
+} as const;
 
 const periodLabels = {
   matutino: {
@@ -95,6 +109,9 @@ function nextBookableDate(availability: string[]): string {
 }
 
 function SessionsPage() {
+  const { user } = useAuth();
+  const role = getApplicationRole(user);
+  const isManagement = role === "director" || role === "admin";
   const [searchParams] = useSearchParams();
   const requestedMonitorId = searchParams.get("monitor") ?? "";
   const [monitors, setMonitors] = useState<PublicMonitor[]>([]);
@@ -108,6 +125,8 @@ function SessionsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [directorSessions, setDirectorSessions] = useState<ExperienceSession[]>([]);
+  const [cancellingId, setCancellingId] = useState("");
 
   const selectedMonitor = useMemo(
     () => monitors.find((monitor) => monitor.id === monitorId) ?? null,
@@ -120,6 +139,16 @@ function SessionsPage() {
     : false;
 
   useEffect(() => {
+    if (isManagement) {
+      void getSessions()
+        .then(setDirectorSessions)
+        .catch(() =>
+          setErrorMessage("Não foi possível carregar os horários dos monitores."),
+        )
+        .finally(() => setLoadingMonitors(false));
+      return;
+    }
+
     void getMonitors()
       .then((items) => {
         setMonitors(items);
@@ -131,17 +160,19 @@ function SessionsPage() {
       })
       .catch(() => setErrorMessage("Não foi possível carregar os monitores."))
       .finally(() => setLoadingMonitors(false));
-  }, []);
+  }, [isManagement]);
 
   useEffect(() => {
+    if (isManagement) return;
     setSubject(selectedMonitor?.subjects[0] ?? "");
     setSelectedTime("");
     if (selectedMonitor) {
       setDate(nextBookableDate(selectedMonitor.availability));
     }
-  }, [selectedMonitor]);
+  }, [isManagement, selectedMonitor]);
 
   useEffect(() => {
+    if (isManagement) return;
     if (!monitorId || !date) {
       setSchedule(null);
       return;
@@ -163,7 +194,38 @@ function SessionsPage() {
         ),
       )
       .finally(() => setLoadingSchedule(false));
-  }, [date, monitorId]);
+  }, [date, isManagement, monitorId]);
+
+  async function handleDirectorCancel(session: ExperienceSession) {
+    const confirmed = window.confirm(
+      `Deseja desmarcar a aula de ${session.subject} com ${session.monitorName}?`,
+    );
+    if (!confirmed) return;
+
+    setCancellingId(session.id);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      await cancelSession(session.id);
+      setDirectorSessions((current) =>
+        current.map((item) =>
+          item.id === session.id ? { ...item, status: "cancelled" } : item,
+        ),
+      );
+      setSuccessMessage("Aula desmarcada com sucesso.");
+    } catch (error) {
+      setErrorMessage(
+        axios.isAxiosError(error)
+          ? String(
+              (error.response?.data as { message?: string } | undefined)
+                ?.message ?? "Não foi possível desmarcar a aula.",
+            )
+          : "Não foi possível desmarcar a aula.",
+      );
+    } finally {
+      setCancellingId("");
+    }
+  }
 
   async function handleSchedule() {
     if (!monitorId || !date || !subject || !selectedTime) {
@@ -221,6 +283,110 @@ function SessionsPage() {
             {slot.time}
           </button>
         ))}
+      </div>
+    );
+  }
+
+  if (isManagement) {
+    return (
+      <div className="booking-page director-sessions-page">
+        <section className="crud-page__heading">
+          <div>
+            <span className="dashboard__eyebrow">Sessões / Agenda institucional</span>
+            <h1>Horários dos monitores</h1>
+            <p>
+              Consulte as aulas agendadas. O diretor pode somente desmarcar uma
+              sessão quando necessário.
+            </p>
+          </div>
+        </section>
+
+        {errorMessage && (
+          <div className="crud-feedback crud-feedback--error" role="alert">
+            {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div className="crud-feedback crud-feedback--success" role="status">
+            <CheckCircle2 size={17} />
+            {successMessage}
+          </div>
+        )}
+
+        <section className="director-session-panel">
+          <header>
+            <div>
+              <strong>Agenda da instituição</strong>
+              <small>{directorSessions.length} sessão(ões)</small>
+            </div>
+          </header>
+
+          {loadingMonitors ? (
+            <div className="domain-empty">
+              <span className="route-loader__spinner" />
+              <p>Carregando horários...</p>
+            </div>
+          ) : directorSessions.length === 0 ? (
+            <div className="domain-empty">
+              <CalendarDays size={32} />
+              <strong>Nenhuma aula agendada</strong>
+              <p>As sessões dos monitores da instituição aparecerão aqui.</p>
+            </div>
+          ) : (
+            <div className="director-session-list">
+              {directorSessions.map((session) => {
+                const canCancel =
+                  session.status !== "cancelled"
+                  && session.status !== "completed";
+                return (
+                  <article className="director-session-card" key={session.id}>
+                    <time dateTime={session.start}>
+                      <strong>
+                        {new Date(session.start).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </strong>
+                      <span>
+                        {new Date(session.start).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </time>
+                    <div className="director-session-card__details">
+                      <strong>{session.subject}</strong>
+                      <small>
+                        <GraduationCap size={14} />
+                        {session.monitorName}
+                      </small>
+                      <small>
+                        <Building2 size={14} />
+                        {session.institutionName || "Instituição não informada"}
+                      </small>
+                    </div>
+                    <span className={`status-pill status-pill--${session.status}`}>
+                      {sessionStatusLabels[session.status]}
+                    </span>
+                    {canCancel && (
+                      <button
+                        className="director-session-card__cancel"
+                        type="button"
+                        disabled={cancellingId === session.id}
+                        onClick={() => void handleDirectorCancel(session)}
+                      >
+                        <CalendarX2 size={16} />
+                        {cancellingId === session.id
+                          ? "Desmarcando..."
+                          : "Desmarcar aula"}
+                      </button>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     );
   }

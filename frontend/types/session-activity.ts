@@ -6,3 +6,12 @@ export interface SessionActivity {
   size: number;
   createdAt?: string;
 }
+
+export interface SessionActivityReport {
+  sent: number;
+  completed: number;
+  pending: number;
+  notDone: number;
+  totalSessions: number;
+  generatedAt: string;
+}

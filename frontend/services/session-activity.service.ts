@@ -1,9 +1,19 @@
 import { api } from "../api/axios";
-import type { SessionActivity } from "../types/session-activity";
+import type {
+  SessionActivity,
+  SessionActivityReport,
+} from "../types/session-activity";
 
 export async function listSessionActivities(): Promise<SessionActivity[]> {
   const { data } = await api.get<SessionActivity[]>("/sessoes/atividades");
   return Array.isArray(data) ? data : [];
+}
+
+export async function getSessionActivityReport(): Promise<SessionActivityReport> {
+  const { data } = await api.get<SessionActivityReport>(
+    "/sessoes/atividades/relatorio",
+  );
+  return data;
 }
 
 export async function uploadSessionActivity(

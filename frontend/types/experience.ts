@@ -5,6 +5,7 @@ export interface ExperienceSession {
   title: string;
   subject: string;
   monitorName: string;
+  institutionName?: string;
   studentName?: string;
   start: string;
   end?: string;
