@@ -132,7 +132,6 @@ export const MonitorController = {
     }
   },
 
-  // Criar Perfil de Monitor (Orquestrando MongoDB + Supabase)
   async create(req: Request, res: Response) {
     try {
       if (req.user?.role === 'director') {
@@ -168,7 +167,6 @@ export const MonitorController = {
         return res.status(400).json({ message: 'O campo email é obrigatório.' });
       }
 
-      // 1. Validar se o e-mail já existe na tabela usuarios do Supabase (Unicidade)
       const { data: existingUser, error: existingUserError } = await supabaseAdmin
         .from('usuarios')
         .select('email')
@@ -186,7 +184,6 @@ export const MonitorController = {
         return res.status(400).json({ message: 'Já existe um monitor cadastrado com este e-mail.' });
       }
 
-      // 2. Resolver localização da instituição ou coordenadas
       let monitorLocation;
       const isMongoId = institutionId && /^[0-9a-fA-F]{24}$/.test(institutionId);
 
@@ -208,18 +205,16 @@ export const MonitorController = {
         return res.status(400).json({ message: 'Instituição ou coordenadas geográficas são obrigatórias.' });
       }
 
-      // 3. Gerar senha aleatória segura para o primeiro acesso
       const createdByDirector = req.user?.role === 'director';
       const randomPassword = createdByDirector
         ? '12345678'
         : crypto.randomBytes(6).toString('hex') + '!1A';
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
 
-      // 4. Criar usuário no Supabase Auth (Gera credenciais reais de login)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: randomPassword,
-        email_confirm: true, // Já deixa o e-mail confirmado
+        email_confirm: true, 
         user_metadata: { name: resolvedName, role: 'monitor' }
       });
 
@@ -230,7 +225,6 @@ export const MonitorController = {
 
       const authUserId = authData.user.id;
 
-      // 5. Salvar perfil detalhado no MongoDB
       const finalMonitorData = {
         ...monitorData,
         name: resolvedName,
@@ -244,12 +238,11 @@ export const MonitorController = {
       const monitor = await MonitorProfile.create(finalMonitorData);
       const mongoProfileId = monitor._id.toString();
 
-      // 6. Inserir na tabela relacional 'usuarios' do Supabase vinculando o Auth e o Mongo
       const { data: usuarioSupabase, error: supabaseTableError } = await supabaseAdmin
         .from('usuarios')
         .insert([
           { 
-            id: authUserId, // ID do Supabase Auth
+            id: authUserId,
             email: email, 
             mongo_profile_id: mongoProfileId 
           }
@@ -273,7 +266,7 @@ export const MonitorController = {
       return res.status(201).json({
         message: 'Monitor cadastrado com sucesso com acesso ao sistema!',
         email: email,
-        senhaTemporaria: randomPassword, // Você pode exibir isso no console/resposta para teste
+        senhaTemporaria: randomPassword, 
         mongoData: monitor,
         supabaseData: usuarioSupabase,
       });
@@ -290,13 +283,11 @@ export const MonitorController = {
         ? await DirectorProfile.findOne({ userId: req.user.id }).lean()
         : null;
       const filter = director ? { institutionId: director.institutionId } : {};
-      // 1. Busca todos os perfis de monitores no MongoDB populando a instituição
       const monitors = await MonitorProfile.find(filter)
         .select('+avatarData +avatarMimeType')
         .populate('institutionId', 'nome cnpj endereco')
         .lean();
 
-      // 2. Busca todos os registros correspondentes na tabela 'usuarios' do Supabase para recuperar os e-mails
       const { data: usuariosSupabase, error: supError } = await supabase
         .from('usuarios')
         .select('email, mongo_profile_id');
@@ -305,7 +296,6 @@ export const MonitorController = {
         console.error('Erro ao buscar e-mails do Supabase:', supError);
       }
 
-      // 3. Cria um mapa de mongo_profile_id -> email para cruzar os dados rapidamente
       const emailMap = new Map<string, string>();
       if (usuariosSupabase) {
         usuariosSupabase.forEach((user) => {
@@ -315,7 +305,6 @@ export const MonitorController = {
         });
       }
 
-      // 4. Injeta o e-mail correspondente em cada monitor retornado
       const enrichedMonitors = monitors.map((monitor) => {
         const profileId = monitor._id.toString();
         const populatedInstitution = monitor.institutionId as unknown as {
@@ -332,7 +321,7 @@ export const MonitorController = {
           institutionName,
           nomeInstituicao: institutionName,
           avatar,
-          id: profileId, // Garante que o ID mapeado seja compatível com o CRUD do front
+          id: profileId, 
           email: emailMap.get(profileId) || '—'
         };
       });
@@ -437,7 +426,6 @@ export const MonitorController = {
 
       const authUserId = monitor.userId;
 
-      // 1. Remove o registro correspondente na tabela 'usuarios' do Supabase
       const { error: supabaseError } = await supabaseAdmin!
         .from('usuarios')
         .delete()
@@ -447,7 +435,6 @@ export const MonitorController = {
         console.error('Erro ao excluir da tabela usuarios do Supabase:', supabaseError);
       }
 
-      // 2. Deleta o usuário definitivamente do Supabase Auth usando o admin
       if (authUserId) {
         const { error: authDeleteError } = await supabaseAdmin!.auth.admin.deleteUser(authUserId);
         if (authDeleteError) {
@@ -455,7 +442,6 @@ export const MonitorController = {
         }
       }
 
-      // 3. Deleta o perfil do monitor no MongoDB
       await MonitorProfile.findByIdAndDelete(id);
 
       console.log('Monitor excluído com sucesso de ambos os bancos e do Auth!');

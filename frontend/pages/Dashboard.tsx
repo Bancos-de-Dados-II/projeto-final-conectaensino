@@ -76,10 +76,9 @@ export default function Dashboard() {
   
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
 
-  // Captura o papel do usuário logado de forma segura
   const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
-  const isMonitor = userRole === "monitor"; // 👈 Identificador de Monitor
+  const isMonitor = userRole === "monitor"; 
 
   const displayName =
     typeof user?.user_metadata?.name === "string"

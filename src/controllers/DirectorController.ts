@@ -13,7 +13,6 @@ export class DirectorController {
         return res.status(400).json({ message: 'E-mail e o ID da instituição são obrigatórios.' });
       }
 
-      // Validar se o ID da instituição é um ObjectId válido e se ela existe
       const isMongoId = /^[0-9a-fA-F]{24}$/.test(institutionId);
       if (!isMongoId) {
         return res.status(400).json({ message: 'ID da instituição inválido.' });
@@ -28,7 +27,6 @@ export class DirectorController {
         return res.status(500).json({ message: 'Chave administrativa do Supabase não configurada no servidor.' });
       }
 
-      // Criar usuário no Supabase Auth com a role de diretor usando privilégios de admin
       const directorPassword = password || (crypto.randomBytes(6).toString('hex') + '!1A');
       const resolvedName = name || email.split('@')[0];
 
@@ -45,14 +43,12 @@ export class DirectorController {
 
       const authUserId = authData.user.id;
 
-      // Criar o perfil no MongoDB
       const director = await (DirectorProfile.create as any)({
         userId: authUserId,
         institutionId,
         cargo: cargo || 'Diretor(a)'
       });
 
-      // Inserir na tabela relacional 'usuarios' do Supabase usando o admin
       const { data: usuarioSupabase, error: supabaseError } = await supabaseAdmin
         .from('usuarios')
         .insert([{ id: authUserId, email, mongo_profile_id: director._id.toString() }])

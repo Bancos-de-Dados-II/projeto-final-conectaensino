@@ -1,12 +1,12 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 interface IDirectorProfile extends Document {
-  userId: string; // ID do usuário no Supabase Auth
+  userId: string; 
   name?: string;
   email?: string;
   phone?: string;
   lastLoginAt?: Date;
-  institutionId: Types.ObjectId; // ID da instituição gerenciada
+  institutionId: Types.ObjectId; 
   cargo?: string;
   avatarMimeType?: 'image/jpeg' | 'image/png';
   avatarData?: Buffer;

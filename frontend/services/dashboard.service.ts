@@ -317,7 +317,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       };
     }
   } catch {
-    // Usa agregação dos endpoints existentes.
   }
 
   const [students, monitors, sessions, certificates, reviews, subjects] =

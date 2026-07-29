@@ -1,7 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IStudentProfile extends Document {
-  userId: string; // UUID referente ao perfil cadastrado no Supabase
+  userId: string; 
   name?: string;
   email?: string;
   phone?: string;
@@ -19,7 +19,7 @@ export interface IStudentProfile extends Document {
   enderecoResidencial: string;
   location: {
     type: 'Point';
-    coordinates: [number, number]; // Obrigatoriamente [longitude, latitude]
+    coordinates: [number, number]; 
   };
 }
 
@@ -50,13 +50,12 @@ const StudentProfileSchema = new Schema<IStudentProfile>({
       default: 'Point'
     },
     coordinates: {
-      type: [Number], // [lng, lat]
+      type: [Number],
       required: true
     }
   }
 }, { timestamps: true });
 
-// ÍNDICE ESPACIAL ESSENCIAL: Permite buscas de proximidade ($near)
 StudentProfileSchema.index({ location: '2dsphere' });
 
 export const StudentProfile = model<IStudentProfile>('StudentProfile', StudentProfileSchema);

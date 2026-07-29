@@ -16,7 +16,7 @@ export interface IInstitution extends Document {
   endereco?: string;
   location: {
     type: 'Point';
-    coordinates: [number, number]; // [Longitude, Latitude]
+    coordinates: [number, number]; 
   };
   ativa: boolean;
   createdAt?: Date;
@@ -74,7 +74,7 @@ const InstitutionSchema = new Schema<IInstitution>(
         default: 'Point',
       },
       coordinates: {
-        type: [Number], // [Longitude, Latitude]
+        type: [Number], 
         required: true,
       },
     },
@@ -88,7 +88,6 @@ const InstitutionSchema = new Schema<IInstitution>(
   }
 );
 
-// Índice geoespacial para localização da instituição
 InstitutionSchema.index({ location: '2dsphere' });
 
 export const Institution = model<IInstitution>('Institution', InstitutionSchema, 'institutions');

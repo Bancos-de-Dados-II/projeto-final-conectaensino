@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import dns from 'node:dns';
-import dotenv from 'dotenv'; // 👈 Adicione isso
+import dotenv from 'dotenv'; 
 
-// Carrega as variáveis do arquivo .env
 dotenv.config(); 
 
 dns.setServers(['8.8.8.8', '8.8.4.4']);

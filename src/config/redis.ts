@@ -5,7 +5,6 @@ const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redisClient = createClient({
   url: redisUrl,
   socket: {
-    // Ativa TLS automaticamente se a URL for do Upstash (rediss://)
     tls: redisUrl.startsWith('rediss://') ? true : undefined,
     rejectUnauthorized: false
   }

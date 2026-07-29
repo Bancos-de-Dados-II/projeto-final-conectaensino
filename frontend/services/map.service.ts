@@ -182,7 +182,6 @@ function normalizeEntity(
   const resolvedLatitude = latitude ?? asNumber(parsedCoordinates?.[0]);
   const resolvedLongitude = longitude ?? asNumber(parsedCoordinates?.[1]);
 
-  // Entidades sem coordenadas válidas não podem ser exibidas no Leaflet.
   if (resolvedLatitude === undefined || resolvedLongitude === undefined) {
     return null;
   }

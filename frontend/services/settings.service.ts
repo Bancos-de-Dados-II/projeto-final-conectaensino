@@ -84,7 +84,6 @@ export async function getSettingsProfile(): Promise<SettingsProfile> {
         ),
       };
     } catch {
-      // Tenta o próximo endpoint disponível.
     }
   }
 
@@ -101,7 +100,6 @@ export async function updateSettingsProfile(
       const { data } = await api.put(endpoint, profile);
       return { ...profile, ...(data?.data ?? data) };
     } catch {
-      // Tenta o próximo endpoint.
     }
   }
 
@@ -147,7 +145,6 @@ export async function getAccountDocuments(): Promise<AccountDocument[]> {
       }));
     }
   } catch {
-    // Usa a persistência local.
   }
 
   return loadLocal<AccountDocument[]>(DOCUMENTS_KEY, []);

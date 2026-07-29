@@ -31,7 +31,6 @@ interface SidebarProps {
   onNavigate: () => void;
 }
 
-// 1. Definição dos links principais da navegação
 const mainItems = [
   { label: "Dashboard", path: "/dashboard", icon: Gauge },
   { label: "Mapa", path: "/mapa", icon: MapPinned },
@@ -44,7 +43,6 @@ const mainItems = [
   { label: "Histórico", path: "/historico", icon: History },
 ];
 
-// 2. Definição dos links de gerenciamento
 const managementItems = [
   { label: "Instituições", path: "/instituicoes", icon: Building2 },
   { label: "Disciplinas", path: "/disciplinas", icon: BookOpen },
@@ -60,13 +58,11 @@ export default function Sidebar({
   const navigate = useNavigate();
   const canManage = canManageMonitors(user);
 
-  // Verifica os papéis do usuário logado
   const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
   const isStudent = userRole === "student";
 
-  // Filtra os itens principais aplicando as regras de perfil (Ex: Monitor não vê Mapa e Favoritos)
   const visibleMainItems = mainItems.filter((item) => {
     if (
       isDirector

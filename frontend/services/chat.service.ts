@@ -202,7 +202,6 @@ export async function getConversations(): Promise<Conversation[]> {
 
     if (normalized.length) return normalized;
   } catch {
-    // Endpoint opcional: usa demonstração local enquanto o backend não expõe o chat.
   }
 
   return mockConversations;
@@ -252,7 +251,6 @@ export async function sendMessage(
 
     if (isObject(source)) return normalizeMessage(source);
   } catch {
-    // Fallback local para permitir testar toda a interface.
   }
 
   const message: ChatMessage = {
@@ -282,7 +280,6 @@ export async function markConversationAsRead(
   try {
     await api.patch(`/chat/conversations/${conversationId}/read`);
   } catch {
-    // Endpoint opcional.
   }
 }
 

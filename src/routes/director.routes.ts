@@ -2,9 +2,6 @@ import { Router } from 'express';
 import { DirectorController } from '../controllers/DirectorController';
 import { DirectorDashboardController } from '../controllers/DirectorDashboardController';
 import { requireAuth, requireRoles } from '../middlewares/authenticate';
-// Se você tiver um middleware de validação e um schema específico para diretores:
-// import { validateSchema } from '../middlewares/validateSchema';
-// import { RegisterDirectorSchema } from '../schemas/AuthSchema';
 
 const directorRoutes = Router();
 
@@ -20,7 +17,6 @@ directorRoutes.post('/messages', requireAuth, requireRoles('director'), Director
 
 directorRoutes.post(
   '/register',
-  // validateSchema(RegisterDirectorSchema), // Opcional, caso queira validar com schema
   DirectorController.create
 );
 

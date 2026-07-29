@@ -42,7 +42,7 @@ async function seed() {
           .filter((row) => {
             const lat = parseFloat(row.latitude);
             const lon = parseFloat(row.longitude);
-            return !isNaN(lat) && !isNaN(lon); // Garante apenas coordenadas válidas
+            return !isNaN(lat) && !isNaN(lon); 
           })
           .map((row) => {
             const lat = parseFloat(row.latitude);
@@ -67,7 +67,7 @@ async function seed() {
                     endereco: `Paraíba, PB (Código IBGE: ${row.codigo_ibge?.trim()})`,
                     location: {
                       type: 'Point' as const, 
-                      coordinates: [lon, lat] as [number, number], // [Longitude, Latitude]
+                      coordinates: [lon, lat] as [number, number], 
                     },
                     ativa: true,
                   },
@@ -77,7 +77,6 @@ async function seed() {
             };
           });
 
-        // Executa em lotes utilizando bulkWrite
         const chunkSize = 500;
         for (let i = 0; i < operations.length; i += chunkSize) {
           const chunk = operations.slice(i, i + chunkSize);

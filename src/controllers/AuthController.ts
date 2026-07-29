@@ -31,7 +31,6 @@ export const AuthController = {
       const expiresIn = data.session.expires_in || 7200;
       const applicationRole = data.user.user_metadata?.role ?? data.user.role;
 
-      // Salvando a sessão no Upstash Redis
       await redisClient.setEx(
         `session:${accessToken}`,
         expiresIn,
@@ -83,7 +82,6 @@ export const AuthController = {
       
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.slice('Bearer '.length).trim();
-        // Remove a sessão instantaneamente do Redis
         await redisClient.del(`session:${token}`);
       }
 
@@ -120,17 +118,14 @@ export const AuthController = {
 
       let institution = null;
 
-      // Try to resolve institution by id if provided and looks like an ObjectId
       if (institutionId) {
         try {
           institution = await Institution.findById(institutionId);
         } catch (err) {
-          // ignore cast errors - we'll fallback to coordinates if provided
           institution = null;
         }
       }
 
-      // If institution not found, require latitude and longitude
       const lat = latitude !== undefined ? Number(latitude) : undefined;
       const lon = longitude !== undefined ? Number(longitude) : undefined;
 
