@@ -168,7 +168,18 @@ function EntityManager({ config }: EntityManagerProps) {
       } else {
         const created = await createEntity(config.endpoint, payload);
         setEntities((current) => [created, ...current]);
-        setSuccessMessage("Cadastro realizado com sucesso.");
+        const temporaryPassword =
+          typeof created.senhaTemporaria === "string"
+            ? created.senhaTemporaria
+            : null;
+        const credentialEmail =
+          typeof created.email === "string" ? created.email : null;
+
+        setSuccessMessage(
+          temporaryPassword
+            ? `Cadastro realizado. Credenciais: ${credentialEmail ?? "e-mail informado"} / senha temporária: ${temporaryPassword}`
+            : "Cadastro realizado com sucesso.",
+        );
       }
 
       setFormOpen(false);

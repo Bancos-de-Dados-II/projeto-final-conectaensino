@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const CreateMonitorSchema = z.object({
-  userId: z.string({ error: 'userId é obrigatório.' }),
+  name: z.string().trim().min(2, 'Nome é obrigatório.'),
   institutionId: z.string({ error: 'institutionId é obrigatório.' }),
-  email: z.string({ error: 'E-mail é obrigatório.' }).email('E-mail inválido.'), // 👈 Adicionado aqui
+  email: z.string({ error: 'E-mail é obrigatório.' }).email('E-mail inválido.'),
   disciplinas: z
     .array(z.string(), { error: 'Informe ao menos uma disciplina.' })
     .min(1, 'Informe pelo menos uma disciplina.'),
@@ -23,7 +23,7 @@ export const CreateMonitorSchema = z.object({
       ],
       { error: 'Coordenadas [Longitude, Latitude] são obrigatórias.' }
     ),
-  }),
+  }).optional(),
 });
 
 export type CreateMonitorInput = z.infer<typeof CreateMonitorSchema>;

@@ -87,8 +87,19 @@ export async function createEntity(
   payload: Record<string, unknown>,
 ): Promise<CrudEntity> {
   const { data } = await api.post(endpoint, payload);
+  const responseRecord = isRecord(data) ? data : null;
+  const createdPayload =
+    responseRecord && isRecord(responseRecord.mongoData)
+      ? {
+          ...responseRecord.mongoData,
+          email: responseRecord.email,
+          senhaTemporaria: responseRecord.senhaTemporaria,
+        }
+      : responseRecord && "data" in responseRecord
+        ? responseRecord.data
+        : data;
   const normalized = normalizeEntity(
-    isRecord(data) && "data" in data ? data.data : data,
+    createdPayload,
   );
 
   return normalized ?? {

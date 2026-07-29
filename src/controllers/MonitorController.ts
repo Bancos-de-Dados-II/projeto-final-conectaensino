@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Institution } from '../models/mongodb/Institution';
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import * as crypto from 'crypto';
 
 export const MonitorController = {
@@ -9,6 +9,13 @@ export const MonitorController = {
   async create(req: Request, res: Response) {
     try {
       console.log('--- INÍCIO DO CADASTRO DE MONITOR COM AUTH ---');
+      if (!supabaseAdmin) {
+        return res.status(503).json({
+          message: 'Cadastro de credenciais indisponível.',
+          error:
+            'Configure SUPABASE_SERVICE_ROLE_KEY no backend. A chave pública não pode criar usuários.',
+        });
+      }
       const { 
         email, 
         institutionId, 
@@ -26,11 +33,18 @@ export const MonitorController = {
       }
 
       // 1. Validar se o e-mail já existe na tabela usuarios do Supabase (Unicidade)
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: existingUserError } = await supabaseAdmin
         .from('usuarios')
         .select('email')
         .eq('email', email)
         .maybeSingle();
+
+      if (existingUserError) {
+        return res.status(502).json({
+          message: 'Não foi possível verificar o e-mail no Supabase.',
+          error: existingUserError.message,
+        });
+      }
 
       if (existingUser) {
         return res.status(400).json({ message: 'Já existe um monitor cadastrado com este e-mail.' });
@@ -63,7 +77,7 @@ export const MonitorController = {
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
 
       // 4. Criar usuário no Supabase Auth (Gera credenciais reais de login)
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: randomPassword,
         email_confirm: true, // Já deixa o e-mail confirmado
@@ -90,7 +104,7 @@ export const MonitorController = {
       const mongoProfileId = monitor._id.toString();
 
       // 6. Inserir na tabela relacional 'usuarios' do Supabase vinculando o Auth e o Mongo
-      const { error: supabaseTableError } = await supabase
+      const { data: usuarioSupabase, error: supabaseTableError } = await supabaseAdmin
         .from('usuarios')
         .insert([
           { 
@@ -98,11 +112,13 @@ export const MonitorController = {
             email: email, 
             mongo_profile_id: mongoProfileId 
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (supabaseTableError) {
         console.error('Erro na tabela usuarios do Supabase. Executando rollback...', supabaseTableError);
-        await supabase.auth.admin.deleteUser(authUserId);
+        await supabaseAdmin.auth.admin.deleteUser(authUserId);
         await MonitorProfile.findByIdAndDelete(monitor._id);
         
         return res.status(400).json({ 
@@ -117,7 +133,8 @@ export const MonitorController = {
         message: 'Monitor cadastrado com sucesso com acesso ao sistema!',
         email: email,
         senhaTemporaria: randomPassword, // Você pode exibir isso no console/resposta para teste
-        mongoData: monitor
+        mongoData: monitor,
+        supabaseData: usuarioSupabase,
       });
 
     } catch (error: any) {
