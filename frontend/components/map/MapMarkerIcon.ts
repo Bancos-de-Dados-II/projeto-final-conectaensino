@@ -1,22 +1,13 @@
 import L from "leaflet";
 
-import type { MapEntityType } from "../../types/map";
-
-export function createEntityMarkerIcon(
-  type: MapEntityType,
-  available?: boolean,
-) {
-  const label = type === "monitor" ? "M" : "E";
-  const availabilityClass =
-    type === "monitor"
-      ? available
-        ? " entity-marker--available"
-        : " entity-marker--unavailable"
-      : "";
+export function createInstitutionMarkerIcon(hasMonitors: boolean) {
+  const monitorClass = hasMonitors
+    ? " entity-marker--has-monitors"
+    : " entity-marker--no-monitors";
 
   return L.divIcon({
     className: "entity-marker-wrapper",
-    html: `<span class="entity-marker entity-marker--${type}${availabilityClass}">${label}</span>`,
+    html: `<span class="entity-marker entity-marker--institution${monitorClass}">E</span>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
     popupAnchor: [0, -22],

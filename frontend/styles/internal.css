@@ -1426,6 +1426,18 @@
   background: rgba(53, 199, 138, .12);
 }
 
+.map-person-card__avatar--institution-with-monitors {
+  color: #22c55e;
+  background: rgba(34, 197, 94, .12);
+  border-color: rgba(34, 197, 94, .35);
+}
+
+.map-person-card__avatar--institution-without-monitors {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, .12);
+  border-color: rgba(59, 130, 246, .35);
+}
+
 .map-person-card__content {
   min-width: 0;
   flex: 1;
@@ -1606,6 +1618,16 @@
 
 .entity-marker--student,
 .entity-marker--institution { background: var(--primary); }
+
+.entity-marker--institution.entity-marker--has-monitors {
+  background: #22c55e;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, .16), 0 8px 20px rgba(0, 0, 0, .32);
+}
+
+.entity-marker--institution.entity-marker--no-monitors {
+  background: #3b82f6;
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, .16), 0 8px 20px rgba(0, 0, 0, .32);
+}
 
 .map-person-card__avatar--monitor-available {
   color: #22c55e;

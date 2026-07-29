@@ -285,6 +285,14 @@ function normalizeEntity(
         "active",
       ]),
     ),
+    monitorCount: asNumber(
+      readNested(source, [
+        "monitorCount",
+        "monitor_count",
+        "totalMonitors",
+        "total_monitors",
+      ]),
+    ),
     address: asString(
       readNested(source, [
         "address",
@@ -306,32 +314,6 @@ function normalizeEntity(
     ),
     raw: source,
   };
-}
-
-async function requestNearbyMonitors(
-  params: NearbySearchParams,
-): Promise<MapEntity[]> {
-  const { data } = await api.get("/monitors/nearby", {
-    params: {
-      latitude: params.latitude,
-      longitude: params.longitude,
-      lat: params.latitude,
-      lng: params.longitude,
-      radius: params.radiusKm,
-      radiusKm: params.radiusKm,
-      raio: params.radiusKm,
-    },
-  });
-
-  return extractCollection(data)
-    .map((item, index) => normalizeEntity(item, "monitor", index))
-    .filter((item): item is MapEntity => item !== null);
-}
-
-export function getNearbyMonitors(
-  params: NearbySearchParams,
-): Promise<MapEntity[]> {
-  return requestNearbyMonitors(params);
 }
 
 export async function getNearbyInstitutions(

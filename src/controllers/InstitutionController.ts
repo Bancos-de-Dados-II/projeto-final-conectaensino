@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Institution } from '../models/mongodb/Institution';
+import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 
 export const InstitutionController = {
   // Cadastrar nova Instituição
@@ -57,9 +58,35 @@ export const InstitutionController = {
             $maxDistance: radiusKm * 1000,
           },
         },
-      });
+      }).lean();
 
-      return res.status(200).json(institutions);
+      const institutionIds = institutions.map((institution) => institution._id);
+      const monitorTotals = institutionIds.length
+        ? await MonitorProfile.aggregate<{ _id: unknown; total: number }>([
+            {
+              $match: {
+                institutionId: { $in: institutionIds },
+              },
+            },
+            {
+              $group: {
+                _id: '$institutionId',
+                total: { $sum: 1 },
+              },
+            },
+          ])
+        : [];
+      const monitorCountByInstitution = new Map(
+        monitorTotals.map(({ _id, total }) => [String(_id), total]),
+      );
+
+      const institutionsWithMonitorCount = institutions.map((institution) => ({
+        ...institution,
+        monitorCount:
+          monitorCountByInstitution.get(String(institution._id)) ?? 0,
+      }));
+
+      return res.status(200).json(institutionsWithMonitorCount);
     } catch (error: any) {
       return res.status(500).json({
         message: 'Erro na busca geoespacial de instituições.',

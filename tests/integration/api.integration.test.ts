@@ -12,6 +12,7 @@ const supabaseMock = vi.hoisted(() => ({
 
 const monitorFindByIdMock = vi.hoisted(() => vi.fn());
 const monitorFindMock = vi.hoisted(() => vi.fn());
+const monitorAggregateMock = vi.hoisted(() => vi.fn());
 const institutionFindMock = vi.hoisted(() => vi.fn());
 const institutionFindByIdMock = vi.hoisted(() => vi.fn());
 
@@ -22,6 +23,7 @@ vi.mock('../../src/config/supabase', () => ({
 vi.mock('../../src/models/mongodb/MonitorProfile', () => ({
   MonitorProfile: {
     find: (...args: unknown[]) => monitorFindMock(...args),
+    aggregate: (...args: unknown[]) => monitorAggregateMock(...args),
     findById: (...args: unknown[]) => monitorFindByIdMock(...args),
   },
 }));
@@ -115,6 +117,7 @@ beforeEach(() => {
       lean: vi.fn().mockResolvedValue([]),
     }),
   });
+  monitorAggregateMock.mockResolvedValue([]);
 
   institutionFindMock.mockResolvedValue([]);
   institutionFindByIdMock.mockResolvedValue(null);
@@ -272,16 +275,21 @@ describe('Mapa com instituições do MongoDB', () => {
   });
 
   it('busca somente escolas dentro do raio de 25 km', async () => {
-    institutionFindMock.mockResolvedValueOnce([
-      {
-        _id: 'institution-nearby',
-        nome: 'Escola Próxima',
-        location: {
-          type: 'Point',
-          coordinates: [-38.5612, -6.8897],
+    institutionFindMock.mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue([
+        {
+          _id: 'institution-nearby',
+          nome: 'Escola Próxima',
+          location: {
+            type: 'Point',
+            coordinates: [-38.5612, -6.8897],
+          },
+          ativa: true,
         },
-        ativa: true,
-      },
+      ]),
+    });
+    monitorAggregateMock.mockResolvedValueOnce([
+      { _id: 'institution-nearby', total: 2 },
     ]);
 
     const response = await request(app).get(
@@ -301,6 +309,20 @@ describe('Mapa com instituições do MongoDB', () => {
         },
       },
     });
+    expect(response.body[0].monitorCount).toBe(2);
+    expect(monitorAggregateMock).toHaveBeenCalledWith([
+      {
+        $match: {
+          institutionId: { $in: ['institution-nearby'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$institutionId',
+          total: { $sum: 1 },
+        },
+      },
+    ]);
   });
 
   it('busca monitores disponíveis e indisponíveis em um raio de 25 km', async () => {
