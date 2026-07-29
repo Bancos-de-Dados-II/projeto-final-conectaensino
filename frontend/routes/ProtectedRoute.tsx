@@ -1,9 +1,19 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-
 import { useAuth } from "../hooks/useAuth";
+import { getApplicationRole } from "../utils/auth-role";
 
-function ProtectedRoute() {
-  const { isAuthenticated, isInitializing } = useAuth();
+interface ProtectedRouteProps {
+  children?: React.ReactNode;
+  allowedRoles?: string[];
+  deniedRoles?: string[];
+}
+
+function ProtectedRoute({
+  children,
+  allowedRoles,
+  deniedRoles,
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isInitializing, user } = useAuth();
   const location = useLocation();
 
   if (isInitializing) {
@@ -25,7 +35,19 @@ function ProtectedRoute() {
     );
   }
 
-  return <Outlet />;
+  // Verificação de permissão baseada em roles (ex: "monitor")
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = getApplicationRole(user);
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  if (deniedRoles?.includes(getApplicationRole(user))) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
 }
 
 export default ProtectedRoute;

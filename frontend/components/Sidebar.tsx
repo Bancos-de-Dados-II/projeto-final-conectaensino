@@ -12,6 +12,7 @@ import {
   MapPinned,
   MessageCircle,
   MessageSquareText,
+  Paperclip,
   Settings,
   Star,
   UserRound,
@@ -20,22 +21,74 @@ import {
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import {
+  canManageMonitors,
+  getApplicationRole,
+} from "../utils/auth-role";
 
 interface SidebarProps {
   isOpen: boolean;
   onNavigate: () => void;
 }
 
+// 1. Definição dos links principais da navegação
+const mainItems = [
+  { label: "Dashboard", path: "/dashboard", icon: Gauge },
+  { label: "Mapa", path: "/mapa", icon: MapPinned },
+  { label: "Monitores", path: "/monitores", icon: GraduationCap },
+  { label: "Favoritos", path: "/favoritos", icon: Heart },
+  { label: "Mensagens", path: "/mensagens", icon: MessageCircle },
+  { label: "Alunos", path: "/alunos", icon: UsersRound },
+  { label: "Sessões", path: "/sessoes", icon: CalendarDays },
+  { label: "Agenda", path: "/agenda", icon: CalendarDays },
+  { label: "Histórico", path: "/historico", icon: History },
+];
+
+// 2. Definição dos links de gerenciamento
+const managementItems = [
+  { label: "Instituições", path: "/instituicoes", icon: Building2 },
+  { label: "Disciplinas", path: "/disciplinas", icon: BookOpen },
+  { label: "Certificados", path: "/certificados", icon: Award },
+  { label: "Avaliações", path: "/avaliacoes", icon: Star },
+];
+
 export default function Sidebar({
   isOpen,
   onNavigate,
 }: SidebarProps) {
-  const { user, logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const canManage = canManageMonitors(user);
 
-  // Verifica se o usuário logado possui a role de diretor
-  const userRole = user?.user_metadata?.role || (user as any)?.role;
+  // Verifica os papéis do usuário logado
+  const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
+  const isMonitor = userRole === "monitor";
+
+  // Filtra os itens principais aplicando as regras de perfil (Ex: Monitor não vê Mapa e Favoritos)
+  const visibleMainItems = mainItems.filter((item) => {
+    if (
+      isDirector
+      && ["/mapa", "/mensagens"].includes(item.path)
+    ) {
+      return false;
+    }
+    if (isMonitor && (item.path === "/mapa" || item.path === "/favoritos")) {
+      return false;
+    }
+    if (!canManage && item.path === "/alunos") {
+      return false;
+    }
+    if (!canManage && item.path === "/monitores") {
+      return false;
+    }
+    return true;
+  });
+  const visibleManagementItems = managementItems.filter(
+    (item) =>
+      !isDirector
+      || !["/instituicoes", "/disciplinas"].includes(item.path),
+  );
 
   function handleLogout() {
     logout();
@@ -48,34 +101,31 @@ export default function Sidebar({
       <div className="sidebar__content">
         <nav className="sidebar__navigation">
           <SidebarGroup title="Principal">
-            <SidebarLink label="Dashboard" path="/dashboard" icon={Gauge} onNavigate={onNavigate} />
-            <SidebarLink label="Mapa" path="/mapa" icon={MapPinned} onNavigate={onNavigate} />
-            
-            {/* Visível apenas para Diretores */}
-            {isDirector && (
-              <SidebarLink label="Monitores" path="/monitores" icon={GraduationCap} onNavigate={onNavigate} />
-            )}
-
-            <SidebarLink label="Favoritos" path="/favoritos" icon={Heart} onNavigate={onNavigate} />
-            <SidebarLink label="Mensagens" path="/mensagens" icon={MessageCircle} onNavigate={onNavigate} />
-
-            {/* Visível apenas para Diretores */}
-            {isDirector && (
-              <SidebarLink label="Alunos" path="/alunos" icon={UsersRound} onNavigate={onNavigate} />
-            )}
-
-            <SidebarLink label="Sessões" path="/sessoes" icon={CalendarDays} onNavigate={onNavigate} />
-            <SidebarLink label="Agenda" path="/agenda" icon={CalendarDays} onNavigate={onNavigate} />
-            <SidebarLink label="Histórico" path="/historico" icon={History} onNavigate={onNavigate} />
+            {visibleMainItems.map((item) => (
+              <div key={item.path}>
+                <SidebarLink {...item} onNavigate={onNavigate} />
+                {item.path === "/sessoes" && (
+                  <SidebarLink
+                    label={canManage ? "Relatório de atividades" : "Atividades"}
+                    path="/sessoes/atividades"
+                    icon={Paperclip}
+                    onNavigate={onNavigate}
+                    nested
+                  />
+                )}
+              </div>
+            ))}
           </SidebarGroup>
 
-          {/* Seção de Gerenciamento inteira restrita a Diretores */}
-          {isDirector && (
+          {canManage && (
             <SidebarGroup title="Gerenciamento">
-              <SidebarLink label="Instituições" path="/instituicoes" icon={Building2} onNavigate={onNavigate} />
-              <SidebarLink label="Disciplinas" path="/disciplinas" icon={BookOpen} onNavigate={onNavigate} />
-              <SidebarLink label="Certificados" path="/certificados" icon={Award} onNavigate={onNavigate} />
-              <SidebarLink label="Avaliações" path="/avaliacoes" icon={Star} onNavigate={onNavigate} />
+              {visibleManagementItems.map((item) => (
+                <SidebarLink
+                  key={item.path}
+                  {...item}
+                  onNavigate={onNavigate}
+                />
+              ))}
             </SidebarGroup>
           )}
 
@@ -95,7 +145,7 @@ export default function Sidebar({
           </SidebarGroup>
         </nav>
 
-        <div className="sidebar__support-card">
+        {!isDirector && <div className="sidebar__support-card">
           <div className="sidebar__support-icon">
             <MessageSquareText size={21} />
           </div>
@@ -112,7 +162,7 @@ export default function Sidebar({
           >
             Abrir mensagens
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="sidebar__footer">
@@ -161,18 +211,22 @@ function SidebarLink({
   path,
   icon: Icon,
   onNavigate,
+  nested = false,
 }: {
   label: string;
   path: string;
   icon: ElementType;
   onNavigate: () => void;
+  nested?: boolean;
 }) {
   return (
     <NavLink
       to={path}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `sidebar-link ${isActive ? "sidebar-link--active" : ""}`
+        `sidebar-link ${nested ? "sidebar-link--nested" : ""} ${
+          isActive ? "sidebar-link--active" : ""
+        }`
       }
     >
       <Icon size={20} />

@@ -450,7 +450,7 @@ function Login() {
             </button>
           </form>
 
-          <div style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="login-mode-toggle" style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
               type="button"
               className="secondary-button"

@@ -47,7 +47,7 @@ export const AuthController = {
         user: {
           id: data.user.id,
           email: data.user.email,
-          role: data.user.role,
+          role: data.user.user_metadata?.role ?? data.user.role,
           user_metadata: data.user.user_metadata,
         },
       });
@@ -122,6 +122,11 @@ export const AuthController = {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            role: 'student',
+          },
+        },
       });
 
       if (error) {

@@ -30,6 +30,7 @@ import EntityFormModal from "./EntityFormModal";
 
 interface EntityManagerProps {
   config: CrudResourceConfig;
+  readOnly?: boolean;
 }
 
 function getDisplayValue(
@@ -68,7 +69,7 @@ function getEntityName(entity: CrudEntity): string {
   );
 }
 
-function EntityManager({ config }: EntityManagerProps) {
+function EntityManager({ config, readOnly = false }: EntityManagerProps) {
   const [entities, setEntities] = useState<CrudEntity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -239,14 +240,16 @@ function EntityManager({ config }: EntityManagerProps) {
           <p>{config.description}</p>
         </div>
 
-        <button
-          className="primary-button"
-          type="button"
-          onClick={openCreateForm}
-        >
-          <Plus size={18} />
-          Cadastrar {config.singular}
-        </button>
+        {!readOnly && (
+          <button
+            className="primary-button"
+            type="button"
+            onClick={openCreateForm}
+          >
+            <Plus size={18} />
+            Cadastrar {config.singular}
+          </button>
+        )}
       </section>
 
       {errorMessage && (
@@ -368,7 +371,8 @@ function EntityManager({ config }: EntityManagerProps) {
                 ))}
 
                     <td>
-                      <div className="crud-row-actions">
+                      {!readOnly && (
+                        <div className="crud-row-actions">
                         <button
                           type="button"
                           aria-label="Editar"
@@ -385,7 +389,8 @@ function EntityManager({ config }: EntityManagerProps) {
                         >
                           <Trash2 size={16} />
                         </button>
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -394,27 +399,31 @@ function EntityManager({ config }: EntityManagerProps) {
         </div>
       </section>
 
-      <EntityFormModal
-        open={formOpen}
-        singular={config.singular}
-        fields={config.fields}
-        entity={editingEntity}
-        submitting={submitting}
-        onClose={() => {
-          setFormOpen(false);
-          setEditingEntity(null);
-        }}
-        onSubmit={handleSave}
-      />
+      {!readOnly && (
+        <>
+          <EntityFormModal
+            open={formOpen}
+            singular={config.singular}
+            fields={config.fields}
+            entity={editingEntity}
+            submitting={submitting}
+            onClose={() => {
+              setFormOpen(false);
+              setEditingEntity(null);
+            }}
+            onSubmit={handleSave}
+          />
 
-      <DeleteConfirmModal
-        open={Boolean(deletingEntity)}
-        singular={config.singular}
-        entityName={deletingEntity ? getEntityName(deletingEntity) : ""}
-        submitting={submitting}
-        onClose={() => setDeletingEntity(null)}
-        onConfirm={handleDelete}
-      />
+          <DeleteConfirmModal
+            open={Boolean(deletingEntity)}
+            singular={config.singular}
+            entityName={deletingEntity ? getEntityName(deletingEntity) : ""}
+            submitting={submitting}
+            onClose={() => setDeletingEntity(null)}
+            onConfirm={handleDelete}
+          />
+        </>
+      )}
     </div>
   );
 }

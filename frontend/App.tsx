@@ -13,6 +13,9 @@ const MapPage = lazy(() => import("./pages/MapPage"));
 const MonitorsPage = lazy(() => import("./pages/MonitorsPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const SessionsPage = lazy(() => import("./pages/SessionsPage"));
+const SessionActivitiesPage = lazy(
+  () => import("./pages/SessionActivitiesPage"),
+);
 const InstitutionsPage = lazy(() => import("./pages/InstitutionsPage"));
 const SubjectsPage = lazy(() => import("./pages/SubjectsPage"));
 const CertificatesPage = lazy(() => import("./pages/CertificatesPage"));
@@ -30,6 +33,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const CreateTaskPage = lazy(() => import("./pages/CreateTask")); // Nova tela de atividades
 
 function Loader() {
   return (
@@ -62,16 +66,34 @@ export default function App() {
                     element={<Navigate to="/dashboard" replace />}
                   />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/mapa" element={<MapPage />} />
+                  <Route
+                    path="/mapa"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <MapPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/monitores" element={<MonitorsPage />} />
                   <Route
                     path="/monitores/:id"
                     element={<MonitorProfilePage />}
                   />
                   <Route path="/favoritos" element={<FavoritesPage />} />
-                  <Route path="/mensagens" element={<ChatPage />} />
+                  <Route
+                    path="/mensagens"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <ChatPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/alunos" element={<StudentsPage />} />
                   <Route path="/sessoes" element={<SessionsPage />} />
+                  <Route
+                    path="/sessoes/atividades"
+                    element={<SessionActivitiesPage />}
+                  />
                   <Route path="/agenda" element={<CalendarPage />} />
                   <Route
                     path="/historico"
@@ -79,9 +101,20 @@ export default function App() {
                   />
                   <Route
                     path="/instituicoes"
-                    element={<InstitutionsPage />}
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <InstitutionsPage />
+                      </ProtectedRoute>
+                    }
                   />
-                  <Route path="/disciplinas" element={<SubjectsPage />} />
+                  <Route
+                    path="/disciplinas"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <SubjectsPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/certificados"
                     element={<CertificatesPage />}
@@ -91,6 +124,16 @@ export default function App() {
                   <Route
                     path="/configuracoes"
                     element={<SettingsPage />}
+                  />
+                  
+                  {/* Nova rota restrita para criação de atividades */}
+                  <Route
+                    path="/atividades/nova"
+                    element={
+                      <ProtectedRoute allowedRoles={["monitor"]}>
+                        <CreateTaskPage />
+                      </ProtectedRoute>
+                    }
                   />
                 </Route>
               </Route>

@@ -1,7 +1,6 @@
 import {
   Bell,
   Camera,
-  FileText,
   LockKeyhole,
   MonitorCog,
   Save,
@@ -14,7 +13,6 @@ import {
   useState,
 } from "react";
 
-import DocumentManager from "../components/settings/DocumentManager";
 import { useAppearance } from "../contexts/AppearanceContext";
 import {
   getSettingsProfile,
@@ -30,14 +28,12 @@ type Section =
   | "profile"
   | "appearance"
   | "notifications"
-  | "documents"
   | "security";
 
 const sections = [
   { id: "profile" as const, label: "PERFIL", icon: UserRound },
   { id: "appearance" as const, label: "APARÊNCIA", icon: MonitorCog },
   { id: "notifications" as const, label: "NOTIFICAÇÕES", icon: Bell },
-  { id: "documents" as const, label: "DOCUMENTOS", icon: FileText },
   { id: "security" as const, label: "SEGURANÇA", icon: LockKeyhole },
 ];
 
@@ -377,21 +373,6 @@ export default function SettingsPage() {
                     <i />
                   </label>
                 ))}
-              </div>
-            </section>
-          )}
-
-          {section === "documents" && (
-            <section className="prototype-panel">
-              <div className="prototype-panel__header">
-                <span>04</span>
-                <div>
-                  <h2>DOCUMENTOS</h2>
-                  <p>Arquivos vinculados à sua conta.</p>
-                </div>
-              </div>
-              <div className="prototype-panel__body">
-                <DocumentManager />
               </div>
             </section>
           )}

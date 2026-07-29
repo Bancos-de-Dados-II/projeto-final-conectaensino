@@ -51,3 +51,17 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return res.status(500).json({ message });
   }
 }
+
+export function requireRoles(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
+    const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+
+    if (!role || !allowedRoles.includes(role)) {
+      return res.status(403).json({
+        message: 'Você não possui permissão para realizar esta ação.',
+      });
+    }
+
+    return next();
+  };
+}

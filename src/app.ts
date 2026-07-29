@@ -15,7 +15,7 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 app.use('/api/estudantes', studentRoutes);
 app.use('/api/institutions', institutionRoutes);
 app.use('/api', rotasPrincipais);
