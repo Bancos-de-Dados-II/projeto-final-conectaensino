@@ -69,7 +69,7 @@ export default function Sidebar({
   const visibleMainItems = mainItems.filter((item) => {
     if (
       isDirector
-      && ["/mapa", "/mensagens"].includes(item.path)
+      && ["/mapa", "/mensagens", "/favoritos"].includes(item.path)
     ) {
       return false;
     }

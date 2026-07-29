@@ -79,7 +79,14 @@ export default function App() {
                     path="/monitores/:id"
                     element={<MonitorProfilePage />}
                   />
-                  <Route path="/favoritos" element={<FavoritesPage />} />
+                  <Route
+                    path="/favoritos"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <FavoritesPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/mensagens"
                     element={
