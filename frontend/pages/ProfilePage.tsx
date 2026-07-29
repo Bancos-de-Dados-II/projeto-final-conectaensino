@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import axios from "axios";
 import {
   Building2,
+  Camera,
   GraduationCap,
   Mail,
   Phone,
@@ -13,13 +15,29 @@ import {
   getProfile,
   updateProfile,
 } from "../services/domain.service";
+import { getNearbyInstitutions } from "../services/map.service";
+import {
+  getOwnMonitorProfile,
+  updateOwnMonitorAvatar,
+  updateOwnMonitorInstitution,
+} from "../services/monitor-profile.service";
+import type { MapEntity } from "../types/map";
+import { getApplicationRole } from "../utils/auth-role";
 
 function ProfilePage() {
   const { user } = useAuth();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const isMonitor = getApplicationRole(user) === "monitor";
   const [name, setName] = useState("");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState("");
   const [institution, setInstitution] = useState("");
+  const [institutionId, setInstitutionId] = useState("");
+  const [schoolSuggestions, setSchoolSuggestions] = useState<MapEntity[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(false);
+  const [schoolInputFocused, setSchoolInputFocused] = useState(false);
+  const [avatar, setAvatar] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [course, setCourse] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -32,7 +50,7 @@ function ProfilePage() {
         setName(profile.name);
         setEmail(profile.email || user?.email || "");
         setPhone(profile.phone || "");
-        setInstitution(profile.institution || "");
+        if (!isMonitor) setInstitution(profile.institution || "");
         setCourse(profile.course || "");
         return;
       }
@@ -47,7 +65,53 @@ function ProfilePage() {
     }
 
     void loadProfile();
-  }, [user]);
+  }, [isMonitor, user]);
+
+  useEffect(() => {
+    if (!isMonitor) return;
+
+    setLoadingSchools(true);
+    void getOwnMonitorProfile()
+      .then(async (profile) => {
+        setAvatar(profile.avatar ?? "");
+        const linkedInstitution = profile.institutionId;
+        if (linkedInstitution && typeof linkedInstitution === "object") {
+          setInstitutionId(
+            String(linkedInstitution._id ?? linkedInstitution.id ?? ""),
+          );
+          setInstitution(
+            String(linkedInstitution.nome ?? linkedInstitution.name ?? ""),
+          );
+        }
+
+        const coordinates = profile.location?.coordinates;
+        if (!coordinates || coordinates.length !== 2) return;
+        setSchoolSuggestions(
+          await getNearbyInstitutions({
+            longitude: coordinates[0],
+            latitude: coordinates[1],
+            radiusKm: 25,
+          }),
+        );
+      })
+      .catch(() => setMessage("Não foi possível carregar as escolas próximas."))
+      .finally(() => setLoadingSchools(false));
+  }, [isMonitor]);
+
+  function selectAvatar(file?: File) {
+    setMessage("");
+    if (!file) return;
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setMessage("Selecione uma foto JPEG ou PNG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("A foto deve possuir no máximo 2 MB.");
+      return;
+    }
+    setAvatarFile(file);
+    setAvatar(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,6 +119,30 @@ function ProfilePage() {
     setMessage("");
 
     try {
+      if (isMonitor) {
+        if (!institutionId && !avatarFile) {
+          setMessage(
+            "Selecione uma escola sugerida ou escolha uma nova foto.",
+          );
+          return;
+        }
+        const messages: string[] = [];
+        if (avatarFile) {
+          setAvatar(await updateOwnMonitorAvatar(avatarFile));
+          setAvatarFile(null);
+          messages.push("Foto atualizada");
+        }
+        if (institutionId) {
+          const updated = await updateOwnMonitorInstitution(institutionId);
+          setInstitution(updated.institutionName);
+          messages.push(
+            `escola confirmada a ${updated.distanceKm.toFixed(1)} km`,
+          );
+        }
+        setMessage(`${messages.join(" e ")} com sucesso.`);
+        return;
+      }
+
       await updateProfile({
         name,
         email,
@@ -64,9 +152,14 @@ function ProfilePage() {
       });
 
       setMessage("Perfil atualizado com sucesso.");
-    } catch {
+    } catch (error) {
       setMessage(
-        "Não foi possível atualizar no backend. Os dados continuam visíveis apenas nesta tela.",
+        axios.isAxiosError(error)
+          ? String(
+              (error.response?.data as { message?: string } | undefined)
+                ?.message ?? "Não foi possível atualizar a escola.",
+            )
+          : "Não foi possível atualizar o perfil.",
       );
     } finally {
       setSaving(false);
@@ -92,7 +185,31 @@ function ProfilePage() {
 
       <section className="profile-layout">
         <aside className="profile-card">
-          <span className="profile-card__avatar">{initials}</span>
+          <span className={`profile-card__avatar ${avatar ? "profile-card__avatar--image" : ""}`}>
+            {avatar ? <img src={avatar} alt={`Foto de ${name || "perfil"}`} /> : initials}
+          </span>
+          {isMonitor && (
+            <>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                hidden
+                onChange={(event) => selectAvatar(event.target.files?.[0])}
+              />
+              <button
+                className="profile-card__photo-button"
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <Camera size={16} />
+                Alterar foto
+              </button>
+              <small className="profile-card__photo-help">
+                JPEG ou PNG • máximo de 2 MB
+              </small>
+            </>
+          )}
           <h2>{name || "Usuário Conecta Ensino"}</h2>
           <p>{email}</p>
           <span className="profile-card__role">
@@ -146,16 +263,69 @@ function ProfilePage() {
               </div>
             </label>
 
-            <label className="profile-input-field">
+            <label className={`profile-input-field ${isMonitor ? "profile-school-field" : ""}`}>
               <span>Instituição</span>
               <div>
                 <Building2 size={17} />
                 <input
                   value={institution}
-                  onChange={(event) => setInstitution(event.target.value)}
-                  placeholder="Sua instituição"
+                  autoComplete="off"
+                  onFocus={() => setSchoolInputFocused(true)}
+                  onBlur={() =>
+                    window.setTimeout(() => setSchoolInputFocused(false), 150)
+                  }
+                  onChange={(event) => {
+                    setInstitution(event.target.value);
+                    if (isMonitor) setInstitutionId("");
+                  }}
+                  placeholder={
+                    isMonitor
+                      ? "Digite o nome da escola..."
+                      : "Sua instituição"
+                  }
                 />
               </div>
+              {isMonitor && (
+                <>
+                  <small>
+                    {loadingSchools
+                      ? "Buscando escolas em até 25 km..."
+                      : `${schoolSuggestions.length} escola(s) encontrada(s) em até 25 km.`}
+                  </small>
+                  {schoolInputFocused && !loadingSchools && (
+                    <div className="profile-school-suggestions">
+                      {schoolSuggestions
+                        .filter((school) =>
+                          school.name
+                            .toLocaleLowerCase("pt-BR")
+                            .includes(institution.trim().toLocaleLowerCase("pt-BR")),
+                        )
+                        .slice(0, 8)
+                        .map((school) => (
+                          <button
+                            type="button"
+                            key={school.id}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setInstitutionId(school.id);
+                              setInstitution(school.name);
+                              setSchoolInputFocused(false);
+                            }}
+                          >
+                            <Building2 size={16} />
+                            <span>
+                              <strong>{school.name}</strong>
+                              <small>
+                                {school.distanceKm?.toFixed(1) ?? "Até 25"} km
+                                {school.address ? ` • ${school.address}` : ""}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </>
+              )}
             </label>
 
             <label className="profile-input-field profile-input-field--full">

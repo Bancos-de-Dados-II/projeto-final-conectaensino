@@ -7,6 +7,7 @@ import { sessionRoutes } from './session.routes.js';
 import { certificadoRoutes } from './certificado.routes.js';
 import { authRoutes } from './auth.routes';
 import { directorRoutes } from './director.routes'; // 1. Importe o arquivo de rotas do diretor
+import { taskRoutes } from './task.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/sessoes', sessionRoutes);
 router.use('/certificados', certificadoRoutes);
 router.use('/auth', authRoutes);
 router.use('/directors', directorRoutes); // 2. Registre o prefixo para as rotas de diretor
+router.use('/tasks', taskRoutes);
 
 export default router;

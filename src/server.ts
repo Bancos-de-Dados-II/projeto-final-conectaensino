@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { supabase } from './config/supabase';
 import { connectRedis } from './config/redis'; 
 import app from './app';
+import { Task } from './models/mongodb/Task';
 
 dotenv.config();
 
@@ -10,17 +11,6 @@ const PORT = Number(process.env.PORT) || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ensino';
 
 // Schema/Model temporário para as Atividades (caso queira usar Mongoose direto)
-const taskSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  subject: String,
-  studentEmail: String,
-  monitorName: String,
-  status: { type: String, default: 'pending' },
-  createdAt: { type: Date, default: Date.now }
-});
-const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
-
 // Rota de teste do Supabase
 app.get('/api/teste-supabase', async (_req, res) => {
   try {
@@ -94,7 +84,7 @@ app.get('/api/tasks', async (req, res) => {
       return res.status(400).json({ error: "E-mail do aluno não informado." });
     }
 
-    const tasks = await Task.find({ studentEmail: email }).sort({ createdAt: -1 });
+    const tasks = await Task.find({ studentEmail: String(email) }).sort({ createdAt: -1 });
     return res.json(tasks);
   } catch (error) {
     console.error("Erro ao buscar tarefas:", error);

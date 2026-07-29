@@ -5,6 +5,132 @@ import { supabase, supabaseAdmin } from '../config/supabase';
 import * as crypto from 'crypto';
 
 export const MonitorController = {
+  async getOwnProfile(req: Request, res: Response) {
+    try {
+      const monitor = await MonitorProfile.findOne({ userId: req.user?.id })
+        .select('+avatarData +avatarMimeType')
+        .populate('institutionId', 'nome endereco location')
+        .lean();
+      if (!monitor) {
+        return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+      }
+      const avatar =
+        monitor.avatarData && monitor.avatarMimeType
+          ? `data:${monitor.avatarMimeType};base64,${monitor.avatarData.toString('base64')}`
+          : undefined;
+      const { avatarData: _avatarData, ...safeMonitor } = monitor;
+      return res.status(200).json({ ...safeMonitor, avatar });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: 'Erro ao carregar perfil do monitor.',
+        error: error.message,
+      });
+    }
+  },
+
+  async updateOwnAvatar(req: Request, res: Response) {
+    try {
+      const contentBase64 =
+        typeof req.body?.contentBase64 === 'string'
+          ? req.body.contentBase64
+          : '';
+      const rawBase64 = contentBase64.replace(/^data:[^;]+;base64,/, '');
+      const data = Buffer.from(rawBase64, 'base64');
+      if (!data.length || data.length > 2 * 1024 * 1024) {
+        return res.status(400).json({
+          message: 'A foto deve possuir no máximo 2 MB.',
+        });
+      }
+
+      const isJpeg =
+        data.length >= 3
+        && data[0] === 0xff
+        && data[1] === 0xd8
+        && data[2] === 0xff;
+      const pngSignature = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      const isPng = data.subarray(0, 8).equals(pngSignature);
+      if (!isJpeg && !isPng) {
+        return res.status(400).json({
+          message: 'Formato inválido. Envie uma foto JPEG ou PNG.',
+        });
+      }
+
+      const monitor = await MonitorProfile.findOne({ userId: req.user?.id })
+        .select('+avatarData +avatarMimeType');
+      if (!monitor) {
+        return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+      }
+      monitor.avatarMimeType = isPng ? 'image/png' : 'image/jpeg';
+      monitor.avatarData = data;
+      await monitor.save();
+
+      return res.status(200).json({
+        avatar: `data:${monitor.avatarMimeType};base64,${data.toString('base64')}`,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: 'Erro ao atualizar foto do perfil.',
+        error: error.message,
+      });
+    }
+  },
+
+  async updateOwnInstitution(req: Request, res: Response) {
+    try {
+      const institutionId =
+        typeof req.body?.institutionId === 'string'
+          ? req.body.institutionId.trim()
+          : '';
+      if (!/^[0-9a-fA-F]{24}$/.test(institutionId)) {
+        return res.status(400).json({ message: 'Selecione uma escola válida.' });
+      }
+
+      const [monitor, institution] = await Promise.all([
+        MonitorProfile.findOne({ userId: req.user?.id }),
+        Institution.findById(institutionId),
+      ]);
+      if (!monitor) {
+        return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+      }
+      if (!institution || institution.ativa === false) {
+        return res.status(404).json({ message: 'Escola não encontrada ou inativa.' });
+      }
+
+      const [monitorLng, monitorLat] = monitor.location.coordinates;
+      const [schoolLng, schoolLat] = institution.location.coordinates;
+      const toRadians = (value: number) => (value * Math.PI) / 180;
+      const latitudeDelta = toRadians(schoolLat - monitorLat);
+      const longitudeDelta = toRadians(schoolLng - monitorLng);
+      const a =
+        Math.sin(latitudeDelta / 2) ** 2
+        + Math.cos(toRadians(monitorLat))
+          * Math.cos(toRadians(schoolLat))
+          * Math.sin(longitudeDelta / 2) ** 2;
+      const distanceKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      if (distanceKm > 25) {
+        return res.status(400).json({
+          message: 'A escola selecionada está fora do raio permitido de 25 km.',
+        });
+      }
+
+      monitor.institutionId = institution._id;
+      await monitor.save();
+      return res.status(200).json({
+        institutionId: String(institution._id),
+        institutionName: institution.nome,
+        distanceKm: Number(distanceKm.toFixed(1)),
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: 'Erro ao atualizar escola do monitor.',
+        error: error.message,
+      });
+    }
+  },
+
   // Criar Perfil de Monitor (Orquestrando MongoDB + Supabase)
   async create(req: Request, res: Response) {
     try {

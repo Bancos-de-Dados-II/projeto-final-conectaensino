@@ -13,6 +13,8 @@ export interface IMonitorProfile extends Document {
     coordinates: [number, number];
   };
   ativo: boolean;
+  avatarMimeType?: 'image/jpeg' | 'image/png';
+  avatarData?: Buffer;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -68,6 +70,15 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     ativo: {
       type: Boolean,
       default: true,
+    },
+    avatarMimeType: {
+      type: String,
+      enum: ['image/jpeg', 'image/png'],
+      select: false,
+    },
+    avatarData: {
+      type: Buffer,
+      select: false,
     },
   },
   {

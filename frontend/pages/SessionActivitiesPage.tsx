@@ -134,14 +134,14 @@ export default function SessionActivitiesPage() {
       <header className="crud-page__heading">
         <div>
           <span className="dashboard__eyebrow">
-            Sessões / {isManagement ? "Relatório" : "Atividades"}
+            Sessões / {isManagement ? "Relatório" : isStudent ? "Atividades" : "Materiais"}
           </span>
           <h1>
             {isManagement
               ? "Relatório de atividades"
               : isStudent
                 ? "Enviar lições"
-                : "Atividades recebidas"}
+                : "Materiais recebidos"}
           </h1>
           <p>
             {isManagement

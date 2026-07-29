@@ -1,176 +1,170 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
+import {
+  BookOpen,
+  CheckCircle2,
+  ListTodo,
+  Send,
+  UserCheck,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, CheckCircle, ListTodo, UserCheck } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { supabase } from "../../src/config/supabase";
-interface Student {
-  email: string;
-  name: string;
-}
+
+import {
+  createTask,
+  getEligibleStudents,
+} from "../services/task.service";
+import type { EligibleStudent } from "../types/task";
 
 export default function CreateTask() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<EligibleStudent[]>([]);
   const [selectedStudent, setSelectedStudent] = useState("");
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // Carrega apenas os alunos elegíveis (que possuem sessão com este monitor)
   useEffect(() => {
-    async function loadMyStudents() {
-      try {
-        const sessionData = await supabase.auth.getSession();
-        const token = sessionData.data.session?.access_token;
+    void getEligibleStudents()
+      .then((items) => {
+        setStudents(items);
+        setSelectedStudent(items[0]?.id ?? "");
+      })
+      .catch(() =>
+        setErrorMessage("Não foi possível carregar os alunos designados."),
+      )
+      .finally(() => setLoadingStudents(false));
+  }, []);
 
-        const response = await fetch("/api/monitors/my-students", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-        setStudents(data);
-      } catch (err) {
-        console.error("Erro ao carregar alunos", err);
-      }
-    }
-    void loadMyStudents();
-  }, [user]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setSuccess("");
+    setErrorMessage("");
     try {
-      const sessionData = await supabase.auth.getSession();
-      const token = sessionData.data.session?.access_token;
-
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title,
-          subject,
-          description,
-          studentEmail: selectedStudent,
-          monitorName: user?.user_metadata?.name || "Monitor"
-        }),
+      await createTask({
+        studentId: selectedStudent,
+        title,
+        subject,
+        description,
       });
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => navigate("/dashboard"), 1500);
-      }
-    } catch (err) {
-      console.error("Erro ao atribuir atividade", err);
+      setSuccess("Atividade atribuída ao aluno com sucesso.");
+      window.setTimeout(() => navigate("/dashboard"), 1000);
+    } catch (error) {
+      setErrorMessage(
+        axios.isAxiosError(error)
+          ? String(
+              (error.response?.data as { message?: string } | undefined)
+                ?.message ?? "Não foi possível criar a atividade.",
+            )
+          : "Não foi possível criar a atividade.",
+      );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: "600px", margin: "2rem auto" }}>
-      <div className="panel">
-        <div className="panel__header" style={{ marginBottom: "1.5rem" }}>
-          <div>
-            <span className="panel__eyebrow">Área do Monitor</span>
-            <h2>Atribuir Nova Atividade</h2>
-          </div>
+    <div className="task-create-page">
+      <header className="crud-page__heading">
+        <div>
+          <span className="dashboard__eyebrow">Área do monitor</span>
+          <h1>Nova atividade</h1>
+          <p>Atribua uma tarefa a um aluno que possui sessão com você.</p>
         </div>
+      </header>
 
-        {success && (
-          <div className="crud-feedback crud-feedback--success" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
-            <CheckCircle size={18} />
-            Atividade enviada para o aluno com sucesso!
-          </div>
-        )}
+      {errorMessage && (
+        <div className="crud-feedback crud-feedback--error" role="alert">
+          {errorMessage}
+        </div>
+      )}
+      {success && (
+        <div className="crud-feedback crud-feedback--success" role="status">
+          <CheckCircle2 size={17} />
+          {success}
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
-          {/* Seleção do Aluno Elegível */}
-          <div className="form-group">
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", marginBottom: "6px" }}>
-              <UserCheck size={18} /> Aluno (Apenas com sessões agendadas/realizadas)
-            </label>
-            <select
-              className="form-input"
-              value={selectedStudent}
-              onChange={(e) => setSelectedStudent(e.target.value)}
-              required
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}
-            >
-              <option value="" disabled style={{ background: "#1e293b" }}>
-                Selecione um aluno...
-              </option>
-              {students.map((student) => (
-                <option key={student.email} value={student.email} style={{ background: "#1e293b" }}>
-                  {student.name} ({student.email})
-                </option>
-              ))}
-            </select>
-            {students.length === 0 && (
-              <small style={{ color: "#9ca3af", marginTop: "4px", display: "block" }}>
-                Você só pode enviar tarefas para alunos com os quais já possui sessões registradas.
-              </small>
+      <form className="task-create-form" onSubmit={handleSubmit}>
+        <label>
+          <span><UserCheck size={17} /> Aluno designado</span>
+          <select
+            value={selectedStudent}
+            disabled={loadingStudents || students.length === 0}
+            required
+            onChange={(event) => setSelectedStudent(event.target.value)}
+          >
+            {loadingStudents && <option>Carregando alunos...</option>}
+            {!loadingStudents && students.length === 0 && (
+              <option value="">Nenhum aluno com sessão registrada</option>
             )}
-          </div>
+            {students.map((student) => (
+              <option value={student.id} key={student.id}>
+                {student.name}{student.email ? ` — ${student.email}` : ""}
+              </option>
+            ))}
+          </select>
+          <small>
+            São exibidos apenas alunos que já possuem uma sessão registrada
+            com o monitor.
+          </small>
+        </label>
 
-          {/* Disciplina */}
-          <div className="form-group">
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", marginBottom: "6px" }}>
-              <BookOpen size={18} /> Disciplina
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Banco de Dados II, Cálculo..."
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              required
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}
-            />
-          </div>
+        <label>
+          <span><BookOpen size={17} /> Disciplina</span>
+          <input
+            value={subject}
+            maxLength={120}
+            required
+            placeholder="Ex.: Banco de Dados II"
+            onChange={(event) => setSubject(event.target.value)}
+          />
+        </label>
 
-          {/* Título da Atividade */}
-          <div className="form-group">
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", marginBottom: "6px" }}>
-              <ListTodo size={18} /> Título da Atividade
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Exercícios de Normalização de Dados"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}
-            />
-          </div>
+        <label>
+          <span><ListTodo size={17} /> Título</span>
+          <input
+            value={title}
+            maxLength={150}
+            required
+            placeholder="Ex.: Exercícios de normalização"
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
 
-          {/* Descrição / Orientação */}
-          <div className="form-group">
-            <label style={{ fontWeight: "bold", marginBottom: "6px", display: "block" }}>Orientação / Descrição</label>
-            <textarea
-              rows={4}
-              placeholder="Descreva o que o aluno deve resolver..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}
-            />
-          </div>
+        <label>
+          <span>Orientações</span>
+          <textarea
+            value={description}
+            rows={6}
+            maxLength={3000}
+            placeholder="Descreva o que o aluno deve realizar..."
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </label>
 
+        <div className="task-create-form__actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate("/dashboard")}
+          >
+            Cancelar
+          </button>
           <button
             type="submit"
             className="primary-button"
-            disabled={loading || !selectedStudent}
-            style={{ marginTop: "1rem" }}
+            disabled={submitting || !selectedStudent}
           >
-            {loading ? "Enviando..." : "Atribuir Atividade"}
+            <Send size={17} />
+            {submitting ? "Enviando..." : "Atribuir atividade"}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }

@@ -22,10 +22,16 @@ import ReportExport from "../components/reports/ReportExport";
 import StatCard from "../components/StatCard";
 import { useAuth } from "../hooks/useAuth";
 import { getDashboardData } from "../services/dashboard.service";
+import {
+  getTasks,
+  updateTaskStatus as persistTaskStatus,
+} from "../services/task.service";
 import type {
   DashboardActivity,
   DashboardData,
 } from "../types/dashboard";
+import type { TaskStatus } from "../types/task";
+import { getApplicationRole } from "../utils/auth-role";
 
 const activityIcons = {
   student: UserRound,
@@ -57,6 +63,7 @@ interface KanbanTask {
   title: string;
   subject: string;
   monitorName: string;
+  studentName: string;
   status: "pending" | "in_progress" | "completed";
 }
 
@@ -69,7 +76,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
 
   // Captura o papel do usuário logado de forma segura
-  const userRole = user?.user_metadata?.role || (user as any)?.role;
+  const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor"; // 👈 Identificador de Monitor
 
@@ -97,10 +104,61 @@ export default function Dashboard() {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const updateTaskStatus = (taskId: string, newStatus: KanbanTask["status"]) => {
-    setTasks(prev =>
-      prev.map(task => (task.id === taskId ? { ...task, status: newStatus } : task))
+  const loadAssignedTasks = useCallback(async (showError = true) => {
+    if (isDirector) return;
+    try {
+      const items = await getTasks();
+      setTasks(
+        items.map((task) => ({
+          id: task._id,
+          title: task.title,
+          subject: task.subject,
+          monitorName: task.monitorName,
+          studentName: task.studentName,
+          status: task.status,
+        })),
+      );
+    } catch {
+      if (showError) {
+        setErrorMessage("Não foi possível carregar as atividades atribuídas.");
+      }
+    }
+  }, [isDirector]);
+
+  useEffect(() => {
+    void loadAssignedTasks();
+    if (!isMonitor) return;
+
+    const intervalId = window.setInterval(
+      () => void loadAssignedTasks(false),
+      5000,
     );
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadAssignedTasks(false);
+      }
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [isMonitor, loadAssignedTasks]);
+
+  const updateTaskStatus = async (
+    taskId: string,
+    newStatus: TaskStatus,
+  ) => {
+    try {
+      await persistTaskStatus(taskId, newStatus);
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === taskId ? { ...task, status: newStatus } : task,
+        ),
+      );
+    } catch {
+      setErrorMessage("Não foi possível atualizar o status da atividade.");
+    }
   };
 
   if (loading) {
@@ -307,17 +365,17 @@ export default function Dashboard() {
                     tasks.filter(t => t.status === "pending").map(task => (
                       <div key={task.id} style={{ background: "rgba(255, 255, 255, 0.05)", padding: "12px", borderRadius: "6px", borderLeft: "4px solid #3b82f6" }}>
                         <strong style={{ display: "block", fontSize: "0.95rem" }}>{task.title}</strong>
-                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {task.monitorName}</small>
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {isMonitor ? task.studentName : task.monitorName}</small>
+                        {!isMonitor && <div style={{ display: "flex", justifyContent: "flex-end" }}>
                           <button 
                             type="button" 
-                            onClick={() => updateTaskStatus(task.id, "in_progress")}
+                            onClick={() => void updateTaskStatus(task.id, "in_progress")}
                             style={{ background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem" }}
                           >
                             <span>Iniciar</span>
                             <ArrowRight size={14} />
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     ))
                   )}
@@ -339,11 +397,11 @@ export default function Dashboard() {
                     tasks.filter(t => t.status === "in_progress").map(task => (
                       <div key={task.id} style={{ background: "rgba(255, 255, 255, 0.05)", padding: "12px", borderRadius: "6px", borderLeft: "4px solid #eab308" }}>
                         <strong style={{ display: "block", fontSize: "0.95rem" }}>{task.title}</strong>
-                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {task.monitorName}</small>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {isMonitor ? task.studentName : task.monitorName}</small>
+                        {!isMonitor && <div style={{ display: "flex", justifyContent: "space-between" }}>
                           <button 
                             type="button" 
-                            onClick={() => updateTaskStatus(task.id, "pending")}
+                            onClick={() => void updateTaskStatus(task.id, "pending")}
                             style={{ background: "transparent", border: "none", color: "#9ca3af", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem" }}
                           >
                             <ArrowLeft size={14} />
@@ -351,13 +409,13 @@ export default function Dashboard() {
                           </button>
                           <button 
                             type="button" 
-                            onClick={() => updateTaskStatus(task.id, "completed")}
+                            onClick={() => void updateTaskStatus(task.id, "completed")}
                             style={{ background: "transparent", border: "none", color: "#22c55e", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem" }}
                           >
                             <span>Concluir</span>
                             <ArrowRight size={14} />
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     ))
                   )}
@@ -379,17 +437,17 @@ export default function Dashboard() {
                     tasks.filter(t => t.status === "completed").map(task => (
                       <div key={task.id} style={{ background: "rgba(255, 255, 255, 0.05)", padding: "12px", borderRadius: "6px", borderLeft: "4px solid #22c55e" }}>
                         <strong style={{ display: "block", fontSize: "0.95rem" }}>{task.title}</strong>
-                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {task.monitorName}</small>
-                        <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                        <small style={{ color: "#9ca3af", display: "block", marginBottom: "8px" }}>{task.subject} • {isMonitor ? task.studentName : task.monitorName}</small>
+                        {!isMonitor && <div style={{ display: "flex", justifyContent: "flex-start" }}>
                           <button 
                             type="button" 
-                            onClick={() => updateTaskStatus(task.id, "in_progress")}
+                            onClick={() => void updateTaskStatus(task.id, "in_progress")}
                             style={{ background: "transparent", border: "none", color: "#eab308", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem" }}
                           >
                             <ArrowLeft size={14} />
                             <span>Reabrir</span>
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     ))
                   )}
