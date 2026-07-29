@@ -21,7 +21,10 @@ import {
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
-import { canManageMonitors } from "../utils/auth-role";
+import {
+  canManageMonitors,
+  getApplicationRole,
+} from "../utils/auth-role";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -58,12 +61,18 @@ export default function Sidebar({
   const canManage = canManageMonitors(user);
 
   // Verifica os papéis do usuário logado
-  const userRole = user?.user_metadata?.role || (user as any)?.role;
+  const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
 
   // Filtra os itens principais aplicando as regras de perfil (Ex: Monitor não vê Mapa e Favoritos)
   const visibleMainItems = mainItems.filter((item) => {
+    if (
+      isDirector
+      && ["/mapa", "/mensagens"].includes(item.path)
+    ) {
+      return false;
+    }
     if (isMonitor && (item.path === "/mapa" || item.path === "/favoritos")) {
       return false;
     }
@@ -75,6 +84,11 @@ export default function Sidebar({
     }
     return true;
   });
+  const visibleManagementItems = managementItems.filter(
+    (item) =>
+      !isDirector
+      || !["/instituicoes", "/disciplinas"].includes(item.path),
+  );
 
   function handleLogout() {
     logout();
@@ -105,7 +119,7 @@ export default function Sidebar({
 
           {canManage && (
             <SidebarGroup title="Gerenciamento">
-              {managementItems.map((item) => (
+              {visibleManagementItems.map((item) => (
                 <SidebarLink
                   key={item.path}
                   {...item}
@@ -131,7 +145,7 @@ export default function Sidebar({
           </SidebarGroup>
         </nav>
 
-        <div className="sidebar__support-card">
+        {!isDirector && <div className="sidebar__support-card">
           <div className="sidebar__support-icon">
             <MessageSquareText size={21} />
           </div>
@@ -148,7 +162,7 @@ export default function Sidebar({
           >
             Abrir mensagens
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="sidebar__footer">

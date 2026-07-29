@@ -66,14 +66,28 @@ export default function App() {
                     element={<Navigate to="/dashboard" replace />}
                   />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/mapa" element={<MapPage />} />
+                  <Route
+                    path="/mapa"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <MapPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/monitores" element={<MonitorsPage />} />
                   <Route
                     path="/monitores/:id"
                     element={<MonitorProfilePage />}
                   />
                   <Route path="/favoritos" element={<FavoritesPage />} />
-                  <Route path="/mensagens" element={<ChatPage />} />
+                  <Route
+                    path="/mensagens"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <ChatPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/alunos" element={<StudentsPage />} />
                   <Route path="/sessoes" element={<SessionsPage />} />
                   <Route
@@ -87,9 +101,20 @@ export default function App() {
                   />
                   <Route
                     path="/instituicoes"
-                    element={<InstitutionsPage />}
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <InstitutionsPage />
+                      </ProtectedRoute>
+                    }
                   />
-                  <Route path="/disciplinas" element={<SubjectsPage />} />
+                  <Route
+                    path="/disciplinas"
+                    element={
+                      <ProtectedRoute deniedRoles={["director"]}>
+                        <SubjectsPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/certificados"
                     element={<CertificatesPage />}
