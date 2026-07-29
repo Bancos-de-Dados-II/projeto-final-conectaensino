@@ -13,6 +13,9 @@ const MapPage = lazy(() => import("./pages/MapPage"));
 const MonitorsPage = lazy(() => import("./pages/MonitorsPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const SessionsPage = lazy(() => import("./pages/SessionsPage"));
+const SessionActivitiesPage = lazy(
+  () => import("./pages/SessionActivitiesPage"),
+);
 const InstitutionsPage = lazy(() => import("./pages/InstitutionsPage"));
 const SubjectsPage = lazy(() => import("./pages/SubjectsPage"));
 const CertificatesPage = lazy(() => import("./pages/CertificatesPage"));
@@ -73,6 +76,10 @@ export default function App() {
                   <Route path="/mensagens" element={<ChatPage />} />
                   <Route path="/alunos" element={<StudentsPage />} />
                   <Route path="/sessoes" element={<SessionsPage />} />
+                  <Route
+                    path="/sessoes/atividades"
+                    element={<SessionActivitiesPage />}
+                  />
                   <Route path="/agenda" element={<CalendarPage />} />
                   <Route
                     path="/historico"

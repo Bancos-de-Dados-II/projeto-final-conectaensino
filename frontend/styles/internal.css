@@ -1406,6 +1406,108 @@
   border-bottom: 1px solid var(--border-soft);
 }
 
+.map-person-card--school {
+  appearance: none;
+  width: 100%;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: 0;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.map-person-card--school:disabled { opacity: 1; }
+.map-person-card--clickable { cursor: pointer; }
+.map-person-card--clickable:hover {
+  background: transparent;
+  border-bottom-color: var(--border-soft);
+}
+.map-person-card--clickable:focus-visible,
+.map-person-card--clickable:active {
+  outline: none;
+  background: rgba(17, 185, 237, .08);
+  border-bottom-color: rgba(17, 185, 237, .32);
+}
+
+.map-panel-back {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.map-selected-school {
+  display: flex;
+  margin-top: 13px;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-selected-school > svg { color: #22c55e; }
+.map-selected-school > div { display: grid; min-width: 0; gap: 4px; }
+.map-selected-school strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-selected-school small { color: var(--text-muted); font-size: 8px; }
+
+.map-monitor-result {
+  display: grid;
+  padding: 14px 15px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.map-monitor-result:hover { background: rgba(17, 185, 237, .06); }
+.map-monitor-result__avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: var(--primary);
+  background: rgba(17, 185, 237, .1);
+  border: 1px solid rgba(17, 185, 237, .24);
+  border-radius: 10px;
+}
+.map-monitor-result__content { display: grid; min-width: 0; gap: 4px; }
+.map-monitor-result__content strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-monitor-result__content small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-monitor-result__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .map-person-card__avatar {
   display: grid;
   width: 38px;
@@ -1922,6 +2024,193 @@
   .leaflet-map {
     height: 430px;
     min-height: 430px;
+  }
+}
+
+/* Submenu de materiais vinculados às sessões */
+.sidebar-link--nested {
+  min-height: 34px;
+  height: 34px;
+  margin-left: 31px;
+  padding-left: 12px;
+  font-size: 0.76rem;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.sidebar-link--nested svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Atividades das sessões */
+.session-activities-page {
+  display: grid;
+  gap: 20px;
+  padding: 32px;
+}
+
+.activity-upload-panel,
+.activity-list-panel {
+  overflow: hidden;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.activity-upload-fields {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(300px, 1.2fr);
+  gap: 16px;
+}
+
+.activity-upload-fields label {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.activity-upload-fields select {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 14px;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.activity-dropzone {
+  display: flex;
+  min-height: 92px;
+  padding: 16px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg));
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--radius);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.activity-dropzone:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.activity-dropzone strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-dropzone small {
+  color: var(--text-muted);
+}
+
+.activity-upload-submit {
+  margin-top: 16px;
+}
+
+.activity-list-panel > header {
+  display: flex;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-list-panel > header div {
+  display: grid;
+  gap: 4px;
+}
+
+.activity-list-panel > header small {
+  color: var(--text-muted);
+}
+
+.session-activity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.session-activity-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 14px;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.session-activity-card__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-radius: var(--radius);
+  place-items: center;
+}
+
+.session-activity-card > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.session-activity-card > div strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-activity-card small {
+  display: flex;
+  color: var(--text-muted);
+  align-items: center;
+  gap: 5px;
+}
+
+.session-activity-card > button {
+  display: flex;
+  padding: 9px 12px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: var(--radius);
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .session-activities-page {
+    padding: 20px 14px;
+  }
+
+  .activity-upload-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .session-activity-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .session-activity-card > button {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
 }
 

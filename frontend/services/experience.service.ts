@@ -106,6 +106,13 @@ export async function getMonitors(): Promise<PublicMonitor[]> {
   return list(data).map(normalizeMonitor);
 }
 
+export async function getMonitorsByInstitution(
+  institutionId: string,
+): Promise<PublicMonitor[]> {
+  const { data } = await api.get(`/monitors/institution/${institutionId}`);
+  return list(data).map(normalizeMonitor);
+}
+
 export async function getMonitor(id: string): Promise<PublicMonitor> {
   try {
     const { data } = await api.get(`/monitors/${id}`);

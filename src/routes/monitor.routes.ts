@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { MonitorController } from '../controllers/MonitorController';
 import { validateSchema } from '../middlewares/validateSchema';
-import { requireAuth } from '../middlewares/authenticate';
+import { requireAuth, requireRoles } from '../middlewares/authenticate';
 import { CreateMonitorSchema } from '../schemas/MonitorSchema';
 
 const monitorRoutes = Router();
@@ -14,11 +14,17 @@ monitorRoutes.get('/:userId', MonitorController.getById);
 monitorRoutes.post(
   '/',
   requireAuth,
+  requireRoles('director', 'admin'),
   validateSchema(CreateMonitorSchema),
   MonitorController.create
 );
 
 // 👇 Adicione esta rota para permitir a exclusão
-monitorRoutes.delete('/:id', MonitorController.delete);
+monitorRoutes.delete(
+  '/:id',
+  requireAuth,
+  requireRoles('director', 'admin'),
+  MonitorController.delete,
+);
 
 export { monitorRoutes };

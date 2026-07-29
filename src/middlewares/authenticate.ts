@@ -38,7 +38,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       id: data.user.id,
       email: data.user.email ?? null,
       name: (data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? null) as string | null,
-      role: data.user.role ?? null,
+      role: (data.user.user_metadata?.role ?? data.user.role ?? null) as string | null,
     };
 
     return next();
@@ -46,4 +46,18 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const message = error instanceof Error ? error.message : 'Erro interno ao validar autenticação.';
     return res.status(500).json({ message });
   }
+}
+
+export function requireRoles(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
+    const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+
+    if (!role || !allowedRoles.includes(role)) {
+      return res.status(403).json({
+        message: 'Você não possui permissão para realizar esta ação.',
+      });
+    }
+
+    return next();
+  };
 }

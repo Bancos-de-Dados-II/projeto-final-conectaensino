@@ -12,6 +12,7 @@ import {
   MapPinned,
   MessageCircle,
   MessageSquareText,
+  Paperclip,
   Settings,
   Star,
   UserRound,
@@ -20,6 +21,7 @@ import {
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import { canManageMonitors } from "../utils/auth-role";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -30,8 +32,16 @@ export default function Sidebar({
   isOpen,
   onNavigate,
 }: SidebarProps) {
+<<<<<<< HEAD
   const { user, logout } = useAuth();
+=======
+  const { logout, user } = useAuth();
+>>>>>>> ce46a4b (atualizacao das atividades para o aluno)
   const navigate = useNavigate();
+  const canManage = canManageMonitors(user);
+  const visibleMainItems = canManage
+    ? mainItems
+    : mainItems.filter((item) => item.path !== "/alunos");
 
   // Verifica os papéis do usuário logado
   const userRole = user?.user_metadata?.role || (user as any)?.role;
@@ -49,6 +59,7 @@ export default function Sidebar({
       <div className="sidebar__content">
         <nav className="sidebar__navigation">
           <SidebarGroup title="Principal">
+<<<<<<< HEAD
             <SidebarLink label="Dashboard" path="/dashboard" icon={Gauge} onNavigate={onNavigate} />
             
             {/* Mapa e Favoritos: Visíveis APENAS para Alunos */}
@@ -88,6 +99,33 @@ export default function Sidebar({
               <SidebarLink label="Disciplinas" path="/disciplinas" icon={BookOpen} onNavigate={onNavigate} />
               <SidebarLink label="Certificados" path="/certificados" icon={Award} onNavigate={onNavigate} />
               <SidebarLink label="Avaliações" path="/avaliacoes" icon={Star} onNavigate={onNavigate} />
+=======
+            {visibleMainItems.map((item) => (
+              <div key={item.path}>
+                <SidebarLink {...item} onNavigate={onNavigate} />
+                {item.path === "/sessoes" && (
+                  <SidebarLink
+                    label="Atividades"
+                    path="/sessoes/atividades"
+                    icon={Paperclip}
+                    onNavigate={onNavigate}
+                    nested
+                  />
+                )}
+              </div>
+            ))}
+          </SidebarGroup>
+
+          {canManage && (
+            <SidebarGroup title="Gerenciamento">
+              {managementItems.map((item) => (
+                <SidebarLink
+                  key={item.path}
+                  {...item}
+                  onNavigate={onNavigate}
+                />
+              ))}
+>>>>>>> ce46a4b (atualizacao das atividades para o aluno)
             </SidebarGroup>
           )}
 
@@ -173,18 +211,22 @@ function SidebarLink({
   path,
   icon: Icon,
   onNavigate,
+  nested = false,
 }: {
   label: string;
   path: string;
   icon: ElementType;
   onNavigate: () => void;
+  nested?: boolean;
 }) {
   return (
     <NavLink
       to={path}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `sidebar-link ${isActive ? "sidebar-link--active" : ""}`
+        `sidebar-link ${nested ? "sidebar-link--nested" : ""} ${
+          isActive ? "sidebar-link--active" : ""
+        }`
       }
     >
       <Icon size={20} />

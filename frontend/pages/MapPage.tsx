@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
+  ArrowLeft,
+  CalendarPlus,
   GraduationCap,
   LocateFixed,
   MapPin,
   RefreshCw,
   Search,
+  UserRound,
 } from "lucide-react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import MapViewport from "../components/map/MapViewport";
 import {
@@ -16,7 +19,9 @@ import {
   userMarkerIcon,
 } from "../components/map/MapMarkerIcon";
 import { getNearbyInstitutions } from "../services/map.service";
+import { getMonitorsByInstitution } from "../services/experience.service";
 import type { MapCoordinates, MapEntity } from "../types/map";
+import type { PublicMonitor } from "../types/experience";
 
 const DEFAULT_LOCATION: MapCoordinates = {
   latitude: -6.8897,
@@ -69,6 +74,9 @@ function MapPage() {
       : DEFAULT_LOCATION,
   );
   const [schools, setSchools] = useState<MapEntity[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<MapEntity | null>(null);
+  const [schoolMonitors, setSchoolMonitors] = useState<PublicMonitor[]>([]);
+  const [isLoadingMonitors, setIsLoadingMonitors] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLocating, setIsLocating] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +97,8 @@ function MapPage() {
       });
 
       setSchools(institutions);
+      setSelectedSchool(null);
+      setSchoolMonitors([]);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setErrorMessage(
@@ -172,6 +182,24 @@ function MapPage() {
     void loadMapData();
   }, [loadMapData]);
 
+  useEffect(() => {
+    if (!selectedSchool || (selectedSchool.monitorCount ?? 0) === 0) {
+      setSchoolMonitors([]);
+      setIsLoadingMonitors(false);
+      return;
+    }
+
+    setIsLoadingMonitors(true);
+    setErrorMessage("");
+    void getMonitorsByInstitution(selectedSchool.id)
+      .then(setSchoolMonitors)
+      .catch(() => {
+        setSchoolMonitors([]);
+        setErrorMessage("Não foi possível carregar os monitores desta escola.");
+      })
+      .finally(() => setIsLoadingMonitors(false));
+  }, [selectedSchool]);
+
   const filteredEntities = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
 
@@ -254,33 +282,57 @@ function MapPage() {
       <section className="real-map-layout">
         <aside className="map-results-panel">
           <div className="map-results-panel__header">
-            <div className="map-search-field">
-              <Search size={17} />
-              <input
-                type="search"
-                placeholder="Pesquisar escola..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
+            {selectedSchool ? (
+              <>
+                <button
+                  className="map-panel-back"
+                  type="button"
+                  onClick={() => setSelectedSchool(null)}
+                >
+                  <ArrowLeft size={16} />
+                  Voltar para escolas
+                </button>
+                <div className="map-selected-school">
+                  <GraduationCap size={20} />
+                  <div>
+                    <strong>{selectedSchool.name}</strong>
+                    <small>
+                      {selectedSchool.monitorCount ?? 0} monitor(es) cadastrado(s)
+                    </small>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="map-search-field">
+                  <Search size={17} />
+                  <input
+                    type="search"
+                    placeholder="Pesquisar escola..."
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                  />
+                </div>
 
-            <div className="map-summary">
-              <span>
-                <GraduationCap size={16} />
-                <strong>{filteredSchools.length}</strong> escolas em até 25 km
-              </span>
-            </div>
+                <div className="map-summary">
+                  <span>
+                    <GraduationCap size={16} />
+                    <strong>{filteredSchools.length}</strong> escolas em até 25 km
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="map-results-list">
-            {isLoading && (
+            {(isLoading || isLoadingMonitors) && (
               <div className="map-list-state">
                 <span className="route-loader__spinner" />
-                <p>Carregando escolas...</p>
+                <p>{selectedSchool ? "Carregando monitores..." : "Carregando escolas..."}</p>
               </div>
             )}
 
-            {!isLoading && filteredEntities.length === 0 && (
+            {!selectedSchool && !isLoading && filteredEntities.length === 0 && (
               <div className="map-list-state">
                 <MapPin size={28} />
                 <strong>Nenhum resultado encontrado</strong>
@@ -288,7 +340,8 @@ function MapPage() {
               </div>
             )}
 
-            {!isLoading &&
+            {!selectedSchool &&
+              !isLoading &&
               filteredSchools.map((school) => {
                 const distanceKm = getDistanceKm(
                   location.latitude,
@@ -300,9 +353,11 @@ function MapPage() {
                 const hasMonitors = monitorCount > 0;
 
                 return (
-                  <article
-                    className="map-person-card"
+                  <button
+                    className="map-person-card map-person-card--school map-person-card--clickable"
+                    type="button"
                     key={`institution-${school.id}`}
+                    onClick={() => setSelectedSchool(school)}
                   >
                     <div
                       className={`map-person-card__avatar ${
@@ -330,9 +385,47 @@ function MapPage() {
                       </small>
                       <small>{distanceKm.toFixed(1)} km de você</small>
                     </div>
-                  </article>
+                  </button>
                 );
               })}
+
+            {selectedSchool &&
+              !isLoadingMonitors &&
+              schoolMonitors.length === 0 && (
+                <div className="map-list-state">
+                  <UserRound size={28} />
+                  <strong>Nenhum monitor encontrado</strong>
+                  <p>Ainda não há monitores cadastrados nessa instituição.</p>
+                </div>
+              )}
+
+            {selectedSchool &&
+              !isLoadingMonitors &&
+              schoolMonitors.map((monitor) => (
+                <Link
+                  className="map-monitor-result"
+                  to={`/sessoes?monitor=${encodeURIComponent(monitor.id)}`}
+                  key={monitor.id}
+                >
+                  <span className="map-monitor-result__avatar">
+                    <UserRound size={19} />
+                  </span>
+                  <span className="map-monitor-result__content">
+                    <strong>{monitor.name}</strong>
+                    <small>
+                      {monitor.subjects.join(", ") || "Disciplinas não informadas"}
+                    </small>
+                    <small>
+                      {monitor.availability.join(", ") ||
+                        "Disponibilidade sob consulta"}
+                    </small>
+                  </span>
+                  <span className="map-monitor-result__action">
+                    <CalendarPlus size={16} />
+                    Agendar
+                  </span>
+                </Link>
+              ))}
 
           </div>
         </aside>
@@ -379,6 +472,7 @@ function MapPage() {
                   key={`institution-${school.id}`}
                   position={[school.latitude, school.longitude]}
                   icon={createInstitutionMarkerIcon(monitorCount > 0)}
+                  eventHandlers={{ click: () => setSelectedSchool(school) }}
                 >
                   <Popup>
                     <div className="entity-popup">

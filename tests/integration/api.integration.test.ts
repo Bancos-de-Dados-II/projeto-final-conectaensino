@@ -190,6 +190,30 @@ describe('Fluxo de autenticação e rotas protegidas', () => {
     expect(response.status).toBe(401);
     expect(supabaseMock.auth.getUser).not.toHaveBeenCalled();
   });
+
+  it('impede que uma conta de aluno cadastre monitores', async () => {
+    supabaseMock.auth.getUser.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 'student-auth-id',
+          email: 'aluno@teste.com',
+          role: 'authenticated',
+          user_metadata: { role: 'student', name: 'Aluno Teste' },
+        },
+      },
+      error: null,
+    });
+
+    const response = await request(app)
+      .post('/api/monitors')
+      .set('Authorization', 'Bearer student-token')
+      .send({});
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      'Você não possui permissão para realizar esta ação.',
+    );
+  });
 });
 
 describe('Certificados em PDF', () => {
