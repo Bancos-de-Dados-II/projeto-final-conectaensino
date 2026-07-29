@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { StudentController } from '../controllers/StudentController';
 import { validateQuerySchema, validateSchema } from '../middlewares/validateSchema';
-import { requireAuth } from '../middlewares/authenticate';
 import { CreateStudentSchema } from '../schemas/StudentSchema';
 import { GeoSearchSchema } from '../schemas/GeoSearchSchema';
 

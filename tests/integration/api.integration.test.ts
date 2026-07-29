@@ -11,6 +11,9 @@ const supabaseMock = vi.hoisted(() => ({
 }));
 
 const monitorFindByIdMock = vi.hoisted(() => vi.fn());
+const monitorFindMock = vi.hoisted(() => vi.fn());
+const institutionFindMock = vi.hoisted(() => vi.fn());
+const institutionFindByIdMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/config/supabase', () => ({
   supabase: supabaseMock,
@@ -18,7 +21,15 @@ vi.mock('../../src/config/supabase', () => ({
 
 vi.mock('../../src/models/mongodb/MonitorProfile', () => ({
   MonitorProfile: {
+    find: (...args: unknown[]) => monitorFindMock(...args),
     findById: (...args: unknown[]) => monitorFindByIdMock(...args),
+  },
+}));
+
+vi.mock('../../src/models/mongodb/Institution', () => ({
+  Institution: {
+    find: (...args: unknown[]) => institutionFindMock(...args),
+    findById: (...args: unknown[]) => institutionFindByIdMock(...args),
   },
 }));
 
@@ -98,6 +109,15 @@ beforeEach(() => {
       ativo: true,
     }),
   });
+
+  monitorFindMock.mockReturnValue({
+    populate: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue([]),
+    }),
+  });
+
+  institutionFindMock.mockResolvedValue([]);
+  institutionFindByIdMock.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -155,7 +175,7 @@ describe('Fluxo de autenticação e rotas protegidas', () => {
 
   it('bloqueia rota protegida sem token', async () => {
     const response = await request(app)
-      .post('/api/students')
+      .post('/api/monitors')
       .send({
         userId: 'user-1',
         email: 'aluno@teste.com',
@@ -218,6 +238,106 @@ describe('Certificados em PDF', () => {
     expect(response.headers['content-disposition']).toContain('attachment; filename="certificado-cert-1.pdf"');
     expect(Buffer.isBuffer(response.body)).toBe(true);
     expect((response.body as Buffer).subarray(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+describe('Mapa com instituições do MongoDB', () => {
+  it('retorna as instituições armazenadas na coleção institutions', async () => {
+    institutionFindMock.mockResolvedValueOnce([
+      {
+        _id: 'institution-1',
+        nome: 'Escola Municipal Teste',
+        endereco: 'Rua Central, 100',
+        location: {
+          type: 'Point',
+          coordinates: [-38.5612, -6.8897],
+        },
+        ativa: true,
+      },
+    ]);
+
+    const response = await request(app).get('/api/institutions');
+
+    expect(response.status).toBe(200);
+    expect(institutionFindMock).toHaveBeenCalledWith({});
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        nome: 'Escola Municipal Teste',
+        location: {
+          type: 'Point',
+          coordinates: [-38.5612, -6.8897],
+        },
+      }),
+    ]);
+  });
+
+  it('busca somente escolas dentro do raio de 25 km', async () => {
+    institutionFindMock.mockResolvedValueOnce([
+      {
+        _id: 'institution-nearby',
+        nome: 'Escola Próxima',
+        location: {
+          type: 'Point',
+          coordinates: [-38.5612, -6.8897],
+        },
+        ativa: true,
+      },
+    ]);
+
+    const response = await request(app).get(
+      '/api/institutions/nearby?lat=-6.8897&lng=-38.5612&radiusKm=25',
+    );
+
+    expect(response.status).toBe(200);
+    expect(institutionFindMock).toHaveBeenCalledWith({
+      ativa: true,
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [-38.5612, -6.8897],
+          },
+          $maxDistance: 25000,
+        },
+      },
+    });
+  });
+
+  it('busca monitores disponíveis e indisponíveis em um raio de 25 km', async () => {
+    const leanMock = vi.fn().mockResolvedValue([
+      {
+        _id: 'monitor-available',
+        name: 'Monitor Disponível',
+        ativo: true,
+        location: { type: 'Point', coordinates: [-38.56, -6.89] },
+      },
+      {
+        _id: 'monitor-unavailable',
+        name: 'Monitor Indisponível',
+        ativo: false,
+        location: { type: 'Point', coordinates: [-38.57, -6.88] },
+      },
+    ]);
+    const populateMock = vi.fn().mockReturnValue({ lean: leanMock });
+    monitorFindMock.mockReturnValueOnce({ populate: populateMock });
+
+    const response = await request(app).get(
+      '/api/monitors/nearby?lat=-6.8897&lng=-38.5612&radiusKm=25',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(2);
+    expect(monitorFindMock).toHaveBeenCalledWith({
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [-38.5612, -6.8897],
+          },
+          $maxDistance: 25000,
+        },
+      },
+    });
   });
 });
 

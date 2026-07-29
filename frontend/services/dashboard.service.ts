@@ -4,7 +4,6 @@ import type {
   DashboardChartItem,
   DashboardData,
   DashboardStats,
-  GlobalSearchResult,
   NotificationItem,
 } from "../types/dashboard";
 
@@ -355,90 +354,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     ratingsDistribution: ratingsChart(reviews),
     activities: buildActivities(students, sessions, certificates, reviews),
   };
-}
-
-export async function globalSearch(
-  query: string,
-): Promise<GlobalSearchResult[]> {
-  const normalized = query.trim().toLocaleLowerCase("pt-BR");
-
-  if (normalized.length < 2) {
-    return [];
-  }
-
-  try {
-    const { data } = await api.get("/search", {
-      params: { q: query },
-    });
-
-    const result = collection(data);
-
-    if (result.length) {
-      return result.slice(0, 12).map((item, index) => ({
-        id: idOf(item, index),
-        type:
-          (text(read(item, ["type", "tipo"]), "student") as
-            GlobalSearchResult["type"]),
-        title: text(read(item, ["title", "name", "nome"]), "Resultado"),
-        subtitle: text(read(item, ["subtitle", "email", "description"])),
-        route: text(read(item, ["route", "url"]), "/dashboard"),
-      }));
-    }
-  } catch {
-    // Busca local nos endpoints existentes.
-  }
-
-  const resources = await Promise.all([
-    safeList("/students"),
-    safeList("/monitors"),
-    safeList("/disciplinas"),
-    safeList("/institutions"),
-    safeList("/sessoes"),
-  ]);
-
-  const definitions: Array<{
-    type: GlobalSearchResult["type"];
-    route: string;
-    items: UnknownRecord[];
-  }> = [
-    { type: "student", route: "/alunos", items: resources[0] },
-    { type: "monitor", route: "/monitores", items: resources[1] },
-    { type: "subject", route: "/disciplinas", items: resources[2] },
-    { type: "institution", route: "/instituicoes", items: resources[3] },
-    { type: "session", route: "/sessoes", items: resources[4] },
-  ];
-
-  return definitions
-    .flatMap(({ type, route, items }) =>
-      items.map((item, index) => {
-        const title = text(
-          read(item, ["name", "nome", "title", "titulo", "email"]),
-          "Resultado",
-        );
-
-        return {
-          id: `${type}-${idOf(item, index)}`,
-          type,
-          title,
-          subtitle: text(
-            read(item, [
-              "email",
-              "description",
-              "descricao",
-              "subject.name",
-              "disciplina.nome",
-            ]),
-          ),
-          route,
-        };
-      }),
-    )
-    .filter((item) =>
-      `${item.title} ${item.subtitle || ""}`
-        .toLocaleLowerCase("pt-BR")
-        .includes(normalized),
-    )
-    .slice(0, 12);
 }
 
 export async function getNotifications(): Promise<NotificationItem[]> {

@@ -6,15 +6,20 @@ import {
   MapPin,
   RefreshCw,
   Search,
+  UserRound,
 } from "lucide-react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { useLocation } from "react-router-dom";
 
 import MapViewport from "../components/map/MapViewport";
 import {
   createEntityMarkerIcon,
   userMarkerIcon,
 } from "../components/map/MapMarkerIcon";
-import { getInstitutions } from "../services/map.service";
+import {
+  getNearbyInstitutions,
+  getNearbyMonitors,
+} from "../services/map.service";
 import type { MapCoordinates, MapEntity } from "../types/map";
 
 const DEFAULT_LOCATION: MapCoordinates = {
@@ -22,7 +27,15 @@ const DEFAULT_LOCATION: MapCoordinates = {
   longitude: -38.5612,
 };
 
-const MAX_SCHOOL_RADIUS_KM = 25;
+const MAX_RADIUS_KM = 25;
+
+interface MapRouteState {
+  mapLocation?: {
+    latitude: number;
+    longitude: number;
+    label: string;
+  };
+}
 
 function getDistanceKm(
   fromLatitude: number,
@@ -48,8 +61,19 @@ function getDistanceKm(
 }
 
 function MapPage() {
-  const [location, setLocation] = useState<MapCoordinates>(DEFAULT_LOCATION);
+  const routeLocation = useLocation();
+  const requestedLocation = (routeLocation.state as MapRouteState | null)
+    ?.mapLocation;
+  const [location, setLocation] = useState<MapCoordinates>(() =>
+    requestedLocation
+      ? {
+          latitude: requestedLocation.latitude,
+          longitude: requestedLocation.longitude,
+        }
+      : DEFAULT_LOCATION,
+  );
   const [schools, setSchools] = useState<MapEntity[]>([]);
+  const [monitors, setMonitors] = useState<MapEntity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLocating, setIsLocating] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,19 +82,32 @@ function MapPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadSchools = useCallback(async () => {
+  const loadMapData = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const institutions = await getInstitutions();
+      const [institutions, nearbyMonitors] = await Promise.all([
+        getNearbyInstitutions({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          radiusKm: MAX_RADIUS_KM,
+        }),
+        getNearbyMonitors({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          radiusKm: MAX_RADIUS_KM,
+        }),
+      ]);
+
       setSchools(institutions);
+      setMonitors(nearbyMonitors);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setErrorMessage(
           error.response?.status === 404
-            ? "O endpoint de instituições não foi encontrado no backend."
-            : "Não foi possível carregar as escolas.",
+            ? "Os endpoints do mapa não foram encontrados no backend."
+            : "Não foi possível carregar escolas e monitores.",
         );
       } else {
         setErrorMessage(
@@ -81,10 +118,11 @@ function MapPage() {
       }
 
       setSchools([]);
+      setMonitors([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [location.latitude, location.longitude]);
 
   const locateUser = useCallback(() => {
     setIsLocating(true);
@@ -122,51 +160,93 @@ function MapPage() {
   }, []);
 
   useEffect(() => {
-    locateUser();
-    void loadSchools();
-  }, [loadSchools, locateUser]);
+    if (
+      requestedLocation &&
+      Number.isFinite(requestedLocation.latitude) &&
+      Number.isFinite(requestedLocation.longitude)
+    ) {
+      setLocation({
+        latitude: requestedLocation.latitude,
+        longitude: requestedLocation.longitude,
+      });
+      setLocationMessage(`Centro de ${requestedLocation.label}`);
+      setIsLocating(false);
+      return;
+    }
 
-  const filteredSchools = useMemo(() => {
+    locateUser();
+  }, [
+    locateUser,
+    requestedLocation?.label,
+    requestedLocation?.latitude,
+    requestedLocation?.longitude,
+  ]);
+
+  useEffect(() => {
+    void loadMapData();
+  }, [loadMapData]);
+
+  const filteredEntities = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
 
-    const schoolsWithinRadius = schools.filter((school) => {
+    const entitiesWithinRadius = [...schools, ...monitors].filter((entity) => {
       const distanceKm = getDistanceKm(
         location.latitude,
         location.longitude,
-        school.latitude,
-        school.longitude,
+        entity.latitude,
+        entity.longitude,
       );
 
-      return distanceKm <= MAX_SCHOOL_RADIUS_KM;
+      return distanceKm <= MAX_RADIUS_KM;
     });
 
     if (!normalizedSearch) {
-      return schoolsWithinRadius;
+      return entitiesWithinRadius;
     }
 
-    return schoolsWithinRadius.filter((school) =>
-      [school.name, school.email, school.address, school.city]
+    return entitiesWithinRadius.filter((entity) =>
+      [
+        entity.name,
+        entity.email,
+        entity.address,
+        entity.city,
+        entity.institution,
+        entity.subject,
+      ]
         .filter(Boolean)
         .some((value) =>
           String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
         ),
     );
-  }, [location.latitude, location.longitude, schools, searchTerm]);
+  }, [
+    location.latitude,
+    location.longitude,
+    monitors,
+    schools,
+    searchTerm,
+  ]);
+
+  const filteredSchools = filteredEntities.filter(
+    (entity) => entity.type === "institution",
+  );
+  const filteredMonitors = filteredEntities.filter(
+    (entity) => entity.type === "monitor",
+  );
 
   return (
     <div className="real-map-page">
       <section className="real-map-toolbar">
         <div>
           <span className="dashboard__eyebrow">Geolocalização</span>
-          <h1>Mapa de escolas</h1>
-          <p>Visualize as escolas cadastradas dentro de um raio de 25 km.</p>
+          <h1>Mapa de escolas e monitores</h1>
+          <p>Visualize escolas e monitores dentro de um raio de 25 km.</p>
         </div>
 
         <div className="real-map-toolbar__actions">
           <button
             className="secondary-button map-action-button"
             type="button"
-            onClick={() => void loadSchools()}
+            onClick={() => void loadMapData()}
             disabled={isLoading}
           >
             <RefreshCw
@@ -201,7 +281,7 @@ function MapPage() {
               <Search size={17} />
               <input
                 type="search"
-                placeholder="Pesquisar escola..."
+                placeholder="Pesquisar escola ou monitor..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -212,6 +292,10 @@ function MapPage() {
                 <GraduationCap size={16} />
                 <strong>{filteredSchools.length}</strong> escolas em até 25 km
               </span>
+              <span>
+                <UserRound size={16} />
+                <strong>{filteredMonitors.length}</strong> monitores
+              </span>
             </div>
           </div>
 
@@ -219,15 +303,15 @@ function MapPage() {
             {isLoading && (
               <div className="map-list-state">
                 <span className="route-loader__spinner" />
-                <p>Carregando escolas...</p>
+                <p>Carregando escolas e monitores...</p>
               </div>
             )}
 
-            {!isLoading && filteredSchools.length === 0 && (
+            {!isLoading && filteredEntities.length === 0 && (
               <div className="map-list-state">
                 <MapPin size={28} />
-                <strong>Nenhuma escola encontrada</strong>
-                <p>Não há escolas cadastradas dentro de 25 km do seu ponto atual.</p>
+                <strong>Nenhum resultado encontrado</strong>
+                <p>Não há escolas ou monitores dentro de 25 km do seu ponto atual.</p>
               </div>
             )}
 
@@ -257,6 +341,54 @@ function MapPage() {
 
                       {school.address && <p>{school.address}</p>}
                       {school.city && <small>{school.city}</small>}
+                      <small>{distanceKm.toFixed(1)} km de você</small>
+                    </div>
+                  </article>
+                );
+              })}
+
+            {!isLoading &&
+              filteredMonitors.map((monitor) => {
+                const distanceKm = getDistanceKm(
+                  location.latitude,
+                  location.longitude,
+                  monitor.latitude,
+                  monitor.longitude,
+                );
+                const isAvailable = monitor.available === true;
+
+                return (
+                  <article
+                    className="map-person-card"
+                    key={`monitor-${monitor.id}`}
+                  >
+                    <div
+                      className={`map-person-card__avatar ${
+                        isAvailable
+                          ? "map-person-card__avatar--monitor-available"
+                          : "map-person-card__avatar--monitor-unavailable"
+                      }`}
+                    >
+                      <UserRound size={19} />
+                    </div>
+
+                    <div className="map-person-card__content">
+                      <div>
+                        <strong>{monitor.name}</strong>
+                        <span>Monitor</span>
+                      </div>
+
+                      <small
+                        className={`map-availability ${
+                          isAvailable
+                            ? "map-availability--available"
+                            : "map-availability--unavailable"
+                        }`}
+                      >
+                        {isAvailable ? "Disponível" : "Indisponível"}
+                      </small>
+                      {monitor.institution && <p>{monitor.institution}</p>}
+                      {monitor.subject && <small>{monitor.subject}</small>}
                       <small>{distanceKm.toFixed(1)} km de você</small>
                     </div>
                   </article>
@@ -313,6 +445,43 @@ function MapPage() {
                       <span>Escola</span>
                       {school.address && <p>{school.address}</p>}
                       {school.city && <small>{school.city}</small>}
+                      <small>{distanceKm.toFixed(1)} km de você</small>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+
+            {filteredMonitors.map((monitor) => {
+              const distanceKm = getDistanceKm(
+                location.latitude,
+                location.longitude,
+                monitor.latitude,
+                monitor.longitude,
+              );
+              const isAvailable = monitor.available === true;
+
+              return (
+                <Marker
+                  key={`monitor-${monitor.id}`}
+                  position={[monitor.latitude, monitor.longitude]}
+                  icon={createEntityMarkerIcon("monitor", isAvailable)}
+                >
+                  <Popup>
+                    <div className="entity-popup">
+                      <strong>{monitor.name}</strong>
+                      <span>Monitor</span>
+                      <small
+                        className={`map-availability ${
+                          isAvailable
+                            ? "map-availability--available"
+                            : "map-availability--unavailable"
+                        }`}
+                      >
+                        {isAvailable ? "Disponível" : "Indisponível"}
+                      </small>
+                      {monitor.institution && <p>{monitor.institution}</p>}
+                      {monitor.subject && <small>{monitor.subject}</small>}
                       <small>{distanceKm.toFixed(1)} km de você</small>
                     </div>
                   </Popup>

@@ -3,7 +3,6 @@ import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Institution } from '../models/mongodb/Institution';
 import { supabase } from '../config/supabase';
 import * as crypto from 'crypto';
-import { randomUUID } from 'crypto';
 
 export const MonitorController = {
   // Criar Perfil de Monitor (Orquestrando MongoDB + Supabase)
@@ -46,10 +45,9 @@ export const MonitorController = {
         if (!institution) {
           return res.status(404).json({ message: 'Instituição não encontrada.' });
         }
-        const instData = institution.toObject() as any;
         monitorLocation = {
           type: 'Point',
-          coordinates: [instData.longitude || instData.lng || 0, instData.latitude || instData.lat || 0]
+          coordinates: [...institution.location.coordinates],
         };
       } else if (location && location.coordinates && location.coordinates.length === 2) {
         monitorLocation = {
@@ -128,7 +126,7 @@ export const MonitorController = {
     }
   },
 
-  async listAll(req: Request, res: Response) {
+  async listAll(_req: Request, res: Response) {
     try {
       // 1. Busca todos os perfis de monitores no MongoDB populando a instituição
       const monitors = await MonitorProfile.find().populate('institutionId', 'nome cnpj endereco').lean();
@@ -195,7 +193,7 @@ export const MonitorController = {
 
   async findNearby(req: Request, res: Response) {
     try {
-      const { lng, lat, maxDistanceInMeters } = req.query;
+      const { lng, lat, maxDistanceInMeters, radiusKm, radius } = req.query;
 
       if (!lng || !lat) {
         return res.status(400).json({ message: 'Longitude (lng) e Latitude (lat) são obrigatórias.' });
@@ -203,10 +201,27 @@ export const MonitorController = {
 
       const longitude = parseFloat(lng as string);
       const latitude = parseFloat(lat as string);
-      const maxDistance = maxDistanceInMeters ? parseInt(maxDistanceInMeters as string) : 5000;
+      const requestedRadiusKm = Number(radiusKm ?? radius ?? 25);
+      const maxDistance = maxDistanceInMeters
+        ? Number(maxDistanceInMeters)
+        : requestedRadiusKm * 1000;
+
+      if (
+        !Number.isFinite(longitude) ||
+        !Number.isFinite(latitude) ||
+        longitude < -180 ||
+        longitude > 180 ||
+        latitude < -90 ||
+        latitude > 90 ||
+        !Number.isFinite(maxDistance) ||
+        maxDistance <= 0
+      ) {
+        return res.status(400).json({
+          message: 'Coordenadas ou raio de busca inválidos.',
+        });
+      }
 
       const monitors = await MonitorProfile.find({
-        ativo: true,
         location: {
           $near: {
             $geometry: {
@@ -216,7 +231,9 @@ export const MonitorController = {
             $maxDistance: maxDistance,
           },
         },
-      }).populate('institutionId', 'nome endereco');
+      })
+        .populate('institutionId', 'nome endereco')
+        .lean();
 
       return res.status(200).json(monitors);
     } catch (error: any) {

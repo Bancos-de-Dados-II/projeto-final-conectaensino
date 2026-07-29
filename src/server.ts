@@ -1,4 +1,3 @@
-import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { supabase } from './config/supabase';
@@ -11,7 +10,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ensino';
 
 // Rota de teste do Supabase
-app.get('/api/teste-supabase', async (req, res) => {
+app.get('/api/teste-supabase', async (_req, res) => {
   try {
     const { data, error } = await supabase.from('tabela_teste_conexao').select('*').limit(1);
 

@@ -27,14 +27,6 @@ export interface DashboardData {
   activities: DashboardActivity[];
 }
 
-export interface GlobalSearchResult {
-  id: string;
-  type: "student" | "monitor" | "subject" | "institution" | "session";
-  title: string;
-  subtitle?: string;
-  route: string;
-}
-
 export interface NotificationItem {
   id: string;
   title: string;

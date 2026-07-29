@@ -1,30 +1,27 @@
-import {
-  BookOpen,
-  Building2,
-  CalendarClock,
-  GraduationCap,
-  Search,
-  UserRound,
-  X,
-} from "lucide-react";
+import { MapPin, Search, X } from "lucide-react";
 import {
   useEffect,
   useRef,
   useState,
+  type FormEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 
-import { globalSearch } from "../../services/dashboard.service";
-import type { GlobalSearchResult } from "../../types/dashboard";
+import {
+  searchCities,
+  type CitySearchResult,
+} from "../../services/geocoding.service";
 
 function GlobalSearch() {
   const navigate = useNavigate();
-  const timerRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<number | null>(null);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<GlobalSearchResult[]>([]);
+  const [suggestions, setSuggestions] = useState<CitySearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -40,7 +37,6 @@ function GlobalSearch() {
     }
 
     window.addEventListener("keydown", handleShortcut);
-
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
 
@@ -49,19 +45,21 @@ function GlobalSearch() {
       window.clearTimeout(timerRef.current);
     }
 
+    setErrorMessage("");
+
     if (query.trim().length < 2) {
-      setResults([]);
+      setSuggestions([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-
     timerRef.current = window.setTimeout(() => {
-      void globalSearch(query)
-        .then(setResults)
+      void searchCities(query)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]))
         .finally(() => setLoading(false));
-    }, 350);
+    }, 400);
 
     return () => {
       if (timerRef.current) {
@@ -70,18 +68,44 @@ function GlobalSearch() {
     };
   }, [query]);
 
-  function iconFor(type: GlobalSearchResult["type"]) {
-    switch (type) {
-      case "monitor":
-        return GraduationCap;
-      case "subject":
-        return BookOpen;
-      case "institution":
-        return Building2;
-      case "session":
-        return CalendarClock;
-      default:
-        return UserRound;
+  function goToCity(city: CitySearchResult) {
+    navigate("/mapa", {
+      state: {
+        mapLocation: {
+          latitude: city.latitude,
+          longitude: city.longitude,
+          label: city.name,
+        },
+      },
+    });
+    setOpen(false);
+    setQuery("");
+    setSuggestions([]);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (query.trim().length < 2) {
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const city = suggestions[0] ?? (await searchCities(query))[0];
+
+      if (!city) {
+        setErrorMessage("Cidade não encontrada. Tente incluir o estado.");
+        return;
+      }
+
+      goToCity(city);
+    } catch {
+      setErrorMessage("Não foi possível localizar a cidade agora.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -95,94 +119,87 @@ function GlobalSearch() {
           window.setTimeout(() => inputRef.current?.focus(), 0);
         }}
       >
-        <Search size={18} />
-        <span>Pesquisar aluno, monitor ou disciplina...</span>
+        <MapPin size={18} />
+        <span>Pesquisar cidade...</span>
         <kbd>Ctrl K</kbd>
       </button>
 
-      {open && (
-        <div className="global-search-backdrop">
-          <section className="global-search-modal">
-            <header>
-              <Search size={20} />
-              <input
-                ref={inputRef}
-                type="search"
-                value={query}
-                placeholder="Digite pelo menos 2 caracteres..."
-                onChange={(event) => setQuery(event.target.value)}
-              />
+      {open &&
+        createPortal(
+          <div className="global-search-backdrop">
+            <section className="global-search-modal">
+            <form onSubmit={handleSubmit}>
+              <header>
+                <Search size={20} />
+                <input
+                  ref={inputRef}
+                  type="search"
+                  value={query}
+                  placeholder="Digite uma cidade e pressione Enter..."
+                  onChange={(event) => setQuery(event.target.value)}
+                />
 
-              <button
-                type="button"
-                aria-label="Fechar"
-                onClick={() => setOpen(false)}
-              >
-                <X size={20} />
-              </button>
-            </header>
+                <button
+                  type="button"
+                  aria-label="Fechar"
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={20} />
+                </button>
+              </header>
+            </form>
 
             <div className="global-search-results">
               {loading && (
                 <div className="global-search-state">
                   <span className="route-loader__spinner" />
-                  <p>Pesquisando...</p>
+                  <p>Localizando cidade...</p>
                 </div>
               )}
 
-              {!loading && query.trim().length < 2 && (
+              {!loading && errorMessage && (
                 <div className="global-search-state">
-                  <Search size={30} />
-                  <strong>Busca global</strong>
+                  <MapPin size={30} />
+                  <strong>Cidade não localizada</strong>
+                  <p>{errorMessage}</p>
+                </div>
+              )}
+
+              {!loading && !errorMessage && query.trim().length < 2 && (
+                <div className="global-search-state">
+                  <MapPin size={30} />
+                  <strong>Buscar cidade</strong>
                   <p>
-                    Encontre alunos, monitores, disciplinas, instituições e
-                    sessões.
+                    Informe uma cidade brasileira para centralizar o mapa e
+                    buscar escolas e monitores próximos.
                   </p>
                 </div>
               )}
 
               {!loading &&
-                query.trim().length >= 2 &&
-                results.length === 0 && (
-                  <div className="global-search-state">
-                    <Search size={30} />
-                    <strong>Nenhum resultado</strong>
-                    <p>Tente pesquisar utilizando outro termo.</p>
-                  </div>
-                )}
+                !errorMessage &&
+                suggestions.map((city) => (
+                  <button
+                    className="global-search-result"
+                    type="button"
+                    key={city.id}
+                    onClick={() => goToCity(city)}
+                  >
+                    <span>
+                      <MapPin size={18} />
+                    </span>
 
-              {!loading &&
-                results.map((result) => {
-                  const Icon = iconFor(result.type);
-
-                  return (
-                    <button
-                      className="global-search-result"
-                      type="button"
-                      key={result.id}
-                      onClick={() => {
-                        navigate(result.route);
-                        setOpen(false);
-                        setQuery("");
-                      }}
-                    >
-                      <span>
-                        <Icon size={18} />
-                      </span>
-
-                      <div>
-                        <strong>{result.title}</strong>
-                        <small>
-                          {result.subtitle || result.type}
-                        </small>
-                      </div>
-                    </button>
-                  );
-                })}
+                    <div>
+                      <strong>{city.name}</strong>
+                      <small>Centralizar mapa nesta cidade</small>
+                    </div>
+                  </button>
+                ))}
             </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

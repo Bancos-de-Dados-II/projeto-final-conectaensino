@@ -3131,7 +3131,8 @@ img, svg { display: block; }
   box-shadow: 0 35px 100px rgba(0,0,0,.58);
 }
 
-.global-search-modal > header {
+.global-search-modal > header,
+.global-search-modal > form > header {
   display: flex;
   height: 62px;
   padding: 0 15px;
@@ -3139,6 +3140,10 @@ img, svg { display: block; }
   gap: 11px;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-soft);
+}
+
+.global-search-modal > form {
+  margin: 0;
 }
 
 .global-search-modal input {

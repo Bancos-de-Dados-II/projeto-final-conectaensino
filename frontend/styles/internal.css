@@ -1594,9 +1594,41 @@
   font-weight: 800;
 }
 
-.entity-marker--monitor { background: var(--primary); }
+.entity-marker--monitor.entity-marker--available {
+  background: #22c55e;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, .16), 0 8px 20px rgba(0, 0, 0, .32);
+}
+
+.entity-marker--monitor.entity-marker--unavailable {
+  background: #ef4444;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, .16), 0 8px 20px rgba(0, 0, 0, .32);
+}
+
 .entity-marker--student,
-.entity-marker--institution { background: var(--green); }
+.entity-marker--institution { background: var(--primary); }
+
+.map-person-card__avatar--monitor-available {
+  color: #22c55e;
+  background: rgba(34, 197, 94, .12);
+  border-color: rgba(34, 197, 94, .35);
+}
+
+.map-person-card__avatar--monitor-unavailable {
+  color: #ef4444;
+  background: rgba(239, 68, 68, .12);
+  border-color: rgba(239, 68, 68, .35);
+}
+
+.map-availability {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.map-availability--available { color: #22c55e !important; }
+.map-availability--unavailable { color: #ef4444 !important; }
 
 .entity-marker::first-letter {
   transform: rotate(45deg);
@@ -3075,7 +3107,8 @@
   box-shadow: 0 35px 100px rgba(0,0,0,.58);
 }
 
-.global-search-modal > header {
+.global-search-modal > header,
+.global-search-modal > form > header {
   display: flex;
   height: 62px;
   padding: 0 15px;
@@ -3083,6 +3116,10 @@
   gap: 11px;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-soft);
+}
+
+.global-search-modal > form {
+  margin: 0;
 }
 
 .global-search-modal input {

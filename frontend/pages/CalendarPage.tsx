@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import SessionDetailsModal from "../components/calendar/SessionDetailsModal";
 import { getSessions } from "../services/experience.service";
 import type { ExperienceSession } from "../types/experience";
