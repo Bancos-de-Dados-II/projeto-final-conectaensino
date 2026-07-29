@@ -3,6 +3,7 @@ import { AuthController } from '../controllers/AuthController';
 import { DirectorController } from '../controllers/DirectorController'; // Importe o controller do diretor
 import { validateSchema } from '../middlewares/validateSchema';
 import { LoginSchema, RegisterStudentSchema } from '../schemas/AuthSchema';
+import { requireAuth } from '../middlewares/authenticate'; // <-- Importe o middleware de autenticação
 
 const authRoutes = Router();
 
@@ -18,5 +19,8 @@ authRoutes.post(
   '/register/director',
   DirectorController.create,
 );
+
+// Rota de logout protegida (exige que o usuário esteja autenticado para remover a sessão do Redis)
+authRoutes.post('/logout', requireAuth, AuthController.logout);
 
 export { authRoutes };
