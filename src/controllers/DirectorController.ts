@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { Institution } from '../models/mongodb/Institution';
-import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import crypto from 'crypto';
 
 export class DirectorController {
@@ -24,11 +24,15 @@ export class DirectorController {
         return res.status(404).json({ message: 'Instituição não encontrada.' });
       }
 
-      // Criar usuário no Supabase Auth com a role de diretor
+      if (!supabaseAdmin) {
+        return res.status(500).json({ message: 'Chave administrativa do Supabase não configurada no servidor.' });
+      }
+
+      // Criar usuário no Supabase Auth com a role de diretor usando privilégios de admin
       const directorPassword = password || (crypto.randomBytes(6).toString('hex') + '!1A');
       const resolvedName = name || email.split('@')[0];
 
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: directorPassword,
         email_confirm: true,
@@ -36,7 +40,7 @@ export class DirectorController {
       });
 
       if (authError) {
-        return res.status(400).json({ message: 'Erro ao gerar credenciais de acesso.', error: authError.message });
+        return res.status(400).json({ message: authError.message, error: authError.message });
       }
 
       const authUserId = authData.user.id;
@@ -48,15 +52,15 @@ export class DirectorController {
         cargo: cargo || 'Diretor(a)'
       });
 
-      // Inserir na tabela relacional 'usuarios' do Supabase
-      const { data: usuarioSupabase, error: supabaseError } = await supabase
+      // Inserir na tabela relacional 'usuarios' do Supabase usando o admin
+      const { data: usuarioSupabase, error: supabaseError } = await supabaseAdmin
         .from('usuarios')
         .insert([{ id: authUserId, email, mongo_profile_id: director._id.toString() }])
         .select()
         .single();
 
       if (supabaseError) {
-        await supabase.auth.admin.deleteUser(authUserId);
+        await supabaseAdmin.auth.admin.deleteUser(authUserId);
         await DirectorProfile.findByIdAndDelete(director._id);
         return res.status(400).json({ message: 'Erro de integridade relacional.', error: supabaseError.message });
       }
