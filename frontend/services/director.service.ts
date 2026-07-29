@@ -10,7 +10,7 @@ interface DirectorRegisterData {
 
 export const directorService = {
   async register(data: DirectorRegisterData) {
-    const response = await api.post('/directors/register', data);
+    const response = await api.post('/auth/register/director', data);
     return response.data;
   }
 };

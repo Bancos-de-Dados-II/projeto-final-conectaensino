@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { directorService } from '../services/director.service';
-import { api } from '../api/axios';
+import { api, getApiBaseUrl } from '../api/axios';
+import { GraduationCap, LockKeyhole, Mail, User, ShieldCheck, ArrowRight } from 'lucide-react';
 
 interface Institution {
   _id: string;
@@ -19,16 +20,15 @@ export function RegisterDirector() {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const navigate = useNavigate();
 
- useEffect(() => {
+  useEffect(() => {
     async function loadInstitutions() {
       setIsLoading(true);
       try {
         const response = await api.get('/institutions');
-        console.log('Dados recebidos do back-end:', response.data);
-        
         const list = Array.isArray(response.data) ? response.data : (response.data.institutions || []);
 
         const formatted = list
@@ -41,14 +41,14 @@ export function RegisterDirector() {
 
         setInstitutions(formatted);
       } catch (err) {
-        console.error('Erro ao carregar instituições do MongoDB:', err);
+        console.error('Erro ao carregar instituições:', err);
         setError('Não foi possível carregar a lista de instituições.');
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadInstitutions();
+    void loadInstitutions();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +66,8 @@ export function RegisterDirector() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       await directorService.register({
         name,
@@ -79,102 +81,169 @@ export function RegisterDirector() {
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erro ao realizar cadastro do diretor.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="login-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-      <div className="login-card" style={{ width: '100%', maxWidth: '480px', padding: '32px' }}>
-        <h2>Cadastro de Diretor(a)</h2>
-        <p>Vincule sua conta gestora selecionando a instituição.</p>
+    <main className="login-page">
+      <section className="login-presentation">
+        <div className="login-brand">
+          <span className="login-brand__icon">
+            <GraduationCap size={29} />
+          </span>
+          <div>
+            <strong>Conecta Ensino</strong>
+            <span>Gestão institucional integrada.</span>
+          </div>
+        </div>
 
-        {error && <div className="login-error" style={{ marginBottom: '16px', color: 'red' }}>{error}</div>}
+        <div className="login-presentation__content">
+          <span className="login-eyebrow">Painel do Gestor</span>
+          <h1>Cadastre sua conta com validação institucional.</h1>
+          <p>
+            Vincule seu perfil de liderança à escola correspondente utilizando o código INEP oficial.
+          </p>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <label className="login-field">
-            <span>Nome Completo</span>
-            <input 
-              type="text" 
-              value={name} 
-              onChange={e => setName(e.target.value)} 
-              required 
-            />
-          </label>
+          <div className="login-benefits">
+            <div>
+              <ShieldCheck size={21} />
+              <span>
+                <strong>Segurança de Dados</strong>
+                <small>Validação baseada no registro da escola.</small>
+              </span>
+            </div>
+          </div>
+        </div>
 
-          <label className="login-field">
-            <span>E-mail Institucional</span>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              required 
-            />
-          </label>
+        <span className="login-presentation__footer">
+          Conecta Ensino • Gestão Acadêmica
+        </span>
+      </section>
 
-          <label className="login-field">
-            <span>Senha</span>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              required 
-            />
-          </label>
+      <section className="login-area">
+        <div className="login-card">
+          <header className="login-card__header">
+            <span className="login-eyebrow">Novo acesso</span>
+            <h2>Cadastro de Diretor(a)</h2>
+            <p>Preencha os campos abaixo para criar sua conta gestora.</p>
+          </header>
 
-          <label className="login-field">
-            <span>Cargo</span>
-            <input 
-              type="text" 
-              value={cargo} 
-              onChange={e => setCargo(e.target.value)} 
-            />
-          </label>
+          {error && <div className="login-error" role="alert">{error}</div>}
 
-          <label className="login-field">
-            <span>Instituição</span>
-            <select 
-              value={institutionId} 
-              onChange={e => setInstitutionId(e.target.value)} 
-              required
-              disabled={isLoading}
-              style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
-              <option value="">
-                {isLoading ? 'Carregando instituições...' : 'Selecione a Instituição'}
-              </option>
-              {institutions.map(inst => (
-                <option key={inst._id} value={inst._id}>
-                  {inst.nome}
+          <form onSubmit={handleSubmit} className="login-form">
+            <label className="login-field">
+              <span>Nome Completo</span>
+              <div className="login-input">
+                <User size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Seu nome completo"
+                  value={name} 
+                  onChange={e => setName(e.target.value)} 
+                  required 
+                />
+              </div>
+            </label>
+
+            <label className="login-field">
+              <span>E-mail Institucional</span>
+              <div className="login-input">
+                <Mail size={18} />
+                <input 
+                  type="email" 
+                  placeholder="diretor@escola.com"
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                />
+              </div>
+            </label>
+
+            <label className="login-field">
+              <span>Senha</span>
+              <div className="login-input">
+                <LockKeyhole size={18} />
+                <input 
+                  type="password" 
+                  placeholder="Digite sua senha"
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                />
+              </div>
+            </label>
+
+            <label className="login-field">
+              <span>Cargo</span>
+              <div className="login-input">
+                <input 
+                  type="text" 
+                  placeholder="Ex: Diretor(a) / Coordenador(a)"
+                  value={cargo} 
+                  onChange={e => setCargo(e.target.value)} 
+                  required
+                />
+              </div>
+            </label>
+
+            <label className="login-field">
+              <span>Instituição</span>
+              <select 
+                value={institutionId} 
+                onChange={e => setInstitutionId(e.target.value)} 
+                required
+                disabled={isLoading}
+              >
+                <option value="">
+                  {isLoading ? 'Carregando instituições...' : 'Selecione a Instituição'}
                 </option>
-              ))}
-            </select>
-          </label>
+                {institutions.map(inst => (
+                  <option key={inst._id} value={inst._id}>
+                    {inst.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="login-field">
-            <span>Confirme o Código INEP da Instituição</span>
-            <input 
-              type="text" 
-              placeholder="Digite o código INEP para validar"
-              value={codigoConfirmacao} 
-              onChange={e => setCodigoConfirmacao(e.target.value)} 
-              required 
-            />
-          </label>
+            <label className="login-field">
+              <span>Confirme o Código INEP da Instituição</span>
+              <div className="login-input">
+                <input 
+                  type="text" 
+                  placeholder="Digite o código INEP para validar"
+                  value={codigoConfirmacao} 
+                  onChange={e => setCodigoConfirmacao(e.target.value)} 
+                  required 
+                />
+              </div>
+            </label>
 
-          <button type="submit" className="login-submit" style={{ marginTop: '20px', width: '100%' }}>
-            Cadastrar Diretor
-          </button>
-        </form>
+            <button type="submit" className="login-submit" disabled={isSubmitting}>
+              {isSubmitting ? "Cadastrando..." : "Cadastrar Diretor"}
+              <ArrowRight size={18} />
+            </button>
+          </form>
 
-        <button 
-          type="button" 
-          onClick={() => navigate('/login')} 
-          style={{ background: 'transparent', border: 'none', color: '#4f46e5', marginTop: '16px', cursor: 'pointer', width: '100%' }}
-        >
-          Voltar para o Login
-        </button>
-      </div>
-    </div>
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <button 
+              type="button" 
+              className="secondary-button"
+              style={{ width: '100%', height: '42px', justifyContent: 'center' }}
+              onClick={() => navigate('/login')}
+            >
+              Voltar para o Login
+            </button>
+          </div>
+
+          <footer className="login-card__footer">
+            API configurada em:
+            <code>{getApiBaseUrl()}</code>
+          </footer>
+        </div>
+      </section>
+    </main>
   );
 }
 

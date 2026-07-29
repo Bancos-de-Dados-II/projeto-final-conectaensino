@@ -142,7 +142,6 @@ function Login() {
           throw new Error('Selecione a escola para concluir o cadastro.');
         }
 
-        // Register student then login
         const payload: any = {
           email: email.trim(),
           password,
@@ -150,7 +149,6 @@ function Login() {
           necessidadesAcessibilidade: accessibilityNeeds,
         };
 
-        // If user selected a CSV school id (fallback), send lat/lng as well
         if (selectedSchoolId.startsWith("csv-school-")) {
           const found = schools.find((s) => s.id === selectedSchoolId) ||
             citySchools.find((s) => s.id === selectedSchoolId);
@@ -164,7 +162,6 @@ function Login() {
         }
 
         await axios.post(`${getApiBaseUrl()}/auth/register/student`, payload);
-
         await login({ email: email.trim(), password });
       }
       navigate(destination, { replace: true });
@@ -181,10 +178,10 @@ function Login() {
           responseMessage ||
             (error.response?.status === 401
               ? "E-mail ou senha incorretos."
-              : "Não foi possível entrar. Verifique se o backend está em execução."),
+              : "Não foi possível processar a solicitação. Verifique se o backend está em execução."),
         );
       } else {
-        setErrorMessage("Ocorreu um erro inesperado durante o login.");
+        setErrorMessage(error instanceof Error ? error.message : "Ocorreu um erro inesperado.");
       }
     } finally {
       setIsSubmitting(false);
@@ -240,9 +237,15 @@ function Login() {
       <section className="login-area">
         <div className="login-card">
           <header className="login-card__header">
-            <span className="login-eyebrow">Bem-vindo de volta</span>
-            <h2>Entre na sua conta</h2>
-            <p>Use as credenciais cadastradas no Conecta Ensino.</p>
+            <span className="login-eyebrow">
+              {isRegistering ? "Novo cadastro" : "Bem-vindo de volta"}
+            </span>
+            <h2>{isRegistering ? "Crie sua conta de aluno" : "Entre na sua conta"}</h2>
+            <p>
+              {isRegistering
+                ? "Preencha os dados abaixo para se cadastrar no Conecta Ensino."
+                : "Use as credenciais cadastradas no Conecta Ensino."}
+            </p>
           </header>
 
           <form className="login-form" onSubmit={handleSubmit}>
@@ -289,21 +292,82 @@ function Login() {
             </label>
 
             {isRegistering && (
-              <label className="login-field">
-                <span>Confirmação de senha</span>
+              <>
+                <label className="login-field">
+                  <span>Confirmação de senha</span>
 
-                <div className="login-input">
-                  <LockKeyhole size={18} />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    placeholder="Confirme sua senha"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    required
-                  />
+                  <div className="login-input">
+                    <LockKeyhole size={18} />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      placeholder="Confirme sua senha"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      required
+                    />
+                  </div>
+                </label>
+
+                <div className="register-fields">
+                  <label className="login-field">
+                    <span>Rua</span>
+                    <input type="text" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" required />
+                  </label>
+
+                  <label className="login-field">
+                    <span>Bairro</span>
+                    <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Ex.: Centro" required />
+                  </label>
+
+                  <label className="login-field">
+                    <span>Cidade</span>
+                    <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex.: Cajazeiras" required />
+                  </label>
+
+                  <label className="login-field">
+                    <span>Escola da cidade</span>
+                    <select
+                      value={selectedSchoolId}
+                      onChange={(e) => setSelectedSchoolId(e.target.value)}
+                      required
+                      disabled={isLoadingSchools || !city.trim()}
+                    >
+                      <option value="">
+                        {isLoadingSchools
+                          ? "Carregando escolas..."
+                          : city.trim()
+                          ? "Selecione a escola"
+                          : "Informe a cidade primeiro"}
+                      </option>
+                      {citySchools.length > 0 ? (
+                        citySchools.map((school) => (
+                          <option key={school.id} value={school.id}>
+                            {school.nome}
+                            {school.endereco ? ` — ${school.endereco}` : ''}
+                          </option>
+                        ))
+                      ) : (
+                        !isLoadingSchools && city.trim() && (
+                          <option value="" disabled>
+                            Nenhuma escola encontrada para esta cidade
+                          </option>
+                        )
+                      )}
+                    </select>
+                    {schoolSearchMessage && (
+                      <small style={{ marginTop: 6, display: 'block', color: '#5b6b7a' }}>
+                        {schoolSearchMessage}
+                      </small>
+                    )}
+                  </label>
+
+                  <label className="login-field">
+                    <span>Necessidades de acessibilidade</span>
+                    <input type="text" value={accessibilityNeeds} onChange={(e) => setAccessibilityNeeds(e.target.value)} placeholder="Ex.: libras" />
+                  </label>
                 </div>
-              </label>
+              </>
             )}
 
             {errorMessage && (
@@ -320,94 +384,44 @@ function Login() {
               {isSubmitting ? (
                 <>
                   <span className="button-spinner" />
-                  Entrando...
+                  {isRegistering ? "Cadastrando..." : "Entrando..."}
                 </>
               ) : (
                 <>
-                  Entrar
+                  {isRegistering ? "Concluir Cadastro" : "Entrar"}
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
+          </form>
 
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
+          <div style={{ marginTop: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ width: '100%', height: '42px', justifyContent: 'center' }}
+              onClick={() => {
+                setIsRegistering((v) => !v);
+                setErrorMessage('');
+                setSelectedSchoolId('');
+                setCitySchools([]);
+                setSchoolSearchMessage('');
+              }}
+            >
+              {isRegistering ? 'Já tenho uma conta (Voltar para login)' : 'Não tem conta? Cadastre-se'}
+            </button>
+
+            {!isRegistering && (
               <button
                 type="button"
-                className="login-submit"
-                style={{ width: '100%' }}
-                onClick={() => {
-                  setIsRegistering((v) => !v);
-                  setErrorMessage('');
-                  setSelectedSchoolId('');
-                  setCitySchools([]);
-                  setSchoolSearchMessage('');
-                }}
+                className="secondary-button"
+                style={{ width: '100%', height: '42px', justifyContent: 'center', background: 'transparent', border: '1px solid #d1d5db', color: '#374151' }}
+                onClick={() => navigate('/register/director')}
               >
-                {isRegistering ? 'Voltar para login' : 'CADASTRO'}
+                Cadastrar como Diretor(a) / Instituição
               </button>
-            </div>
-
-            {isRegistering && (
-              <div className="register-fields" style={{ marginTop: 12 }}>
-                <label className="login-field">
-                  <span>Rua</span>
-                  <input type="text" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" required />
-                </label>
-
-                <label className="login-field">
-                  <span>Bairro</span>
-                  <input type="text" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Ex.: Centro" required />
-                </label>
-
-                <label className="login-field">
-                  <span>Cidade</span>
-                  <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex.: João Pessoa" required />
-                </label>
-
-                <label className="login-field">
-                  <span>Escola da cidade</span>
-                  <select
-                    value={selectedSchoolId}
-                    onChange={(e) => setSelectedSchoolId(e.target.value)}
-                    required
-                    disabled={isLoadingSchools || !city.trim()}
-                  >
-                    <option value="">
-                      {isLoadingSchools
-                        ? "Carregando escolas..."
-                        : city.trim()
-                          ? "Selecione a escola"
-                          : "Informe a cidade primeiro"}
-                    </option>
-                    {citySchools.length > 0 ? (
-                      citySchools.map((school) => (
-                        <option key={school.id} value={school.id}>
-                          {school.nome}
-                          {school.endereco ? ` — ${school.endereco}` : ''}
-                        </option>
-                      ))
-                    ) : (
-                      !isLoadingSchools && city.trim() && (
-                        <option value="" disabled>
-                          Nenhuma escola encontrada para esta cidade
-                        </option>
-                      )
-                    )}
-                  </select>
-                  {schoolSearchMessage && (
-                    <small style={{ marginTop: 6, display: 'block', color: '#5b6b7a' }}>
-                      {schoolSearchMessage}
-                    </small>
-                  )}
-                </label>
-
-                <label className="login-field">
-                  <span>Necessidades de acessibilidade</span>
-                  <input type="text" value={accessibilityNeeds} onChange={(e) => setAccessibilityNeeds(e.target.value)} placeholder="Ex.: libras" />
-                </label>
-              </div>
             )}
-          </form>
+          </div>
 
           <footer className="login-card__footer">
             API configurada em:
