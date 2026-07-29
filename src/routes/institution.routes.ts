@@ -6,6 +6,7 @@ import { CreateInstitutionSchema } from '../schemas/InstitutionSchema';
 const institutionRoutes = Router();
 
 institutionRoutes.get('/', InstitutionController.listAll);
+institutionRoutes.get('/nearby', InstitutionController.findNearby);
 institutionRoutes.get('/:id', InstitutionController.getById);
 
 institutionRoutes.post(

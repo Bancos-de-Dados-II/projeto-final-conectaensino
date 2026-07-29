@@ -1,0 +1,216 @@
+import { Bell, LockKeyhole, MonitorCog } from "lucide-react";
+import { useState } from "react";
+
+import { useAppearance } from "../contexts/AppearanceContext";
+import type { ThemePreference } from "../types/settings";
+
+type Section = "appearance" | "notifications" | "security";
+
+const sections = [
+  { id: "appearance" as const, label: "APARÊNCIA", icon: MonitorCog },
+  { id: "notifications" as const, label: "NOTIFICAÇÕES", icon: Bell },
+  { id: "security" as const, label: "SEGURANÇA", icon: LockKeyhole },
+];
+
+export default function SettingsPage() {
+  const { preferences, changePreferences } = useAppearance();
+  const [section, setSection] = useState<Section>("appearance");
+
+  return (
+    <div className="prototype-settings-page">
+      <header className="prototype-page-heading">
+        <div className="prototype-header-dot" />
+        <div>
+          <span className="prototype-kicker">PREFERÊNCIAS DO USUÁRIO</span>
+          <h1>CONFIGURAÇÕES</h1>
+          <p>
+            Gerencie a aparência, as notificações e a segurança da sua conta.
+          </p>
+        </div>
+        <span className="prototype-status">SISTEMA // ONLINE</span>
+      </header>
+
+      <div className="prototype-settings-grid">
+        <aside className="prototype-settings-sidebar">
+          <span className="prototype-sidebar-label">SEÇÕES</span>
+          <nav>
+            {sections.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  className={
+                    section === item.id
+                      ? "prototype-settings-nav prototype-settings-nav--active"
+                      : "prototype-settings-nav"
+                  }
+                  type="button"
+                  key={item.id}
+                  onClick={() => setSection(item.id)}
+                >
+                  <Icon size={17} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+          <span className="prototype-count">
+            {sections.length} MÓDULOS DISPONÍVEIS
+          </span>
+        </aside>
+
+        <main className="prototype-settings-main">
+          {section === "appearance" && (
+            <section className="prototype-panel">
+              <div className="prototype-panel__header">
+                <span>01</span>
+                <div>
+                  <h2>APARÊNCIA</h2>
+                  <p>Personalize a apresentação da plataforma.</p>
+                </div>
+              </div>
+
+              <div className="prototype-panel__body">
+                <span className="prototype-field-title">TEMA DA INTERFACE</span>
+                <div className="prototype-theme-grid">
+                  {[
+                    {
+                      value: "original" as ThemePreference,
+                      title: "ORIGINAL",
+                      text: "Preto, azul-ciano e laranja do protótipo.",
+                    },
+                    {
+                      value: "light" as ThemePreference,
+                      title: "CLARO",
+                      text: "Variação clara mantendo as mesmas cores.",
+                    },
+                    {
+                      value: "system" as ThemePreference,
+                      title: "SISTEMA",
+                      text: "Segue automaticamente o dispositivo.",
+                    },
+                  ].map((option) => (
+                    <button
+                      className={
+                        preferences.theme === option.value
+                          ? "prototype-theme-option prototype-theme-option--active"
+                          : "prototype-theme-option"
+                      }
+                      type="button"
+                      key={option.value}
+                      onClick={() =>
+                        void changePreferences({ theme: option.value })
+                      }
+                    >
+                      <strong>{option.title}</strong>
+                      <small>{option.text}</small>
+                    </button>
+                  ))}
+                </div>
+
+                <label className="prototype-toggle-row">
+                  <span>
+                    <strong>MODO COMPACTO</strong>
+                    <small>Reduz espaços sem alterar o estilo visual.</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.compactMode}
+                    onChange={(event) =>
+                      void changePreferences({
+                        compactMode: event.target.checked,
+                      })
+                    }
+                  />
+                  <i />
+                </label>
+              </div>
+            </section>
+          )}
+
+          {section === "notifications" && (
+            <section className="prototype-panel">
+              <div className="prototype-panel__header">
+                <span>02</span>
+                <div>
+                  <h2>NOTIFICAÇÕES</h2>
+                  <p>Escolha quais alertas deseja receber.</p>
+                </div>
+              </div>
+              <div className="prototype-panel__body">
+                {[
+                  {
+                    key: "emailNotifications" as const,
+                    title: "NOTIFICAÇÕES POR E-MAIL",
+                    text: "Avisos importantes enviados ao seu e-mail.",
+                  },
+                  {
+                    key: "browserNotifications" as const,
+                    title: "NOTIFICAÇÕES NO NAVEGADOR",
+                    text: "Alertas enquanto a plataforma estiver aberta.",
+                  },
+                  {
+                    key: "sessionReminders" as const,
+                    title: "LEMBRETES DE MONITORIA",
+                    text: "Avisos antes do início de cada sessão.",
+                  },
+                ].map((item) => (
+                  <label className="prototype-toggle-row" key={item.key}>
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.text}</small>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={preferences[item.key]}
+                      onChange={(event) =>
+                        void changePreferences({
+                          [item.key]: event.target.checked,
+                        })
+                      }
+                    />
+                    <i />
+                  </label>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {section === "security" && (
+            <section className="prototype-panel">
+              <div className="prototype-panel__header">
+                <span>03</span>
+                <div>
+                  <h2>SEGURANÇA</h2>
+                  <p>Controles de acesso e proteção da sua conta.</p>
+                </div>
+              </div>
+              <div className="prototype-panel__body prototype-security">
+                <article>
+                  <div>
+                    <strong>ALTERAR SENHA</strong>
+                    <p>Atualize a senha usada no acesso à plataforma.</p>
+                  </div>
+                  <button type="button">CONFIGURAR</button>
+                </article>
+                <article>
+                  <div>
+                    <strong>SESSÕES CONECTADAS</strong>
+                    <p>Encerre acessos ativos em outros dispositivos.</p>
+                  </div>
+                  <button type="button">VER SESSÕES</button>
+                </article>
+                <article className="prototype-danger-row">
+                  <div>
+                    <strong>EXCLUIR CONTA</strong>
+                    <p>A ação será permanente após a confirmação.</p>
+                  </div>
+                  <button type="button">SOLICITAR EXCLUSÃO</button>
+                </article>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -91,4 +91,4 @@ const InstitutionSchema = new Schema<IInstitution>(
 // Índice geoespacial para localização da instituição
 InstitutionSchema.index({ location: '2dsphere' });
 
-export const Institution = model<IInstitution>('Institution', InstitutionSchema);
+export const Institution = model<IInstitution>('Institution', InstitutionSchema, 'institutions');

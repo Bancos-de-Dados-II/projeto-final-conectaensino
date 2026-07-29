@@ -1,20 +1,34 @@
 import { Router } from 'express';
 import { StudentController } from '../controllers/StudentController';
 import { validateQuerySchema, validateSchema } from '../middlewares/validateSchema';
-import { requireAuth } from '../middlewares/authenticate';
 import { CreateStudentSchema } from '../schemas/StudentSchema';
 import { GeoSearchSchema } from '../schemas/GeoSearchSchema';
+import { requireAuth, requireRoles } from '../middlewares/authenticate';
 
 const studentRoutes = Router();
 
+// Rota pública para o cadastro de novos estudantes
 studentRoutes.post(
   '/',
   requireAuth,
+  requireRoles('director', 'admin'),
   validateSchema(CreateStudentSchema),
   StudentController.create
 );
-studentRoutes.get('/', StudentController.listAll);
+
+studentRoutes.get(
+  '/',
+  requireAuth,
+  requireRoles('director', 'admin'),
+  StudentController.listAll,
+);
+studentRoutes.get(
+  '/:id/profile',
+  requireAuth,
+  requireRoles('monitor'),
+  StudentController.getLinkedProfile,
+);
 studentRoutes.get('/proximos', validateQuerySchema(GeoSearchSchema), StudentController.proximos);
 studentRoutes.get('/:userId', StudentController.getById);
 
-export { studentRoutes }
+export { studentRoutes };

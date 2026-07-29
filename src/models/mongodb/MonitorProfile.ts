@@ -2,6 +2,12 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IMonitorProfile extends Document {
   userId: string;
+  name?: string;
+  email?: string;
+  course?: string;
+  lastLoginAt?: Date;
+  mustChangePassword?: boolean;
+  createdByDirectorId?: string;
   institutionId: Types.ObjectId; // 👈 Referência para a Instituição
   disciplinas: string[];
   disponibilidade: string[];
@@ -12,6 +18,8 @@ export interface IMonitorProfile extends Document {
     coordinates: [number, number];
   };
   ativo: boolean;
+  avatarMimeType?: 'image/jpeg' | 'image/png';
+  avatarData?: Buffer;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -24,12 +32,35 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
       unique: true,
       index: true,
     },
-    institutionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Institution', // 👈 Popula com dados da Instituição
-      required: true,
+    name: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    course: {
+      type: String,
+      trim: true,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    createdByDirectorId: {
+      type: String,
       index: true,
     },
+    institutionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Institution',
+      required: false, // Permite que monitores originados do CSV fiquem sem ID do MongoDB
+  },
     disciplinas: {
       type: [String],
       required: true,
@@ -64,6 +95,15 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     ativo: {
       type: Boolean,
       default: true,
+    },
+    avatarMimeType: {
+      type: String,
+      enum: ['image/jpeg', 'image/png'],
+      select: false,
+    },
+    avatarData: {
+      type: Buffer,
+      select: false,
     },
   },
   {
