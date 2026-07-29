@@ -1,16 +1,3 @@
-export interface SessionRecord {
-  id: string;
-  title: string;
-  date?: string;
-  time?: string;
-  status?: string;
-  studentName?: string;
-  monitorName?: string;
-  subjectName?: string;
-  notes?: string;
-  raw?: unknown;
-}
-
 export interface CertificateRecord {
   id: string;
   title: string;

@@ -25,4 +25,20 @@ export interface PublicMonitor {
   sessions: number;
   certificates: number;
   city?: string;
+  availability: string[];
+}
+
+export interface ScheduleSlot {
+  time: string;
+  available: boolean;
+}
+
+export interface MonitorSchedule {
+  date: string;
+  monitorId: string;
+  periods: {
+    matutino: ScheduleSlot[];
+    vespertino: ScheduleSlot[];
+    noturno: ScheduleSlot[];
+  };
 }

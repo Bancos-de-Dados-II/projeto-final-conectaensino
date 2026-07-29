@@ -1,5 +1,10 @@
 import { api } from "../api/axios";
-import type { ExperienceSession, PublicMonitor, SessionStatus } from "../types/experience";
+import type {
+  ExperienceSession,
+  MonitorSchedule,
+  PublicMonitor,
+  SessionStatus,
+} from "../types/experience";
 
 type Dict = Record<string, unknown>;
 const isObject = (value: unknown): value is Dict => typeof value === "object" && value !== null;
@@ -41,11 +46,11 @@ function normalizeStatus(value: unknown): SessionStatus {
 }
 
 export function normalizeSession(item: Dict, index = 0): ExperienceSession {
-  const start = str(get(item, ["start", "date", "data", "scheduled_at", "data_hora", "created_at"]), new Date().toISOString());
+  const start = str(get(item, ["start", "date", "data", "scheduled_at", "dataHora", "data_hora", "created_at"]), new Date().toISOString());
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `session-${index}`),
-    title: str(get(item, ["title", "titulo", "subject.name", "disciplina.nome"]), "Sessão de monitoria"),
-    subject: str(get(item, ["subject.name", "disciplina.nome", "subject", "disciplina"]), "Disciplina não informada"),
+    title: str(get(item, ["title", "titulo", "subject.name", "disciplina.nome", "disciplinaId"]), "Sessão de monitoria"),
+    subject: str(get(item, ["subject.name", "disciplina.nome", "subject", "disciplina", "disciplinaId"]), "Disciplina não informada"),
     monitorName: str(get(item, ["monitor.name", "monitor.nome", "monitorName", "nome_monitor"]), "Monitor"),
     studentName: str(get(item, ["student.name", "aluno.nome", "studentName", "nome_aluno"])),
     start,
@@ -75,6 +80,10 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
   const subjects = Array.isArray(rawSubjects)
     ? rawSubjects.map((subject) => isObject(subject) ? str(get(subject, ["name", "nome"])) : str(subject)).filter(Boolean)
     : str(rawSubjects).split(",").map((item) => item.trim()).filter(Boolean);
+  const rawAvailability = get(item, ["availability", "disponibilidade"]);
+  const availability = Array.isArray(rawAvailability)
+    ? rawAvailability.map((item) => str(item)).filter(Boolean)
+    : str(rawAvailability).split(",").map((item) => item.trim()).filter(Boolean);
 
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `monitor-${index}`),
@@ -88,6 +97,7 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
     sessions: num(get(item, ["sessions", "sessions_count", "total_sessoes", "monitorias"])),
     certificates: num(get(item, ["certificates", "certificates_count", "total_certificados"])),
     city: str(get(item, ["city", "cidade", "address.city", "endereco.cidade"])),
+    availability,
   };
 }
 
@@ -107,4 +117,33 @@ export async function getMonitor(id: string): Promise<PublicMonitor> {
   const monitor = (await getMonitors()).find((item) => item.id === id);
   if (!monitor) throw new Error("Monitor não encontrado");
   return monitor;
+}
+
+export async function getMonitorSchedule(
+  monitorId: string,
+  date: string,
+): Promise<MonitorSchedule> {
+  const { data } = await api.get<MonitorSchedule>("/sessoes/disponibilidade", {
+    params: { monitorId, data: date },
+  });
+  return data;
+}
+
+export async function scheduleMonitorSession(payload: {
+  monitorId: string;
+  subject: string;
+  date: string;
+  time: string;
+}): Promise<void> {
+  await api.post("/sessoes/solicitar", {
+    monitorId: payload.monitorId,
+    disciplinaId: payload.subject,
+    dataHora: `${payload.date}T${payload.time}:00-03:00`,
+    tipoLocal: "escola",
+    enderecoEncontro: "Instituição do monitor",
+    locationMeeting: {
+      type: "Point",
+      coordinates: [0, 0],
+    },
+  });
 }

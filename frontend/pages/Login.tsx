@@ -9,7 +9,11 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
-import { getInstitutions } from "../services/map.service";
+import {
+  getInstitutions,
+  getNearbyInstitutions,
+} from "../services/map.service";
+import { searchCities } from "../services/geocoding.service";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { getApiBaseUrl } from "../api/axios";
@@ -80,6 +84,9 @@ function Login() {
         );
       } catch {
         setSchools([]);
+        setSchoolSearchMessage(
+          "Não foi possível carregar as escolas. Verifique se o backend está em execução.",
+        );
       } finally {
         setIsLoadingSchools(false);
       }
@@ -89,37 +96,85 @@ function Login() {
   }, []);
 
   useEffect(() => {
-    if (!city.trim()) {
+    const cityQuery = city.trim();
+
+    if (cityQuery.length < 2) {
       setCitySchools([]);
       setSchoolSearchMessage("");
       setSelectedSchoolId("");
       return;
     }
 
-    const normalizedCity = city.trim().toLowerCase();
-    const matchedSchools = schools.filter((school) => {
-      const cityCandidates = [school.cidade, school.endereco, school.nome]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
+    const timer = window.setTimeout(() => {
+      setIsLoadingSchools(true);
+      setSchoolSearchMessage(`Localizando escolas próximas de ${cityQuery}...`);
 
-      return cityCandidates.some((value) => value.includes(normalizedCity));
-    });
+      void searchCities(cityQuery)
+        .then(async (cityResults) => {
+          const cityResult = cityResults[0];
+          if (!cityResult) {
+            throw new Error("Cidade não encontrada.");
+          }
 
-    const sortedSchools = [...matchedSchools].sort((a, b) =>
-      a.nome.localeCompare(b.nome, "pt-BR"),
-    );
+          const nearby = await getNearbyInstitutions({
+            latitude: cityResult.latitude,
+            longitude: cityResult.longitude,
+            radiusKm: 25,
+          });
+          const options = nearby
+            .map((item) => ({
+              id: item.id,
+              nome: item.name,
+              endereco: item.address,
+              cidade: item.city,
+              latitude: item.latitude,
+              longitude: item.longitude,
+              distanceKm: item.distanceKm,
+            }))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-    setCitySchools(sortedSchools);
-    setSchoolSearchMessage(
-      sortedSchools.length > 0
-        ? `Escolas encontradas para a cidade ${city}.`
-        : `Nenhuma escola encontrada para a cidade ${city}.`,
-    );
+          setCitySchools(options);
+          setSelectedSchoolId((current) =>
+            options.some((school) => school.id === current) ? current : "",
+          );
+          setSchoolSearchMessage(
+            options.length
+              ? `${options.length} escola(s) encontrada(s) em um raio de 25 km de ${cityQuery}.`
+              : `Nenhuma escola encontrada em um raio de 25 km de ${cityQuery}.`,
+          );
+        })
+        .catch(() => {
+          const normalizedCity = cityQuery.toLocaleLowerCase("pt-BR");
+          const textMatches = schools
+            .filter((school) =>
+              [school.cidade, school.endereco, school.nome]
+                .filter(Boolean)
+                .some((value) =>
+                  String(value)
+                    .toLocaleLowerCase("pt-BR")
+                    .includes(normalizedCity),
+                ),
+            )
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+          const fallbackSchools = textMatches.length ? textMatches : schools;
 
-    if (!sortedSchools.some((school) => school.id === selectedSchoolId)) {
-      setSelectedSchoolId("");
-    }
-  }, [city, schools, selectedSchoolId]);
+          setCitySchools(fallbackSchools);
+          setSelectedSchoolId((current) =>
+            fallbackSchools.some((school) => school.id === current)
+              ? current
+              : "",
+          );
+          setSchoolSearchMessage(
+            fallbackSchools.length
+              ? "Não foi possível localizar a cidade; exibindo as escolas cadastradas."
+              : "Nenhuma escola cadastrada foi encontrada.",
+          );
+        })
+        .finally(() => setIsLoadingSchools(false));
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [city, schools]);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -192,7 +247,7 @@ function Login() {
   }
 
   return (
-    <main className="login-page">
+    <main className={`login-page ${isRegistering ? "login-page--register" : ""}`}>
       <section className="login-presentation">
         <div className="login-brand">
           <span className="login-brand__icon">
@@ -237,8 +292,8 @@ function Login() {
         </span>
       </section>
 
-      <section className="login-area">
-        <div className="login-card">
+      <section className={`login-area ${isRegistering ? "login-area--register" : ""}`}>
+        <div className={`login-card ${isRegistering ? "login-card--register" : ""}`}>
           <header className="login-card__header">
             <span className="login-eyebrow">Bem-vindo de volta</span>
             <h2>Entre na sua conta</h2>
@@ -320,17 +375,17 @@ function Login() {
               {isSubmitting ? (
                 <>
                   <span className="button-spinner" />
-                  Entrando...
+                  {isRegistering ? "Cadastrando..." : "Entrando..."}
                 </>
               ) : (
                 <>
-                  Entrar
+                  {isRegistering ? "Cadastrar" : "Entrar"}
                   <ArrowRight size={18} />
                 </>
               )}
             </button>
 
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <div className="login-mode-toggle" style={{ marginTop: 12, textAlign: 'center' }}>
               <button
                 type="button"
                 className="login-submit"

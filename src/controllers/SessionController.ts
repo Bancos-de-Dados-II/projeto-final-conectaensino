@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { supabase } from '../config/supabase';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Session } from '../models/mongodb/Session';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
 
 type SessionCreateBody = {
-  alunoId?: string;
   monitorId?: string;
   disciplinaId?: string;
   dataHora?: string;
@@ -17,6 +15,77 @@ type SessionCreateBody = {
     coordinates?: [number, number];
   };
 };
+
+const PERIOD_SLOTS = {
+  matutino: ['07:00', '08:00', '09:00', '10:00', '11:00'],
+  vespertino: ['13:00', '14:00', '15:00', '16:00', '17:00'],
+  noturno: ['18:00', '19:00', '20:00', '21:00'],
+} as const;
+
+const ALL_SLOTS = Object.values(PERIOD_SLOTS).flat();
+
+function datePartsInSaoPaulo(date: Date): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+
+  return {
+    date: `${value('year')}-${value('month')}-${value('day')}`,
+    time: `${value('hour')}:${value('minute')}`,
+  };
+}
+
+function normalizeAvailability(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR');
+}
+
+function slotsAllowedByMonitor(availability: string[], requestedDate: string): string[] {
+  if (!availability.length) {
+    return ALL_SLOTS;
+  }
+
+  const weekday = normalizeAvailability(
+    new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+    }).format(new Date(`${requestedDate}T12:00:00-03:00`)),
+  );
+  const dayTokens = [weekday, weekday.split('-')[0]];
+  const entriesForDay = availability
+    .map(normalizeAvailability)
+    .filter((entry) => dayTokens.some((day) => entry.includes(day)));
+  const mentionsWeekday = availability
+    .map(normalizeAvailability)
+    .some((entry) =>
+      ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo']
+        .some((day) => entry.includes(day)),
+    );
+  if (mentionsWeekday && entriesForDay.length === 0) {
+    return [];
+  }
+  const relevantEntries = entriesForDay.length
+    ? entriesForDay
+    : availability.map(normalizeAvailability);
+  const recognizedPeriods = (Object.keys(PERIOD_SLOTS) as Array<keyof typeof PERIOD_SLOTS>)
+    .filter((period) => relevantEntries.some((entry) =>
+      entry.includes(period) || (period === 'matutino' && entry.includes('manha')),
+    ));
+
+  return recognizedPeriods.length
+    ? recognizedPeriods.flatMap((period) => [...PERIOD_SLOTS[period]])
+    : ALL_SLOTS;
+}
 
 type SessionStatus = 'pendente' | 'confirmada' | 'em_andamento' | 'aguardando_avaliacao' | 'finalizada' | 'cancelada';
 
@@ -43,10 +112,102 @@ function isValidObjectId(value: string): boolean {
 }
 
 export const SessionController = {
+  async listar(req: Request, res: Response): Promise<Response> {
+    try {
+      const authUserId = req.user?.id;
+      if (!authUserId) {
+        return res.status(401).json({ message: 'Usuário não autenticado.' });
+      }
+
+      const [student, monitor] = await Promise.all([
+        StudentProfile.findOne({ userId: authUserId }).lean(),
+        MonitorProfile.findOne({ userId: authUserId }).lean(),
+      ]);
+      const filter = student
+        ? { alunoId: String(student._id) }
+        : monitor
+          ? { monitorId: String(monitor._id) }
+          : null;
+      if (!filter) {
+        return res.status(200).json([]);
+      }
+      const sessions = await Session.find(filter).sort({ dataHora: 1 }).lean();
+      const monitorIds = [...new Set(sessions.map((session) => session.monitorId))];
+      const studentIds = [...new Set(sessions.map((session) => session.alunoId))];
+      const [monitors, students] = await Promise.all([
+        MonitorProfile.find({ _id: { $in: monitorIds } }).lean(),
+        StudentProfile.find({ _id: { $in: studentIds } }).lean(),
+      ]);
+      const monitorNames = new Map(monitors.map((item) => [String(item._id), item.name ?? 'Monitor']));
+      const studentNames = new Map(students.map((item) => [String(item._id), item.userId]));
+
+      return res.status(200).json(sessions.map((session) => ({
+        ...session,
+        monitorName: monitorNames.get(session.monitorId) ?? 'Monitor',
+        studentName: studentNames.get(session.alunoId) ?? 'Aluno',
+      })));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao listar sessões.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async horariosDisponiveis(req: Request, res: Response): Promise<Response> {
+    try {
+      const monitorId = typeof req.query.monitorId === 'string' ? req.query.monitorId : '';
+      const requestedDate = typeof req.query.data === 'string' ? req.query.data : '';
+
+      if (!isValidObjectId(monitorId) || !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+        return res.status(400).json({ message: 'Monitor ou data inválidos.' });
+      }
+
+      const monitor = await MonitorProfile.findById(monitorId).lean();
+      if (!monitor || monitor.ativo === false) {
+        return res.status(404).json({ message: 'Monitor não encontrado ou inativo.' });
+      }
+
+      const dayStart = new Date(`${requestedDate}T00:00:00-03:00`);
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      const occupiedSessions = await Session.find({
+        monitorId,
+        dataHora: { $gte: dayStart, $lt: dayEnd },
+        status: { $ne: 'cancelada' },
+      }).select('dataHora').lean();
+      const occupiedTimes = new Set(
+        occupiedSessions.map((session) => datePartsInSaoPaulo(session.dataHora).time),
+      );
+      const now = new Date();
+      const allowedSlots = slotsAllowedByMonitor(monitor.disponibilidade ?? [], requestedDate);
+
+      return res.status(200).json({
+        date: requestedDate,
+        monitorId,
+        periods: Object.fromEntries(
+          (Object.entries(PERIOD_SLOTS) as Array<[keyof typeof PERIOD_SLOTS, readonly string[]]>)
+            .map(([period, slots]) => [
+              period,
+              slots.map((time) => {
+                const slotDate = new Date(`${requestedDate}T${time}:00-03:00`);
+                return {
+                  time,
+                  available:
+                    allowedSlots.includes(time)
+                    && !occupiedTimes.has(time)
+                    && slotDate.getTime() > now.getTime(),
+                };
+              }),
+            ]),
+        ),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao consultar horários.';
+      return res.status(500).json({ message });
+    }
+  },
+
   async solicitarAula(req: Request, res: Response): Promise<Response> {
     try {
       const body = req.body as SessionCreateBody;
-      const alunoId = typeof body.alunoId === 'string' ? body.alunoId.trim() : '';
       const monitorId = typeof body.monitorId === 'string' ? body.monitorId.trim() : '';
       const disciplinaId = typeof body.disciplinaId === 'string' ? body.disciplinaId.trim() : '';
       const dataHora = body.dataHora ? new Date(body.dataHora) : null;
@@ -54,40 +215,60 @@ export const SessionController = {
       const enderecoEncontro = typeof body.enderecoEncontro === 'string' ? body.enderecoEncontro.trim() : '';
       const locationMeeting = body.locationMeeting;
 
-      if (!alunoId || !monitorId || !disciplinaId || !body.dataHora || !tipoLocal || !enderecoEncontro || !locationMeeting) {
+      if (!monitorId || !disciplinaId || !body.dataHora || !tipoLocal || !enderecoEncontro || !locationMeeting) {
         return res.status(400).json({ message: 'Todos os campos da sessão são obrigatórios.' });
       }
 
-      if (!isValidObjectId(alunoId) || !isValidObjectId(monitorId)) {
-        return res.status(400).json({ message: 'alunoId e monitorId devem ser ObjectIds válidos do MongoDB.' });
+      if (!isValidObjectId(monitorId)) {
+        return res.status(400).json({ message: 'monitorId deve ser um ObjectId válido do MongoDB.' });
       }
 
       if (!dataHora || Number.isNaN(dataHora.getTime())) {
         return res.status(400).json({ message: 'dataHora inválida.' });
       }
 
+      const localDateTime = datePartsInSaoPaulo(dataHora);
+      if (!ALL_SLOTS.includes(localDateTime.time as typeof ALL_SLOTS[number])) {
+        return res.status(400).json({
+          message: 'Horário inválido. Use os horários dos turnos matutino, vespertino ou noturno.',
+        });
+      }
+
+      if (dataHora.getTime() <= Date.now()) {
+        return res.status(400).json({ message: 'Escolha um horário futuro.' });
+      }
+
       if (!locationMeeting.type || locationMeeting.type !== 'Point' || !Array.isArray(locationMeeting.coordinates) || locationMeeting.coordinates.length !== 2) {
         return res.status(400).json({ message: 'locationMeeting deve seguir o formato GeoJSON Point.' });
       }
 
-      const student = await StudentProfile.findById(alunoId);
+      const student = await StudentProfile.findOne({ userId: req.user?.id });
       if (!student) {
-        return res.status(404).json({ message: 'Aluno não encontrado no MongoDB.' });
+        return res.status(404).json({ message: 'O usuário autenticado não possui perfil de aluno.' });
       }
+      const alunoId = String(student._id);
 
       const monitor = await MonitorProfile.findById(monitorId);
       if (!monitor) {
         return res.status(404).json({ message: 'Monitor não encontrado no MongoDB.' });
       }
+      const meetingCoordinates =
+        tipoLocal === 'escola' && monitor.location?.coordinates?.length === 2
+          ? monitor.location.coordinates
+          : locationMeeting.coordinates;
 
-      const { data: disciplina, error: disciplinaError } = await supabase
-        .from('disciplinas')
-        .select('id')
-        .eq('id', disciplinaId)
-        .single();
+      const allowedSlots = slotsAllowedByMonitor(monitor.disponibilidade ?? [], localDateTime.date);
+      if (!allowedSlots.includes(localDateTime.time)) {
+        return res.status(400).json({ message: 'O monitor não atende nesse turno ou dia.' });
+      }
 
-      if (disciplinaError || !disciplina) {
-        return res.status(404).json({ message: 'Disciplina não encontrada no Supabase.' });
+      const conflict = await Session.exists({
+        monitorId,
+        dataHora,
+        status: { $ne: 'cancelada' },
+      });
+      if (conflict) {
+        return res.status(409).json({ message: 'Este horário acabou de ser ocupado. Escolha outro.' });
       }
 
       const session = await Session.create({
@@ -99,7 +280,7 @@ export const SessionController = {
         enderecoEncontro,
         locationMeeting: {
           type: 'Point',
-          coordinates: locationMeeting.coordinates,
+          coordinates: meetingCoordinates,
         },
         status: 'pendente',
       });
@@ -108,7 +289,7 @@ export const SessionController = {
         session,
         aluno: student,
         monitor,
-        disciplina,
+        disciplina: { id: disciplinaId },
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro interno ao solicitar aula.';

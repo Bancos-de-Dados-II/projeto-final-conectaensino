@@ -3,7 +3,6 @@ import type {
   CertificateRecord,
   ProfileData,
   ReviewRecord,
-  SessionRecord,
 } from "../types/domain";
 
 type UnknownRecord = Record<string, unknown>;
@@ -106,81 +105,6 @@ function normalizeId(record: UnknownRecord, index: number): string {
       readNested(record, ["id", "_id", "uuid", "session_id", "certificate_id"]),
     ) || `temporary-${index}`
   );
-}
-
-export async function listSessions(): Promise<SessionRecord[]> {
-  const { data } = await api.get("/sessoes");
-
-  return extractCollection(data)
-    .filter(isRecord)
-    .map((record, index) => ({
-      id: normalizeId(record, index),
-      title:
-        asString(
-          readNested(record, [
-            "title",
-            "titulo",
-            "subject.name",
-            "disciplina.nome",
-            "subject",
-          ]),
-        ) || "Sessão de monitoria",
-      date: asString(
-        readNested(record, [
-          "date",
-          "data",
-          "scheduled_at",
-          "scheduledAt",
-          "start_time",
-        ]),
-      ),
-      time: asString(readNested(record, ["time", "hora", "startTime"])),
-      status: asString(readNested(record, ["status", "situacao"])),
-      studentName: asString(
-        readNested(record, [
-          "student.name",
-          "student.nome",
-          "aluno.nome",
-          "student_name",
-        ]),
-      ),
-      monitorName: asString(
-        readNested(record, [
-          "monitor.name",
-          "monitor.nome",
-          "monitor_name",
-        ]),
-      ),
-      subjectName: asString(
-        readNested(record, [
-          "subject.name",
-          "disciplina.nome",
-          "subject",
-          "disciplina",
-        ]),
-      ),
-      notes: asString(
-        readNested(record, ["notes", "observacoes", "description"]),
-      ),
-      raw: record,
-    }));
-}
-
-export async function createSession(
-  payload: Record<string, unknown>,
-): Promise<void> {
-  await api.post("/sessoes", payload);
-}
-
-export async function updateSession(
-  id: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  await api.put(`/sessoes/${id}`, payload);
-}
-
-export async function deleteSession(id: string): Promise<void> {
-  await api.delete(`/sessoes/${id}`);
 }
 
 export async function listCertificates(): Promise<CertificateRecord[]> {

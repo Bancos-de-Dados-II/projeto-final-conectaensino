@@ -4,6 +4,8 @@ import { requireAuth } from '../middlewares/authenticate';
 
 const sessionRoutes = Router();
 
+sessionRoutes.get('/', requireAuth, SessionController.listar);
+sessionRoutes.get('/disponibilidade', requireAuth, SessionController.horariosDisponiveis);
 sessionRoutes.post('/solicitar', requireAuth, SessionController.solicitarAula);
 sessionRoutes.patch('/:id/status', requireAuth, SessionController.atualizarStatus);
 

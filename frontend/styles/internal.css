@@ -1649,6 +1649,160 @@
   font-weight: 700;
 }
 
+/* Agendamento de monitorias */
+.booking-page { display: grid; gap: 20px; }
+.booking-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+.booking-form-card,
+.booking-availability {
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.booking-form-card { display: flex; flex-direction: column; gap: 18px; }
+.booking-form-card > header,
+.booking-period > header,
+.booking-monitor-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.booking-form-card > header svg,
+.booking-period > header svg { color: var(--primary); }
+.booking-form-card > header div,
+.booking-period > header div { display: grid; gap: 3px; }
+.booking-form-card > header strong,
+.booking-period > header strong { font-size: 12px; }
+.booking-form-card > header small,
+.booking-period > header small { color: var(--text-muted); font-size: 9px; }
+.booking-field { display: grid; gap: 8px; }
+.booking-field > span {
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.booking-field input,
+.booking-field select {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+.booking-field input:focus,
+.booking-field select:focus { border-color: var(--primary); }
+.booking-monitor-card {
+  padding: 13px;
+  background: rgba(17, 185, 237, .06);
+  border: 1px solid rgba(17, 185, 237, .18);
+  border-radius: 10px;
+}
+.booking-monitor-card > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--primary);
+  background: rgba(17, 185, 237, .12);
+  border-radius: 10px;
+}
+.booking-monitor-card > div { display: grid; gap: 5px; min-width: 0; }
+.booking-monitor-card strong { font-size: 11px; }
+.booking-monitor-card small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+.booking-submit { width: 100%; justify-content: center; }
+.booking-availability { min-height: 510px; }
+.booking-availability > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+.booking-availability h2 { margin: 5px 0 0; font-size: 20px; }
+.booking-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+.booking-legend i {
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+.booking-legend i:nth-of-type(2) { margin-left: 7px; background: #303948; }
+.booking-periods { display: grid; gap: 14px; }
+.booking-no-slots {
+  display: flex;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  align-items: center;
+  gap: 10px;
+  color: #f4b860;
+  background: rgba(244, 184, 96, .08);
+  border: 1px solid rgba(244, 184, 96, .22);
+  border-radius: 9px;
+  font-size: 9px;
+}
+.booking-no-slots span { display: grid; gap: 3px; }
+.booking-no-slots strong { color: #ffd28e; font-size: 10px; }
+.booking-period {
+  padding: 17px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+.booking-period > header { margin-bottom: 14px; }
+.booking-slots { display: grid; grid-template-columns: repeat(5, minmax(58px, 1fr)); gap: 8px; }
+.booking-slot {
+  min-height: 39px;
+  color: var(--primary);
+  background: rgba(17, 185, 237, .08);
+  border: 1px solid rgba(17, 185, 237, .25);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.booking-slot:hover:not(:disabled),
+.booking-slot--selected {
+  color: #06131a;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.booking-slot:disabled {
+  color: #596273;
+  background: rgba(80, 89, 105, .08);
+  border-color: rgba(80, 89, 105, .16);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+@media (max-width: 900px) {
+  .booking-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .booking-slots { grid-template-columns: repeat(3, 1fr); }
+  .booking-availability > header { flex-direction: column; }
+}
+
 .map-availability--available { color: #22c55e !important; }
 .map-availability--unavailable { color: #ef4444 !important; }
 
@@ -5558,6 +5712,7 @@ select {
 }
 
 .login-card {
+  min-width: 0;
   width: min(100%, 430px);
   padding: 30px;
   background: var(--surface);
@@ -5600,11 +5755,15 @@ select {
 }
 
 .login-form {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   margin-top: 20px;
   gap: 15px;
 }
 
 .login-field {
+  min-width: 0;
   gap: 7px;
 }
 
@@ -5639,6 +5798,71 @@ select {
 
 .login-input input::placeholder {
   color: var(--text-dim);
+}
+
+.register-fields {
+  order: 1;
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.register-fields .login-field > input,
+.register-fields .login-field > select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 45px;
+  padding: 0 12px;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.register-fields .login-field > input:focus,
+.register-fields .login-field > select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.08);
+}
+
+.register-fields .login-field > select option {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.register-fields .login-field > small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.login-form > .login-error { order: 2; }
+.login-form > .login-submit { order: 3; }
+.login-mode-toggle { order: 4; }
+
+.login-page--register {
+  height: 100vh;
+}
+
+.login-area--register {
+  max-height: 100vh;
+  padding-block: 64px 32px;
+  align-items: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.login-card--register {
+  width: min(100%, 470px);
 }
 
 .login-password-toggle {
