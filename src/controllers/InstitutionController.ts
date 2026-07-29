@@ -3,7 +3,6 @@ import { Institution } from '../models/mongodb/Institution';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 
 export const InstitutionController = {
-  // Cadastrar nova Instituição
   async create(req: Request, res: Response) {
     try {
       const institution = await Institution.create(req.body);
@@ -15,10 +14,8 @@ export const InstitutionController = {
     }
   },
 
-  // Listar todas as Instituições
   async listAll(_req: Request, res: Response) {
     try {
-      // Retorna todas as instituições para validação no front-end
       const institutions = await Institution.find({});
       return res.status(200).json(institutions);
     } catch (error: any) {
@@ -95,7 +92,6 @@ export const InstitutionController = {
     }
   },
 
-  // Buscar Instituição por ID
   async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;

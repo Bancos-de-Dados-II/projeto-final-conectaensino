@@ -9,7 +9,7 @@ export interface ISession extends Document {
   enderecoEncontro: string;
   locationMeeting: {
     type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [number, number]; 
   };
   status: 'pendente' | 'confirmada' | 'em_andamento' | 'aguardando_avaliacao' | 'finalizada' | 'cancelada';
   createdAt?: Date;

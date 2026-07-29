@@ -7,17 +7,15 @@ dotenv.config();
 const seedMonitors = async () => {
   await connectMongoDB();
 
-  // Limpa registros anteriores de teste
   await MonitorProfile.deleteMany({});
 
-  // Lembre-se: GeoJSON usa [longitude, latitude]
   const mockMonitors = [
     {
-      userId: "11111111-1111-1111-1111-111111111111", // UUID do Postgres
+      userId: "11111111-1111-1111-1111-111111111111", 
       disciplinasAtendidas: ["math-01", "port-01"],
       location: {
         type: 'Point',
-        coordinates: [-38.5583, -6.8875] // Próximo ao IFPB Cajazeiras
+        coordinates: [-38.5583, -6.8875] 
       }
     },
     {
@@ -25,7 +23,7 @@ const seedMonitors = async () => {
       disciplinasAtendidas: ["math-01"],
       location: {
         type: 'Point',
-        coordinates: [-38.5650, -6.8910] // Centro de Cajazeiras
+        coordinates: [-38.5650, -6.8910] 
       }
     },
     {
@@ -33,7 +31,7 @@ const seedMonitors = async () => {
       disciplinasAtendidas: ["hist-01"],
       location: {
         type: 'Point',
-        coordinates: [-38.5400, -6.8700] // Ponto mais distante (~4km)
+        coordinates: [-38.5400, -6.8700] 
       }
     }
   ];

@@ -37,7 +37,6 @@ monitorRoutes.post(
   MonitorController.create
 );
 
-// 👇 Adicione esta rota para permitir a exclusão
 monitorRoutes.delete(
   '/:id',
   requireAuth,

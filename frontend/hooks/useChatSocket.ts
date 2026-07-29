@@ -34,7 +34,6 @@ export function useChatSocket({
             const parsed = JSON.parse(event.data) as ChatMessage;
             callbackRef.current(parsed);
           } catch {
-            // Ignora mensagens que não pertencem ao protocolo do chat.
           }
         };
 
@@ -44,7 +43,6 @@ export function useChatSocket({
           }
         };
       } catch {
-        // O polling da tela mantém o chat funcional sem WebSocket.
       }
     }
 

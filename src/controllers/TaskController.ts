@@ -50,7 +50,6 @@ async function eligibleStudents(monitorId: string) {
                 : '';
           if (name) authNames.set(student.userId, name);
         } catch {
-          // Mantém o nome derivado do e-mail quando o Auth estiver indisponível.
         }
       }),
     );

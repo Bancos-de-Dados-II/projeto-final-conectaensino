@@ -37,7 +37,7 @@ export const monitorsResource: CrudResourceConfig = {
   title: "Monitores",
   description: "Cadastre e acompanhe os monitores disponíveis.",
   singular: "monitor",
-  endpoint: "/monitors", // Alterado de "/api/monitors" para "/monitors"
+  endpoint: "/monitors", 
   searchableFields: [
     "name",
     "email",
@@ -65,8 +65,6 @@ export const monitorsResource: CrudResourceConfig = {
       type: "select",
       placeholder: "Selecione a instituição",
       required: true,
-      // Se o seu EntityManager suporta carregar opções de uma API, mantenha. 
-      // Caso contrário, se ele usa uma lista estática, preencha o array `options: [...]` com as escolas.
       optionsEndpoint: "/api/institutions", 
     },
     {

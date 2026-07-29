@@ -100,7 +100,6 @@ export class StudentController {
     }
   }
 
-  // Criar Perfil de Estudante com Supabase Auth (Orquestrando MongoDB + Supabase)
   static async create(req: Request, res: Response): Promise<Response> {
     try {
       if (req.user?.role === 'director') {
@@ -119,7 +118,7 @@ export class StudentController {
         name,
         email,
         password,
-        institutionId, // Escola próxima
+        institutionId, 
         enderecoResidencial,
         tipoDeficiencia,
         necessidadesAcessibilidade,
@@ -130,7 +129,6 @@ export class StudentController {
         return res.status(400).json({ message: 'O campo email é obrigatório.' });
       }
 
-      // 1. Validar se o e-mail já existe na tabela usuarios do Supabase (Unicidade)
       const { data: existingUser } = await supabase
         .from('usuarios')
         .select('email')
@@ -141,8 +139,6 @@ export class StudentController {
         return res.status(400).json({ message: 'Já existe um aluno cadastrado com este e-mail.' });
       }
 
-      // 2. Resolver localização com base na instituição próxima ou coordenadas informadas
-    // 2. Resolver localização com base na instituição próxima ou coordenadas informadas
       let studentLocation: {
         type: 'Point';
         coordinates: [number, number];
@@ -169,14 +165,12 @@ export class StudentController {
         return res.status(400).json({ message: 'Instituição próxima ou coordenadas geográficas são obrigatórias.' });
       }
 
-      // 3. Definir senha (usa a enviada ou gera uma temporária segura)
       const createdByDirector = req.user?.role === 'director';
       const studentPassword = createdByDirector
         ? '12345678'
         : password || (crypto.randomBytes(6).toString('hex') + '!1A');
       const resolvedName = name || email.split('@')[0];
 
-      // 4. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: email,
         password: studentPassword,
@@ -191,8 +185,6 @@ export class StudentController {
 
       const authUserId = authData.user.id;
 
-      // 5. Criação do perfil não-relacional no MongoDB
-// 5. Criação do perfil não-relacional no MongoDB (com type assertion para evitar o erro de tipagem)
         const student = await (StudentProfile.create as any)({
           userId: authUserId, 
           name: resolvedName,
@@ -208,7 +200,6 @@ export class StudentController {
 
       const mongoProfileId = student._id.toString();
 
-      // 6. Persistência relacional: Insere na tabela 'usuarios' do Supabase
       const { data: usuarioSupabase, error: supabaseError } = await supabase
         .from('usuarios')
         .insert([
@@ -221,7 +212,6 @@ export class StudentController {
         .select()
         .single();
 
-      // 7. Rollback Manual em caso de falha relacional
       if (supabaseError) {
         await supabase.auth.admin.deleteUser(authUserId);
         await StudentProfile.findByIdAndDelete(student._id);
@@ -232,7 +222,6 @@ export class StudentController {
         });
       }
 
-      // 8. Sucesso absoluto
       return res.status(201).json({
         message: "Estudante cadastrado com sucesso em ambos os bancos com acesso ao sistema!",
         email: email,
@@ -254,7 +243,6 @@ export class StudentController {
     }
   }
 
-  // Listar todos os estudantes
   static async listAll(req: Request, res: Response): Promise<Response> {
     try {
       const director = req.user?.role === 'director'
@@ -292,7 +280,6 @@ export class StudentController {
     }
   }
 
-  // Buscar perfil por mongoId
   static async getById(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;

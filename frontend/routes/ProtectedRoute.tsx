@@ -35,7 +35,6 @@ function ProtectedRoute({
     );
   }
 
-  // Verificação de permissão baseada em roles (ex: "monitor")
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = getApplicationRole(user);
     if (!userRole || !allowedRoles.includes(userRole)) {

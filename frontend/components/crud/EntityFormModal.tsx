@@ -135,7 +135,6 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
       }
     }
 
-    // Garante que o nome seja enviado: pega do input ou extrai o nome limpo do e-mail digitado
     const emailStr = String(rawValues.email || "monitor@email.com");
     const fallbackName = emailStr.split("@")[0];
     const formattedFallbackName = fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1);
@@ -144,7 +143,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
     const payload = {
       ...rawValues,
-      name: finalName, // Força a inclusão do nome validado aqui
+      name: finalName, 
       userId: rawValues.userId || "temp-user-id",
       disciplinas: typeof rawValues.disciplinas === "string" 
         ? rawValues.disciplinas.split(",").map((d: string) => d.trim()).filter(Boolean)

@@ -22,8 +22,6 @@ export function getApplicationRole(
     return "monitor";
   }
 
-  // Contas antigas de aluno podem possuir apenas o papel padrão
-  // "authenticated" do Supabase.
   return "student";
 }
 

@@ -7,7 +7,7 @@ export interface CrudField {
   placeholder?: string;
   required?: boolean;
   options?: { label: string; value: string | number }[];
-  optionsEndpoint?: string; // Endpoint para buscar dados dinâmicos, se o seu EntityManager suportar
+  optionsEndpoint?: string; 
 }
 
 export interface CrudEntity {

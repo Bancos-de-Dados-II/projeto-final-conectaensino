@@ -36,7 +36,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
-const CreateTaskPage = lazy(() => import("./pages/CreateTask")); // Nova tela de atividades
+const CreateTaskPage = lazy(() => import("./pages/CreateTask")); 
 
 function Loader() {
   return (

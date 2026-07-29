@@ -7,7 +7,6 @@ import { requireAuth, requireRoles } from '../middlewares/authenticate';
 
 const studentRoutes = Router();
 
-// Rota pública para o cadastro de novos estudantes
 studentRoutes.post(
   '/',
   requireAuth,

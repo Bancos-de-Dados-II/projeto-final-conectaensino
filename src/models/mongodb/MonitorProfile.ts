@@ -8,7 +8,7 @@ export interface IMonitorProfile extends Document {
   lastLoginAt?: Date;
   mustChangePassword?: boolean;
   createdByDirectorId?: string;
-  institutionId: Types.ObjectId; // 👈 Referência para a Instituição
+  institutionId: Types.ObjectId; 
   disciplinas: string[];
   disponibilidade: string[];
   telefoneContato?: string;
@@ -59,7 +59,7 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     institutionId: {
       type: Schema.Types.ObjectId,
       ref: 'Institution',
-      required: false, // Permite que monitores originados do CSV fiquem sem ID do MongoDB
+      required: false, 
   },
     disciplinas: {
       type: [String],

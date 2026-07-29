@@ -249,7 +249,6 @@ export async function getProfile(): Promise<ProfileData | null> {
         ),
       };
     } catch {
-      // tenta o próximo endpoint
     }
   }
 
@@ -266,7 +265,6 @@ export async function updateProfile(
       await api.put(endpoint, payload);
       return;
     } catch {
-      // tenta o próximo endpoint
     }
   }
 

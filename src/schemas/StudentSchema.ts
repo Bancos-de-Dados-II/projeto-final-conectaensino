@@ -12,8 +12,8 @@ export const CreateStudentSchema = z.object({
     type: z.literal('Point').default('Point'),
     coordinates: z.tuple(
       [
-        z.number().min(-180).max(180), // Longitude
-        z.number().min(-90).max(90),   // Latitude
+        z.number().min(-180).max(180),
+        z.number().min(-90).max(90),   
       ],
       { error: 'Coordenadas [Longitude, Latitude] são obrigatórias.' }
     ),

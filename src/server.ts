@@ -10,8 +10,6 @@ dotenv.config();
 const PORT = Number(process.env.PORT) || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ensino';
 
-// Schema/Model temporário para as Atividades (caso queira usar Mongoose direto)
-// Rota de teste do Supabase
 app.get('/api/teste-supabase', async (_req, res) => {
   try {
     const { data, error } = await supabase.from('tabela_teste_conexao').select('*').limit(1);
@@ -26,16 +24,10 @@ app.get('/api/teste-supabase', async (_req, res) => {
   }
 });
 
-// --- NOVAS ROTAS DE ATIVIDADES (KANBAN) ---
-
-// 1. Buscar apenas os alunos associados ao monitor logado com base nas sessões
 app.get('/api/monitors/my-students', async (req, res) => {
   try {
-    // Se você usa o Supabase Auth ou token próprio, o ID/Email do monitor virá no req.user
-    // Caso esteja testando livremente, você pode ajustar conforme o seu middleware de auth
     const monitorEmail = req.query.monitorEmail || req.user?.email;
 
-    // Buscando alunos únicos através da collection de sessões no MongoDB
     const students = await mongoose.connection.collection('sessions').aggregate([
       { $match: { $or: [{ monitorEmail: monitorEmail }, { monitorId: req.user?.id }] } },
       { 
@@ -54,7 +46,6 @@ app.get('/api/monitors/my-students', async (req, res) => {
   }
 });
 
-// 2. Criar e atribuir a nova atividade ao aluno
 app.post('/api/tasks', async (req, res) => {
   try {
     const { title, description, subject, studentEmail } = req.body;
@@ -76,7 +67,6 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-// 3. Buscar tarefas do aluno logado (para popular o Kanban no Dashboard)
 app.get('/api/tasks', async (req, res) => {
   try {
     const { email } = req.query;
@@ -92,18 +82,14 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
-// ------------------------------------------
 
 async function start() {
   try {
-    // 1. Conecta ao MongoDB
     await mongoose.connect(MONGO_URI);
     console.log('🟢 Conectado ao MongoDB com sucesso!');
 
-    // 2. Conecta ao Upstash Redis
     await connectRedis();
 
-    // 3. Inicia o Servidor Express (ouvindo em 0.0.0.0 para compatibilidade com o Render)
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
     });

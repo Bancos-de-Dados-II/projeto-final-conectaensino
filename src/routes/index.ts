@@ -6,7 +6,7 @@ import { avaliacaoRoutes } from './avaliacao.routes';
 import { sessionRoutes } from './session.routes.js';
 import { certificadoRoutes } from './certificado.routes.js';
 import { authRoutes } from './auth.routes';
-import { directorRoutes } from './director.routes'; // 1. Importe o arquivo de rotas do diretor
+import { directorRoutes } from './director.routes'; 
 import { taskRoutes } from './task.routes';
 import { profileRoutes } from './profile.routes';
 import { chatRoutes } from './chat.routes';
@@ -20,7 +20,7 @@ router.use('/avaliacoes', avaliacaoRoutes);
 router.use('/sessoes', sessionRoutes);
 router.use('/certificados', certificadoRoutes);
 router.use('/auth', authRoutes);
-router.use('/directors', directorRoutes); // 2. Registre o prefixo para as rotas de diretor
+router.use('/directors', directorRoutes); 
 router.use('/tasks', taskRoutes);
 router.use('/profile', profileRoutes);
 router.use('/chat', chatRoutes);

@@ -25,7 +25,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'Token ausente ou inválido.' });
     }
 
-    // Consulta rápida no Upstash Redis para validar a sessão
     const sessionData = await redisClient.get(`session:${token}`);
 
     if (!sessionData) {
@@ -34,10 +33,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       });
     }
 
-    // Converte os dados salvos no Redis de volta para objeto
     const userData = JSON.parse(sessionData);
 
-    // Injeta os dados do usuário na requisição para os controllers usarem
     req.user = {
       id: userData.userId,
       email: userData.email ?? null,

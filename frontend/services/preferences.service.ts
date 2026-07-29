@@ -75,7 +75,6 @@ export async function getProfile(): Promise<AccountProfile> {
         ),
       };
     } catch {
-      // Tenta o próximo endpoint.
     }
   }
 
@@ -92,7 +91,6 @@ export async function saveProfile(
       const { data } = await api.put(endpoint, profile);
       return { ...profile, ...(data?.data ?? data) };
     } catch {
-      // Tenta o próximo endpoint.
     }
   }
 
