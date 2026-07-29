@@ -13,9 +13,6 @@ authRoutes.post(
   AuthController.registerStudent,
 );
 
-<<<<<<< Updated upstream
-export { authRoutes };
-=======
 // Rota de registro de diretor apontando para o DirectorController.create
 authRoutes.post(
   '/register/director',
@@ -23,4 +20,3 @@ authRoutes.post(
 );
 
 export { authRoutes };
->>>>>>> Stashed changes
