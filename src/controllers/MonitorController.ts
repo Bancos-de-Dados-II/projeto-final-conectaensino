@@ -263,25 +263,42 @@ export const MonitorController = {
       const { id } = req.params;
       console.log('--- INÍCIO DA EXCLUSÃO DE MONITOR --- ID:', id);
 
+      if (!supabaseAdmin) {
+        return res.status(503).json({
+          message: 'Operação indisponível.',
+          error: 'Configure SUPABASE_SERVICE_ROLE_KEY no backend para gerenciar exclusões.',
+        });
+      }
+
       const monitor = await MonitorProfile.findById(id);
       if (!monitor) {
         return res.status(404).json({ message: 'Monitor não encontrado.' });
       }
 
-      // Remove o registro correspondente na tabela 'usuarios' do Supabase
-      const { error: supabaseError } = await supabase
+      const authUserId = monitor.userId;
+
+      // 1. Remove o registro correspondente na tabela 'usuarios' do Supabase
+      const { error: supabaseError } = await supabaseAdmin!
         .from('usuarios')
         .delete()
         .eq('mongo_profile_id', id);
 
       if (supabaseError) {
-        console.error('Erro ao excluir do Supabase:', supabaseError);
+        console.error('Erro ao excluir da tabela usuarios do Supabase:', supabaseError);
       }
 
-      // Deleta o perfil do monitor no MongoDB
+      // 2. Deleta o usuário definitivamente do Supabase Auth usando o admin
+      if (authUserId) {
+        const { error: authDeleteError } = await supabaseAdmin!.auth.admin.deleteUser(authUserId);
+        if (authDeleteError) {
+          console.error('Erro ao excluir usuário do Supabase Auth:', authDeleteError);
+        }
+      }
+
+      // 3. Deleta o perfil do monitor no MongoDB
       await MonitorProfile.findByIdAndDelete(id);
 
-      console.log('Monitor excluído com sucesso de ambos os bancos!');
+      console.log('Monitor excluído com sucesso de ambos os bancos e do Auth!');
       return res.status(200).json({ message: 'Monitor excluído com sucesso!' });
     } catch (error: any) {
       console.error('Erro crítico ao excluir monitor:', error);

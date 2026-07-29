@@ -30,6 +30,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const CreateTaskPage = lazy(() => import("./pages/CreateTask")); // Nova tela de atividades
 
 function Loader() {
   return (
@@ -91,6 +92,16 @@ export default function App() {
                   <Route
                     path="/configuracoes"
                     element={<SettingsPage />}
+                  />
+                  
+                  {/* Nova rota restrita para criação de atividades */}
+                  <Route
+                    path="/atividades/nova"
+                    element={
+                      <ProtectedRoute allowedRoles={["monitor"]}>
+                        <CreateTaskPage />
+                      </ProtectedRoute>
+                    }
                   />
                 </Route>
               </Route>

@@ -33,9 +33,10 @@ export default function Sidebar({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Verifica se o usuário logado possui a role de diretor
+  // Verifica os papéis do usuário logado
   const userRole = user?.user_metadata?.role || (user as any)?.role;
   const isDirector = userRole === "director";
+  const isMonitor = userRole === "monitor";
 
   function handleLogout() {
     logout();
@@ -49,19 +50,30 @@ export default function Sidebar({
         <nav className="sidebar__navigation">
           <SidebarGroup title="Principal">
             <SidebarLink label="Dashboard" path="/dashboard" icon={Gauge} onNavigate={onNavigate} />
-            <SidebarLink label="Mapa" path="/mapa" icon={MapPinned} onNavigate={onNavigate} />
+            
+            {/* Mapa e Favoritos: Visíveis APENAS para Alunos */}
+            {!isDirector && !isMonitor && (
+              <>
+                <SidebarLink label="Mapa" path="/mapa" icon={MapPinned} onNavigate={onNavigate} />
+                <SidebarLink label="Favoritos" path="/favoritos" icon={Heart} onNavigate={onNavigate} />
+              </>
+            )}
             
             {/* Visível apenas para Diretores */}
             {isDirector && (
               <SidebarLink label="Monitores" path="/monitores" icon={GraduationCap} onNavigate={onNavigate} />
             )}
 
-            <SidebarLink label="Favoritos" path="/favoritos" icon={Heart} onNavigate={onNavigate} />
             <SidebarLink label="Mensagens" path="/mensagens" icon={MessageCircle} onNavigate={onNavigate} />
 
             {/* Visível apenas para Diretores */}
             {isDirector && (
               <SidebarLink label="Alunos" path="/alunos" icon={UsersRound} onNavigate={onNavigate} />
+            )}
+
+            {/* Criar Atividade: Visível APENAS para Monitores */}
+            {isMonitor && (
+              <SidebarLink label="Criar Atividade" path="/atividades/nova" icon={BookOpen} onNavigate={onNavigate} />
             )}
 
             <SidebarLink label="Sessões" path="/sessoes" icon={CalendarDays} onNavigate={onNavigate} />
