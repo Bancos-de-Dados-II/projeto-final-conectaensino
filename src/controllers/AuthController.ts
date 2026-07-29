@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 import { Institution } from '../models/mongodb/Institution';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
+import redisClient from '../config/redis';
 
 export const AuthController = {
   async login(req: Request, res: Response): Promise<Response> {
@@ -24,11 +25,25 @@ export const AuthController = {
         });
       }
 
+      const accessToken = data.session.access_token;
+      const expiresIn = data.session.expires_in || 7200;
+
+      // Salvando a sessão no Upstash Redis
+      await redisClient.setEx(
+        `session:${accessToken}`,
+        expiresIn,
+        JSON.stringify({
+          userId: data.user.id,
+          email: data.user.email,
+          role: data.user.role,
+        })
+      );
+
       return res.status(200).json({
-        access_token: data.session.access_token,
+        access_token: accessToken,
         refresh_token: data.session.refresh_token,
         token_type: data.session.token_type,
-        expires_in: data.session.expires_in,
+        expires_in: expiresIn,
         user: {
           id: data.user.id,
           email: data.user.email,
@@ -38,6 +53,24 @@ export const AuthController = {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro interno ao autenticar usuário.';
+      return res.status(500).json({ message });
+    }
+    
+  },
+
+  async logout(req: Request, res: Response): Promise<Response> {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice('Bearer '.length).trim();
+        // Remove a sessão instantaneamente do Redis
+        await redisClient.del(`session:${token}`);
+      }
+
+      return res.status(200).json({ message: 'Logout realizado com sucesso.' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro interno ao realizar logout.';
       return res.status(500).json({ message });
     }
   },

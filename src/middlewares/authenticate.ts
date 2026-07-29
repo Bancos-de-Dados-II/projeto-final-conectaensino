@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { supabase } from '../config/supabase';
+import redisClient from '../config/redis';
 
 export type AuthenticatedUser = {
   id: string;
@@ -25,20 +25,24 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'Token ausente ou inválido.' });
     }
 
-    const { data, error } = await supabase.auth.getUser(token);
+    // Consulta rápida no Upstash Redis para validar a sessão
+    const sessionData = await redisClient.get(`session:${token}`);
 
-    if (error || !data.user) {
+    if (!sessionData) {
       return res.status(401).json({
         message: 'Token JWT inválido ou expirado.',
-        error: error?.message,
       });
     }
 
+    // Converte os dados salvos no Redis de volta para objeto
+    const userData = JSON.parse(sessionData);
+
+    // Injeta os dados do usuário na requisição para os controllers usarem
     req.user = {
-      id: data.user.id,
-      email: data.user.email ?? null,
-      name: (data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? null) as string | null,
-      role: data.user.role ?? null,
+      id: userData.userId,
+      email: userData.email ?? null,
+      name: userData.name ?? null,
+      role: userData.role ?? null,
     };
 
     return next();

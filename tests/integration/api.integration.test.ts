@@ -127,6 +127,53 @@ afterEach(() => {
   resetTableResponses();
 });
 
+describe('Fluxo de Autenticação e Sessão (Redis)', () => {
+  let accessToken: string;
+
+  // Substitua por um usuário válido e cadastrado no seu Supabase para o teste passar
+  const credentials = {
+    email: 'diretor1@email.com',
+    password: 'diretor123',
+  };
+
+  it('1. Deve fazer login com sucesso, retornar o token e salvar no Redis', async () => {
+    const response = await request(app)
+      .post('/api/auth/login') // Ajuste a rota de login se necessário
+      .send(credentials);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('access_token');
+    
+    // Salva o token para os próximos testes da suíte
+    accessToken = response.body.access_token;
+  });
+
+  it('2. Deve acessar uma rota protegida usando o token armazenado no Redis', async () => {
+    // Substitua '/api/profile' ou outra rota protegida real do seu sistema
+    const response = await request(app)
+      .get('/api/profile') 
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('3. Deve realizar o logout, invalidando a sessão no Redis', async () => {
+    const response = await request(app)
+      .post('/api/auth/logout') // Ajuste a rota de logout se necessário
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('4. Deve negar o acesso à rota protegida após o logout', async () => {
+    const response = await request(app)
+      .get('/api/profile') // Mesma rota protegida
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(401);
+  });
+});
+
 describe('Fluxo de autenticação e rotas protegidas', () => {
   it('valida os campos obrigatórios no cadastro de aluno', async () => {
     const response = await request(app)
