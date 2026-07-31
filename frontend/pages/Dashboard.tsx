@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 
 import DashboardCharts from "../components/dashboard/DashboardCharts";
 import DirectorDashboard from "../components/dashboard/DirectorDashboard";
+import AdminDashboard from "../components/dashboard/AdminDashboard";
 import DashboardSkeleton from "../components/dashboard/DashboardSkeleton";
 import ReportExport from "../components/reports/ReportExport";
 import StatCard from "../components/StatCard";
@@ -78,7 +79,8 @@ export default function Dashboard() {
 
   const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
-  const isMonitor = userRole === "monitor"; 
+  const isAdmin = userRole === "admin";
+  const isMonitor = userRole === "monitor";
 
   const displayName =
     typeof user?.user_metadata?.name === "string"
@@ -105,7 +107,7 @@ export default function Dashboard() {
   }, [loadDashboard]);
 
   const loadAssignedTasks = useCallback(async (showError = true) => {
-    if (isDirector) return;
+    if (isDirector || isAdmin) return;
     try {
       const items = await getTasks();
       setTasks(
@@ -123,7 +125,7 @@ export default function Dashboard() {
         setErrorMessage("Não foi possível carregar as atividades atribuídas.");
       }
     }
-  }, [isDirector]);
+  }, [isAdmin, isDirector]);
 
   useEffect(() => {
     void loadAssignedTasks();
@@ -163,6 +165,9 @@ export default function Dashboard() {
 
   if (isDirector) {
     return <DirectorDashboard />;
+  }
+  if (isAdmin) {
+    return <AdminDashboard />;
   }
 
   if (loading) {

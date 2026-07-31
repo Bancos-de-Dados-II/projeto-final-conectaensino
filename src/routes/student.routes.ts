@@ -21,6 +21,12 @@ studentRoutes.get(
   requireRoles('director', 'admin'),
   StudentController.listAll,
 );
+studentRoutes.put(
+  '/:id',
+  requireAuth,
+  requireRoles('director', 'admin'),
+  StudentController.update,
+);
 studentRoutes.get(
   '/:id/profile',
   requireAuth,

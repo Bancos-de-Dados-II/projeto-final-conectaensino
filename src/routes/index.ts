@@ -10,6 +10,7 @@ import { directorRoutes } from './director.routes';
 import { taskRoutes } from './task.routes';
 import { profileRoutes } from './profile.routes';
 import { chatRoutes } from './chat.routes';
+import { adminRoutes } from './admin.routes';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/directors', directorRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/profile', profileRoutes);
 router.use('/chat', chatRoutes);
+router.use('/admins', adminRoutes);
 
 export default router;

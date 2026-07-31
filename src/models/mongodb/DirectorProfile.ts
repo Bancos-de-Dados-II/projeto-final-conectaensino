@@ -10,6 +10,10 @@ interface IDirectorProfile extends Document {
   cargo?: string;
   avatarMimeType?: 'image/jpeg' | 'image/png';
   avatarData?: Buffer;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvedByAdminId?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
 }
 
 const DirectorProfileSchema = new Schema<IDirectorProfile>({
@@ -26,6 +30,15 @@ const DirectorProfileSchema = new Schema<IDirectorProfile>({
     select: false,
   },
   avatarData: { type: Buffer, select: false },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+    index: true,
+  },
+  approvedByAdminId: { type: String },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String, trim: true },
 }, { timestamps: true });
 
 export const DirectorProfile = model<IDirectorProfile>('DirectorProfile', DirectorProfileSchema);

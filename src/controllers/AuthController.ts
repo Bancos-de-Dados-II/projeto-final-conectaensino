@@ -5,6 +5,7 @@ import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
 import redisClient from '../config/redis';
+import { AdminProfile } from '../models/mongodb/AdminProfile';
 
 export const AuthController = {
   async login(req: Request, res: Response): Promise<Response> {
@@ -31,6 +32,23 @@ export const AuthController = {
       const expiresIn = data.session.expires_in || 7200;
       const applicationRole = data.user.user_metadata?.role ?? data.user.role;
 
+      if (applicationRole === 'director') {
+        const director = await DirectorProfile.findOne({ userId: data.user.id })
+          .select('approvalStatus')
+          .lean();
+        if (!director || director.approvalStatus !== 'approved') {
+          await supabase.auth.signOut();
+          const status = director?.approvalStatus ?? 'pending';
+          return res.status(403).json({
+            message: status === 'rejected'
+              ? 'Cadastro de diretor recusado pelo administrador municipal.'
+              : 'Cadastro de diretor aguardando aprovacao do administrador municipal.',
+            approvalStatus: status,
+          });
+        }
+      }
+
+      // Salvando a sessao no Upstash Redis
       await redisClient.setEx(
         `session:${accessToken}`,
         expiresIn,
@@ -52,6 +70,10 @@ export const AuthController = {
           { $set: { lastLoginAt } },
         ),
         DirectorProfile.updateOne(
+          { userId: data.user.id },
+          { $set: { lastLoginAt } },
+        ),
+        AdminProfile.updateOne(
           { userId: data.user.id },
           { $set: { lastLoginAt } },
         ),

@@ -15,10 +15,13 @@ import { Link, useLocation } from "react-router-dom";
 
 import MapViewport from "../components/map/MapViewport";
 import {
+  createAdminEntityMarkerIcon,
   createInstitutionMarkerIcon,
   userMarkerIcon,
 } from "../components/map/MapMarkerIcon";
-import { getNearbyInstitutions } from "../services/map.service";
+import { getAdminMapEntities, getNearbyInstitutions, type AdminMapFilter } from "../services/map.service";
+import { useAuth } from "../hooks/useAuth";
+import { getApplicationRole } from "../utils/auth-role";
 import { getMonitorsByInstitution } from "../services/experience.service";
 import type { MapCoordinates, MapEntity } from "../types/map";
 import type { PublicMonitor } from "../types/experience";
@@ -62,6 +65,8 @@ function getDistanceKm(
 }
 
 function MapPage() {
+  const { user } = useAuth();
+  const isAdmin = getApplicationRole(user) === "admin";
   const routeLocation = useLocation();
   const requestedLocation = (routeLocation.state as MapRouteState | null)
     ?.mapLocation;
@@ -74,6 +79,7 @@ function MapPage() {
       : DEFAULT_LOCATION,
   );
   const [schools, setSchools] = useState<MapEntity[]>([]);
+  const [adminFilter, setAdminFilter] = useState<AdminMapFilter>('all');
   const [selectedSchool, setSelectedSchool] = useState<MapEntity | null>(null);
   const [schoolMonitors, setSchoolMonitors] = useState<PublicMonitor[]>([]);
   const [isLoadingMonitors, setIsLoadingMonitors] = useState(false);
@@ -90,13 +96,26 @@ function MapPage() {
     setErrorMessage("");
 
     try {
-      const institutions = await getNearbyInstitutions({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radiusKm: MAX_RADIUS_KM,
-      });
+      const institutions = isAdmin
+        ? await getAdminMapEntities(adminFilter)
+        : await getNearbyInstitutions({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            radiusKm: MAX_RADIUS_KM,
+          });
 
       setSchools(institutions);
+      if (isAdmin && institutions.length) {
+        const latitude = institutions.reduce((sum, school) => sum + school.latitude, 0) / institutions.length;
+        const longitude = institutions.reduce((sum, school) => sum + school.longitude, 0) / institutions.length;
+        setLocation((current) =>
+          Math.abs(current.latitude - latitude) < 0.000001
+          && Math.abs(current.longitude - longitude) < 0.000001
+            ? current
+            : { latitude, longitude },
+        );
+        setLocationMessage("Todas as escolas da cidade administrada");
+      }
       setSelectedSchool(null);
       setSchoolMonitors([]);
     } catch (error) {
@@ -118,7 +137,7 @@ function MapPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [location.latitude, location.longitude]);
+  }, [adminFilter, isAdmin, location.latitude, location.longitude]);
 
   const locateUser = useCallback(() => {
     setIsLocating(true);
@@ -156,6 +175,11 @@ function MapPage() {
   }, []);
 
   useEffect(() => {
+    if (isAdmin) {
+      setLocationMessage("Escolas da cidade administrada");
+      setIsLocating(false);
+      return;
+    }
     if (
       requestedLocation &&
       Number.isFinite(requestedLocation.latitude) &&
@@ -172,7 +196,7 @@ function MapPage() {
 
     locateUser();
   }, [
-    locateUser,
+    isAdmin, locateUser,
     requestedLocation?.label,
     requestedLocation?.latitude,
     requestedLocation?.longitude,
@@ -204,6 +228,7 @@ function MapPage() {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
 
     const entitiesWithinRadius = schools.filter((entity) => {
+      if (isAdmin) return true;
       const distanceKm = getDistanceKm(
         location.latitude,
         location.longitude,
@@ -230,6 +255,7 @@ function MapPage() {
         ),
     );
   }, [
+    isAdmin,
     location.latitude,
     location.longitude,
     schools,
@@ -243,12 +269,12 @@ function MapPage() {
       <section className="real-map-toolbar">
         <div>
           <span className="dashboard__eyebrow">Geolocalização</span>
-          <h1>Mapa de escolas</h1>
-          <p>Visualize escolas dentro de um raio de 25 km.</p>
+          <h1>{isAdmin ? 'Mapa municipal' : 'Mapa de escolas'}</h1>
+          <p>{isAdmin ? 'Visualize escolas e usuarios da cidade por categoria.' : 'Visualize escolas dentro de um raio de 25 km.'}</p>
         </div>
 
         <div className="real-map-toolbar__actions">
-          <button
+          {!isAdmin && <button
             className="secondary-button map-action-button"
             type="button"
             onClick={() => void loadMapData()}
@@ -259,9 +285,21 @@ function MapPage() {
               className={isLoading ? "icon-spinning" : ""}
             />
             Atualizar
-          </button>
+          </button>}
 
-          <button
+          {isAdmin ? (
+            <select
+              className="primary-button map-action-button"
+              aria-label="Filtrar mapa municipal"
+              value={adminFilter}
+              onChange={(event) => setAdminFilter(event.target.value as AdminMapFilter)}
+            >
+              <option value="all">EXTENDIDO (tudo)</option>
+              <option value="students">ALUNOS</option>
+              <option value="monitors">MONITORES</option>
+              <option value="directors">DIRETORES</option>
+            </select>
+          ) : <button
             className="primary-button map-action-button"
             type="button"
             onClick={locateUser}
@@ -269,7 +307,7 @@ function MapPage() {
           >
             <LocateFixed size={17} />
             Minha localização
-          </button>
+          </button>}
         </div>
       </section>
 
@@ -308,7 +346,7 @@ function MapPage() {
                   <Search size={17} />
                   <input
                     type="search"
-                    placeholder="Pesquisar escola..."
+                    placeholder={isAdmin ? "Pesquisar no filtro..." : "Pesquisar escola..."}
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                   />
@@ -317,7 +355,7 @@ function MapPage() {
                 <div className="map-summary">
                   <span>
                     <GraduationCap size={16} />
-                    <strong>{filteredSchools.length}</strong> escolas em até 25 km
+                    <strong>{filteredSchools.length}</strong> {isAdmin ? 'itens no filtro municipal' : 'escolas em ate 25 km'}
                   </span>
                 </div>
               </>
@@ -336,7 +374,7 @@ function MapPage() {
               <div className="map-list-state">
                 <MapPin size={28} />
                 <strong>Nenhum resultado encontrado</strong>
-                <p>Não há escolas dentro de 25 km do seu ponto atual.</p>
+                <p>{isAdmin ? 'Nao ha itens nesta categoria.' : 'Nao ha escolas dentro de 25 km do seu ponto atual.'}</p>
               </div>
             )}
 
@@ -351,39 +389,53 @@ function MapPage() {
                 );
                 const monitorCount = school.monitorCount ?? 0;
                 const hasMonitors = monitorCount > 0;
+                const isInstitution = school.type === 'institution';
+                const entityLabel = school.type === 'student'
+                  ? 'Aluno'
+                  : school.type === 'monitor'
+                    ? 'Monitor'
+                    : school.type === 'director'
+                      ? 'Diretor'
+                      : 'Escola';
 
                 return (
                   <button
                     className="map-person-card map-person-card--school map-person-card--clickable"
                     type="button"
                     key={`institution-${school.id}`}
-                    onClick={() => setSelectedSchool(school)}
+                    onClick={() => { if (isInstitution) setSelectedSchool(school); }}
                   >
                     <div
                       className={`map-person-card__avatar ${
-                        hasMonitors
+                        !isInstitution
+                          ? ""
+                          : hasMonitors
                           ? "map-person-card__avatar--institution-with-monitors"
                           : "map-person-card__avatar--institution-without-monitors"
                       }`}
                     >
-                      <GraduationCap size={19} />
+                      {isInstitution ? <GraduationCap size={19} /> : <UserRound size={19} />}
                     </div>
 
                     <div className="map-person-card__content">
                       <div>
                         <strong>{school.name}</strong>
-                        <span>Escola</span>
+                        <span>{entityLabel}</span>
                       </div>
 
                       {school.address && <p>{school.address}</p>}
                       {school.city && <small>{school.city}</small>}
-                      <small>
+                      {isInstitution && <small>
                         {monitorCount}{" "}
                         {monitorCount === 1
                           ? "monitor cadastrado"
                           : "monitores cadastrados"}
-                      </small>
-                      <small>{distanceKm.toFixed(1)} km de você</small>
+                      </small>}
+                      {isAdmin && adminFilter !== 'all' && <small>
+                        {school.relatedCount ?? 0} {adminFilter === 'students' ? 'aluno(s)' : adminFilter === 'monitors' ? 'monitor(es)' : 'diretor(es)'} vinculado(s)
+                      </small>}
+                      {!isInstitution && school.institution && <small>{school.institution}</small>}
+                      {!isAdmin && <small>{distanceKm.toFixed(1)} km de voce</small>}
                     </div>
                   </button>
                 );
@@ -447,7 +499,7 @@ function MapPage() {
               longitude={location.longitude}
             />
 
-            <Marker
+            {!isAdmin && <Marker
               position={[location.latitude, location.longitude]}
               icon={userMarkerIcon}
             >
@@ -456,7 +508,7 @@ function MapPage() {
                 <br />
                 {locationMessage}
               </Popup>
-            </Marker>
+            </Marker>}
 
             {filteredSchools.map((school) => {
               const distanceKm = getDistanceKm(
@@ -466,27 +518,34 @@ function MapPage() {
                 school.longitude,
               );
               const monitorCount = school.monitorCount ?? 0;
+              const isInstitution = school.type === 'institution';
 
               return (
                 <Marker
                   key={`institution-${school.id}`}
                   position={[school.latitude, school.longitude]}
-                  icon={createInstitutionMarkerIcon(monitorCount > 0)}
-                  eventHandlers={{ click: () => setSelectedSchool(school) }}
+                  icon={isInstitution
+                    ? createInstitutionMarkerIcon(monitorCount > 0)
+                    : createAdminEntityMarkerIcon(school.type as 'student' | 'monitor' | 'director')}
+                  eventHandlers={isInstitution ? { click: () => setSelectedSchool(school) } : undefined}
                 >
                   <Popup>
                     <div className="entity-popup">
                       <strong>{school.name}</strong>
-                      <span>Escola</span>
+                      <span>{school.type === 'student' ? 'Aluno' : school.type === 'monitor' ? 'Monitor' : school.type === 'director' ? 'Diretor' : 'Escola'}</span>
                       {school.address && <p>{school.address}</p>}
                       {school.city && <small>{school.city}</small>}
-                      <small>
+                      {isInstitution && <small>
                         {monitorCount}{" "}
                         {monitorCount === 1
                           ? "monitor cadastrado"
                           : "monitores cadastrados"}
-                      </small>
-                      <small>{distanceKm.toFixed(1)} km de você</small>
+                      </small>}
+                      {isAdmin && adminFilter !== 'all' && <small>
+                        {school.relatedCount ?? 0} {adminFilter === 'students' ? 'aluno(s)' : adminFilter === 'monitors' ? 'monitor(es)' : 'diretor(es)'} vinculado(s)
+                      </small>}
+                      {!isInstitution && school.institution && <small>{school.institution}</small>}
+                      {!isAdmin && <small>{distanceKm.toFixed(1)} km de voce</small>}
                     </div>
                   </Popup>
                 </Marker>

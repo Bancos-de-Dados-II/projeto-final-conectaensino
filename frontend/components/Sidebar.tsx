@@ -14,6 +14,7 @@ import {
   MessageSquareText,
   Paperclip,
   Settings,
+  ShieldCheck,
   Star,
   UserRound,
   UsersRound,
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 const mainItems = [
   { label: "Dashboard", path: "/dashboard", icon: Gauge },
+  { label: "Diretores", path: "/diretores", icon: ShieldCheck },
   { label: "Mapa", path: "/mapa", icon: MapPinned },
   { label: "Monitores", path: "/monitores", icon: GraduationCap },
   { label: "Favoritos", path: "/favoritos", icon: Heart },
@@ -62,8 +64,11 @@ export default function Sidebar({
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
   const isStudent = userRole === "student";
+  const isAdmin = userRole === "admin";
 
   const visibleMainItems = mainItems.filter((item) => {
+    if (isAdmin && !["/dashboard", "/diretores", "/mapa", "/monitores", "/alunos"].includes(item.path)) return false;
+    if (!isAdmin && item.path === "/diretores") return false;
     if (
       isDirector
       && ["/mapa", "/mensagens", "/favoritos", "/agenda"].includes(item.path)
@@ -86,8 +91,10 @@ export default function Sidebar({
   });
   const visibleManagementItems = managementItems.filter(
     (item) =>
-      !isDirector
-      || !["/instituicoes", "/disciplinas"].includes(item.path),
+      !isAdmin && (
+        !isDirector
+        || !["/instituicoes", "/disciplinas"].includes(item.path)
+      ),
   );
 
   function handleLogout() {

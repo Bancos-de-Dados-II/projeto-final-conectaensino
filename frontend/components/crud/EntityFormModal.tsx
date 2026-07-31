@@ -10,7 +10,7 @@ import type {
   CrudEntity,
   CrudField,
 } from "../../types/crud";
-import { getInstitutions } from "../../services/map.service";
+import { getAdminInstitutions, getInstitutions } from "../../services/map.service";
 import { getOwnAccountProfile } from "../../services/monitor-profile.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getApplicationRole } from "../../utils/auth-role";
@@ -31,6 +31,12 @@ function getInitialValues(
 ): Record<string, string> {
   return fields.reduce<Record<string, string>>((values, field) => {
     const currentValue = entity?.[field.key];
+
+    if (field.key === "institutionId" && typeof currentValue === "object" && currentValue !== null) {
+      const institution = currentValue as Record<string, unknown>;
+      values[field.key] = String(institution._id ?? institution.id ?? "");
+      return values;
+    }
 
     values[field.key] =
       currentValue === undefined || currentValue === null
@@ -63,9 +69,10 @@ function EntityFormModal({
   useEffect(() => {
     if (open) {
       setLoadingInstitutions(true);
-      getInstitutions()
+      const role = getApplicationRole(user);
+      (role === "admin" ? getAdminInstitutions() : getInstitutions())
         .then(async (data) => {
-          if (getApplicationRole(user) !== "director") {
+          if (role !== "director") {
             setInstitutions(data);
             return;
           }
@@ -89,7 +96,7 @@ function EntityFormModal({
         .catch((err) => console.error("Erro ao carregar instituições:", err))
         .finally(() => setLoadingInstitutions(false));
     }
-  }, [open]);
+  }, [open, user]);
 
   useEffect(() => {
     setValues(initialValues);
