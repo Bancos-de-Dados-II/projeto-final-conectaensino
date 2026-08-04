@@ -292,4 +292,4 @@ Consulte o arquivo **LICENSE** para mais informações.
 
 ## 👨‍💻 Desenvolvido por
 
-Projeto desenvolvido como Trabalho de Conclusão de Curso (TCC), com foco em promover inclusão educacional por meio da tecnologia.
+Projeto desenvolvido como Trabalho de disciplina por alunos do IFPB, com foco em promover inclusão educacional por meio da tecnologia.
