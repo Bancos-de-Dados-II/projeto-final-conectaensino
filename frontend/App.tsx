@@ -39,6 +39,14 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const CreateTaskPage = lazy(() => import("./pages/CreateTask")); 
 const DirectorsPage = lazy(() => import("./pages/DirectorsPage"));
 
+const currentLayout = localStorage.getItem("theme");
+if (!currentLayout) {
+  localStorage.setItem("theme", "traditional");
+  document.documentElement.setAttribute("data-layout", "traditional");
+} else {
+  document.documentElement.setAttribute("data-layout", currentLayout);
+}
+
 function Loader() {
   return (
     <div className="route-loader">

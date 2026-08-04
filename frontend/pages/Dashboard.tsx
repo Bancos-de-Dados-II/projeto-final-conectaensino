@@ -10,11 +10,12 @@ import {
   Star,
   UserRound,
   UsersRound,
+  MessageSquareText,
   ArrowRight,
   ArrowLeft,
   PlusCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import DashboardCharts from "../components/dashboard/DashboardCharts";
 import DirectorDashboard from "../components/dashboard/DirectorDashboard";
@@ -81,6 +82,7 @@ export default function Dashboard() {
   const isDirector = userRole === "director";
   const isAdmin = userRole === "admin";
   const isMonitor = userRole === "monitor";
+  const navigate = useNavigate();
 
   const displayName =
     typeof user?.user_metadata?.name === "string"
@@ -194,6 +196,8 @@ export default function Dashboard() {
   }
 
   return (
+
+
     <div className="dashboard dashboard--analytics">
       <section className="dashboard__heading">
         <div>
@@ -512,6 +516,24 @@ export default function Dashboard() {
           </article>
         )}
       </section>
+
+         {!isDirector && <div className="dashboard__support-card">
+              <div className="das__support-icon">
+                  <MessageSquareText size={21} />
+                </div>
+                <div>
+                  <strong>Precisa de ajuda?</strong>
+                  <p>Fale com nossa equipe de suporte.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/mensagens");
+                  }}
+                >
+                  Abrir tira-dúvidas
+                </button>
+              </div>}
     </div>
   );
 }

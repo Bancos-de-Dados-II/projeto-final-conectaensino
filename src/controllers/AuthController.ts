@@ -48,7 +48,6 @@ export const AuthController = {
         }
       }
 
-      // Salvando a sessao no Upstash Redis
       await redisClient.setEx(
         `session:${accessToken}`,
         expiresIn,

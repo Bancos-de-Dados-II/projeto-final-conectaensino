@@ -11,7 +11,6 @@ import {
   LogOut,
   MapPinned,
   MessageCircle,
-  MessageSquareText,
   Paperclip,
   Settings,
   ShieldCheck,
@@ -149,41 +148,7 @@ export default function Sidebar({
               ))}
             </SidebarGroup>
           )}
-
-          <SidebarGroup title="Conta">
-            <SidebarLink
-              label="Meu perfil"
-              path="/perfil"
-              icon={UserRound}
-              onNavigate={onNavigate}
-            />
-            <SidebarLink
-              label="Configurações"
-              path="/configuracoes"
-              icon={Settings}
-              onNavigate={onNavigate}
-            />
-          </SidebarGroup>
         </nav>
-
-        {!isDirector && <div className="sidebar__support-card">
-          <div className="sidebar__support-icon">
-            <MessageSquareText size={21} />
-          </div>
-          <div>
-            <strong>Precisa de ajuda?</strong>
-            <p>Fale com nossa equipe de suporte.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              navigate("/mensagens");
-              onNavigate();
-            }}
-          >
-            Abrir tira-dúvidas
-          </button>
-        </div>}
       </div>
 
       <div className="sidebar__footer">

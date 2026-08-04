@@ -300,7 +300,6 @@ export const MonitorController = {
         : adminScope
           ? { institutionId: { $in: adminScope.institutionIds } }
           : {};
-      // Busca os monitores visiveis para o perfil autenticado.
       const monitors = await MonitorProfile.find(filter)
         .select('+avatarData +avatarMimeType')
         .populate('institutionId', 'nome cnpj endereco')
