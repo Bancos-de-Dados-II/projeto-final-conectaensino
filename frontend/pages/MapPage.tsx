@@ -575,10 +575,7 @@ function MapPage() {
 
           </MapContainer>
 
-          <button type="button" className="real-map-status" onClick={handleCurrentLocation}>
-            <MapPin size={15} />
-            <span>Sua localização atual</span>
-          </button>
+         
         </div>
       </section>
     </div>

@@ -17,6 +17,7 @@ export interface IMonitorProfile extends Document {
     type: 'Point';
     coordinates: [number, number];
   };
+  aceitaMonitoriaCasa: boolean; // Novo campo adicionado à interface
   ativo: boolean;
   avatarMimeType?: 'image/jpeg' | 'image/png';
   avatarData?: Buffer;
@@ -60,7 +61,7 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
       type: Schema.Types.ObjectId,
       ref: 'Institution',
       required: false, 
-  },
+    },
     disciplinas: {
       type: [String],
       required: true,
@@ -91,6 +92,10 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
         type: [Number],
         required: true,
       },
+    },
+    aceitaMonitoriaCasa: {
+      type: Boolean,
+      default: false, // Por padrão vem desmarcado
     },
     ativo: {
       type: Boolean,

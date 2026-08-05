@@ -6,7 +6,6 @@ import { GraduationCap, LockKeyhole, Mail, User, ShieldCheck, ArrowRight } from 
 
 interface Institution {
   _id: string;
-  codigoInep: string;
   nome: string;
 }
 
@@ -16,7 +15,6 @@ export function RegisterDirector() {
   const [password, setPassword] = useState('');
   const [cargo, setCargo] = useState('Diretor(a)');
   const [institutionId, setInstitutionId] = useState('');
-  const [codigoConfirmacao, setCodigoConfirmacao] = useState('');
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -59,16 +57,9 @@ export function RegisterDirector() {
       setError('Por favor, selecione a instituição.');
       return;
     }
-
-    const instituicaoSelecionada = institutions.find(i => i._id === institutionId);
-    if (instituicaoSelecionada && instituicaoSelecionada.codigoInep !== codigoConfirmacao.trim()) {
-      setError(`O Código INEP informado não confere com o da instituição selecionada (${instituicaoSelecionada.codigoInep}).`);
-      return;
-    }
-
     setIsSubmitting(true);
 
-    try {
+   try {
       await directorService.register({
         name,
         email,
@@ -77,7 +68,7 @@ export function RegisterDirector() {
         cargo
       });
 
-      alert('Diretor cadastrado com sucesso!');
+      alert('Solicitação enviada com sucesso! Aguarde a aprovação do administrador municipal.');
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erro ao realizar cadastro do diretor.');
@@ -184,21 +175,8 @@ export function RegisterDirector() {
               </select>
             </label>
 
-            <label className="login-field">
-              <span>Confirme o Código INEP da Instituição</span>
-              <div className="login-input">
-                <input 
-                  type="text" 
-                  placeholder="Digite o código INEP para validar"
-                  value={codigoConfirmacao} 
-                  onChange={e => setCodigoConfirmacao(e.target.value)} 
-                  required 
-                />
-              </div>
-            </label>
-
             <button type="submit" className="login-submit" disabled={isSubmitting}>
-              {isSubmitting ? "Cadastrando..." : "Cadastrar Diretor"}
+              {isSubmitting ? "Enviando solicitação..." : "Solicitar Aprovação"}
               <ArrowRight size={18} />
             </button>
           </form>

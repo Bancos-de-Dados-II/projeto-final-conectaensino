@@ -9,6 +9,10 @@ import {
   CalendarX2,
   Building2,
   UserRound,
+  Home,
+  School,
+  Globe,
+  MapPin,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -119,6 +123,11 @@ function SessionsPage() {
   const [date, setDate] = useState(today());
   const [subject, setSubject] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  
+  // Novos estados para a localização
+  const [tipoLocal, setTipoLocal] = useState<"escola" | "casa_aluno" | "online">("escola");
+  const [enderecoEncontro, setEnderecoEncontro] = useState("");
+
   const [schedule, setSchedule] = useState<MonitorSchedule | null>(null);
   const [loadingMonitors, setLoadingMonitors] = useState(true);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
@@ -132,6 +141,7 @@ function SessionsPage() {
     () => monitors.find((monitor) => monitor.id === monitorId) ?? null,
     [monitorId, monitors],
   );
+  
   const hasAvailableSlots = schedule
     ? Object.values(schedule.periods)
         .flat()
@@ -166,10 +176,16 @@ function SessionsPage() {
     if (isManagement) return;
     setSubject(selectedMonitor?.subjects[0] ?? "");
     setSelectedTime("");
+    
+    // Se o monitor selecionado não aceita monitoria em casa e o aluno estava com "casa_aluno" selecionado, reseta para "escola"
+    if (selectedMonitor && !selectedMonitor.aceitaMonitoriaCasa && tipoLocal === "casa_aluno") {
+      setTipoLocal("escola");
+    }
+
     if (selectedMonitor) {
       setDate(nextBookableDate(selectedMonitor.availability));
     }
-  }, [isManagement, selectedMonitor]);
+  }, [isManagement, selectedMonitor, tipoLocal]);
 
   useEffect(() => {
     if (isManagement) return;
@@ -233,6 +249,11 @@ function SessionsPage() {
       return;
     }
 
+    if (tipoLocal === "casa_aluno" && !enderecoEncontro.trim()) {
+      setErrorMessage("Informe o endereço da sua casa para a monitoria.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -243,6 +264,8 @@ function SessionsPage() {
         subject,
         date,
         time: selectedTime,
+        tipoLocal,
+        enderecoEncontro: tipoLocal === "casa_aluno" ? enderecoEncontro : undefined,
       });
       setSuccessMessage(
         `Aula solicitada com ${selectedMonitor?.name ?? "o monitor"} em ${date
@@ -480,22 +503,99 @@ function SessionsPage() {
             />
           </label>
 
-          {selectedMonitor && (
-            <article className="booking-monitor-card">
-              <span><UserRound size={22} /></span>
-              <div>
-                <strong>{selectedMonitor.name}</strong>
-                <small>
-                  <GraduationCap size={13} />
-                  {selectedMonitor.institution || "Instituição não informada"}
-                </small>
-                <small>
-                  <BookOpen size={13} />
-                  {selectedMonitor.subjects.join(", ") || "Disciplinas sob consulta"}
-                </small>
+            <div className="booking-field">
+              <span>Local da Aula</span>
+              <div className="booking-location-options">
+                {/* Opção 1: Na instituição */}
+                <label className="booking-location-radio">
+                  <input
+                    type="radio"
+                    name="tipoLocal"
+                    value="escola"
+                    checked={tipoLocal === "escola"}
+                    onChange={() => setTipoLocal("escola")}
+                  />
+                  <School size={16} />
+                  <span>Na instituição</span>
+                </label>
+
+                <div className="booking-location-wrapper">
+                  <label 
+                    className={`booking-location-radio ${!selectedMonitor?.aceitaMonitoriaCasa ? "booking-location-radio--disabled" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="tipoLocal"
+                      value="casa_aluno"
+                      disabled={!selectedMonitor?.aceitaMonitoriaCasa}
+                      checked={tipoLocal === "casa_aluno"}
+                      onChange={() => setTipoLocal("casa_aluno")}
+                    />
+                    <Home size={16} />
+                    <span>Na minha casa</span>
+                  </label>
+
+                  {selectedMonitor && !selectedMonitor.aceitaMonitoriaCasa && (
+                    <small className="booking-location-warning">
+                      * Este monitor não realiza atendimentos em domicílio.
+                    </small>
+                  )}
+                </div>
+
+                <label className="booking-location-radio">
+                  <input
+                    type="radio"
+                    name="tipoLocal"
+                    value="online"
+                    checked={tipoLocal === "online"}
+                    onChange={() => setTipoLocal("online")}
+                  />
+                  <Globe size={16} />
+                  <span>Online</span>
+                </label>
               </div>
-            </article>
+            </div>
+
+          {tipoLocal === "casa_aluno" && (
+            <label className="booking-field">
+              <span>Endereço de atendimento</span>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <MapPin size={16} style={{ position: "absolute", left: "10px", color: "var(--color-primary)" }} />
+                <input
+                  type="text"
+                  placeholder="Rua, número, bairro, cidade"
+                  value={enderecoEncontro}
+                  onChange={(e) => setEnderecoEncontro(e.target.value)}
+                  style={{ paddingLeft: "34px", width: "100%" }}
+                />
+              </div>
+            </label>
           )}
+
+              {selectedMonitor && (
+              <article className="booking-monitor-card">
+                {selectedMonitor.avatar ? (
+                  <img 
+                    src={selectedMonitor.avatar} 
+                    alt={selectedMonitor.name} 
+                    className="booking-monitor-avatar"
+                  />
+                ) : (
+                  <span><UserRound size={22} /></span>
+                )}
+                <div>
+                  <strong>{selectedMonitor.name}</strong>
+                  <small>
+                    <GraduationCap size={13} />
+                    {selectedMonitor.institution || "Instituição não informada"}
+                  </small>
+                  <small>
+                    <BookOpen size={13} />
+                    {selectedMonitor.subjects.join(", ") || "Disciplinas sob consulta"}
+                  </small>
+                </div>
+              </article>
+            )}
 
           <button
             className="primary-button booking-submit"

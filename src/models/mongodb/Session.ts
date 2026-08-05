@@ -1,15 +1,16 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface ISession extends Document {
   alunoId: string;
   monitorId: string;
   disciplinaId: string;
   dataHora: Date;
-  tipoLocal: 'casa_aluno' | 'escola' | 'local_publico';
-  enderecoEncontro: string;
+  tipoLocal: 'escola' | 'casa_aluno';
+  institutionId?: Types.ObjectId; // Opcional: preenchido apenas se o tipoLocal for 'escola'
+  enderecoEncontro: string;       // Endereço da escola selecionada ou da casa do aluno
   locationMeeting: {
     type: 'Point';
-    coordinates: [number, number]; 
+    coordinates: [number, number]; // [longitude, latitude]
   };
   status: 'pendente' | 'confirmada' | 'em_andamento' | 'aguardando_avaliacao' | 'finalizada' | 'cancelada';
   createdAt?: Date;
@@ -23,8 +24,15 @@ const SessionSchema = new Schema<ISession>({
   dataHora: { type: Date, required: true },
   tipoLocal: {
     type: String,
-    enum: ['casa_aluno', 'escola', 'local_publico'],
+    enum: ['escola', 'casa_aluno'],
     required: true
+  },
+  institutionId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Institution',
+    required: function(this: ISession) {
+      return this.tipoLocal === 'escola'; 
+    }
   },
   enderecoEncontro: { type: String, required: true },
   locationMeeting: {

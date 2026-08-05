@@ -15,7 +15,7 @@ import {
   getNearbyInstitutions,
 } from "../services/map.service";
 import { searchCities } from "../services/geocoding.service";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { getApiBaseUrl } from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
@@ -263,9 +263,10 @@ function Login() {
 
       <section className="login-presentation">
         <div>
-          
-          <img src="" alt="Conecta Ensino" className="login-logo" />
-          </div>
+          <Link to="/" style={{ display: "inline-block", textDecoration: "none" }}>
+            <img src="" alt="Conecta Ensino" className="login-logo" />
+          </Link>
+        </div>
 
         <span className="login-presentation__footer">
           Conecta Ensino • Desenvolvimento acadêmico
