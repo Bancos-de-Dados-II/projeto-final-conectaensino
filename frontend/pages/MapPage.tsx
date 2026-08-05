@@ -41,6 +41,27 @@ interface MapRouteState {
   };
 }
 
+const handleCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Seu navegador não suporta geolocalização.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // Se você estiver usando a referência do mapa do Leaflet (ex: mapRef), centralize aqui:
+        // mapRef.current?.setView([latitude, longitude], 15);
+        console.log("Localização obtida:", latitude, longitude);
+      },
+      (error) => {
+        console.error("Erro ao obter localização:", error);
+        alert("Não foi possível obter sua localização atual.");
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
 function getDistanceKm(
   fromLatitude: number,
   fromLongitude: number,
@@ -554,10 +575,10 @@ function MapPage() {
 
           </MapContainer>
 
-          <div className="real-map-status">
+          <button type="button" className="real-map-status" onClick={handleCurrentLocation}>
             <MapPin size={15} />
-            <span>{locationMessage}</span>
-          </div>
+            <span>Sua localização atual</span>
+          </button>
         </div>
       </section>
     </div>

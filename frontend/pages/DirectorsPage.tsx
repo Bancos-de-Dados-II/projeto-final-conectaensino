@@ -71,7 +71,7 @@ export default function DirectorsPage() {
 
   return <div className="dashboard dashboard--analytics">
     <header className="page-heading">
-      <div><span className="eyebrow">ADMINISTRAÃ‡ÃƒO MUNICIPAL</span><h1>Diretores</h1><p>Aprove, rejeite, realoque ou exclua diretores das escolas da sua cidade.</p></div>
+      <div><span className="eyebrow">ADMINISTRAÇÃO MUNICIPAL</span><h1>Diretores</h1><p>Aprove, rejeite, realoque ou exclua diretores das escolas da sua cidade.</p></div>
       <button className="secondary-button" type="button" onClick={() => void load()}><RefreshCw size={17}/> Atualizar</button>
     </header>
     {message && <div className="dashboard-panel"><p>{message}</p></div>}

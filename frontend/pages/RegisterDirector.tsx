@@ -89,32 +89,9 @@ export function RegisterDirector() {
   return (
     <main className="login-page">
       <section className="login-presentation">
-        <div className="login-brand">
-          <span className="login-brand__icon">
-            <GraduationCap size={29} />
-          </span>
-          <div>
-            <strong>Conecta Ensino</strong>
-            <span>Gestão institucional integrada.</span>
-          </div>
-        </div>
-
         <div className="login-presentation__content">
           <span className="login-eyebrow">Painel do Gestor</span>
           <h1>Cadastre sua conta com validação institucional.</h1>
-          <p>
-            Vincule seu perfil de liderança à escola correspondente utilizando o código INEP oficial.
-          </p>
-
-          <div className="login-benefits">
-            <div>
-              <ShieldCheck size={21} />
-              <span>
-                <strong>Segurança de Dados</strong>
-                <small>Validação baseada no registro da escola.</small>
-              </span>
-            </div>
-          </div>
         </div>
 
         <span className="login-presentation__footer">
@@ -236,11 +213,6 @@ export function RegisterDirector() {
               Voltar para o Login
             </button>
           </div>
-
-          <footer className="login-card__footer">
-            API configurada em:
-            <code>{getApiBaseUrl()}</code>
-          </footer>
         </div>
       </section>
     </main>

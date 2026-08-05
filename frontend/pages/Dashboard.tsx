@@ -364,7 +364,7 @@ export default function Dashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginTop: "1rem" }}>
               
               {/* Coluna: Pendentes */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <div className="dashboard-kanban-column" style={{ background: "rgba(255, 255, 255, 0.03)", padding: "1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem", fontWeight: "bold" }}>
                   <ListTodo size={18} color="#3b82f6" />
                   <span>Pendentes ({tasks.filter(t => t.status === "pending").length})</span>

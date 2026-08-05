@@ -46,6 +46,10 @@ html[data-layout="traditional"] .login-submit {
   box-shadow: none !important;
 }
 
+html[data-layout="traditional"] *{
+  scrollbar-color: var(--color-primary) var(--surface-soft) !important;
+}
+
 html[data-layout="traditional"] .secondary-button {
   background-color: transparent !important;
   color: #2D2D2D !important;
@@ -58,7 +62,6 @@ html[data-layout="traditional"] .secondary-button:hover {
   border: 1px solid var(--color-primary) !important;
 }
 
-html[data-layout="traditional"] input,
 html[data-layout="traditional"] select,
 html[data-layout="traditional"] textarea {
   background-color: #FFFFFF !important;
@@ -141,6 +144,7 @@ html[data-layout="traditional"] .login-presentation img[alt*="Conecta Ensino"] {
 
 html[data-layout="traditional"] .login-card, html[data-layout="traditional"] .panel, html[data-layout="traditional"] .stat-card, html[data-layout="traditional"] .crud-panel, html[data-layout="traditional"] .prototype-panel, html[data-layout="traditional"] .header, html[data-layout="traditional"] .sidebar {
     background-color: var(--color-secondary) !important;
+    
 }
 
 html[data-layout="traditional"] .header-logo {
@@ -186,7 +190,7 @@ html[data-layout="traditional"] .dashboard__heading h1, html[data-layout="tradit
 }
 
 html[data-layout="traditional"] .dashboard-kanban-panel [style*="margin-top: 40px"] {
-  color: #000000 !important;
+  color: #990000 !important;
 }
 
 html[data-layout="traditional"] .stat-card__icon, .panel__icon, .page-icon {
@@ -293,3 +297,121 @@ html[data-layout="traditional"] .prototype-theme-option--active small {
 html[data-layout="traditional"] .prototype-panel__header p{
     color: #000000;
 }
+
+html[data-layout="traditional"] .profile-card, html[data-layout="traditional"] .profile-form{
+  background: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .profile-input-field > div, html[data-layout="traditional"] input {
+  background: var(--color-terciary)
+}
+
+html[data-layout="traditional"] .profile-card__role {
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-search-field{
+  background-color:#fdfdfd ;
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .map-search-field input {
+  background-color: #fdfdfd;
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-person-card__avatar--institution-without-monitors {
+  background-color: var(--color-terciary);
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .map-person-card__avatar--institution-with-monitors {
+  background-color: var(--color-primary);
+  color: var(--color-terciary);
+}
+
+html[data-layout="traditional"] .entity-marker--institution.entity-marker--no-monitors{
+  background: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .entity-marker--institution.entity-marker--has-monitors{
+  background: var(--color-primary);
+}
+
+html[data-layout="traditional"] .real-map-status{
+  background: var(--color-terciary);
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .activity-dropzone {
+  background-color: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .activity-upload-panel{
+  background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .primary-button.activity-upload-submit, html[data-layout="traditional"] .activity-dropzone small {
+  background-color: var(--color-secondary) !important;
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .activity-upload-fields span{
+  color: #000000 !important;
+ }
+
+html[data-layout="traditional"] .activity-list-panel, html[data-layout="traditional"] .activity-list-panel > header small{
+  color: #000000 !important;
+  background-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .conversation-search{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .chat-welcome > span {
+  color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .page-kicker{
+  color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .calendar-day{
+  background-color: var(--color-secondary) !important;
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .calendar-day--outside {
+  background-color: var(--color-terciary) !important;
+  color: #000000 !important;
+}
+html[data-layout="traditional"] .calendar-day__number{
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .calendar-day:hover, html[data-layout="traditional"] .calendar-day--selected, html[data-layout="traditional"] .calendar-day--today {
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .real-map-layout, html[data-layout="traditional"] .real-map-container, html[data-layout="traditional"] maps-result-panel{
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .stat-card__icon{
+  background-color:var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .crud-search{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .crud-table th{
+  background-color: var(--color-primary) !important;
+  color: #000000 !important;
+}
+
+  .director-session-panel, .domain-empty {
+    background-color: var(--color-secondary) !important;
+    color: #000000 !important;
+  }

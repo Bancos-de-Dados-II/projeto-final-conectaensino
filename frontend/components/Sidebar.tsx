@@ -136,18 +136,6 @@ export default function Sidebar({
               </div>
             ))}
           </SidebarGroup>
-
-          {canManage && (
-            <SidebarGroup title="Gerenciamento">
-              {visibleManagementItems.map((item) => (
-                <SidebarLink
-                  key={item.path}
-                  {...item}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </SidebarGroup>
-          )}
         </nav>
       </div>
 

@@ -64,7 +64,6 @@ export default function SettingsPage() {
           {section === "appearance" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>01</span>
                 <div>
                   <h2>APARÊNCIA</h2>
                   <p>Personalize a apresentação da plataforma.</p>
