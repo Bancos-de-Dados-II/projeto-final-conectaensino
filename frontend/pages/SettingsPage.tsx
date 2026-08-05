@@ -1,7 +1,8 @@
-import { Bell, LockKeyhole, MonitorCog } from "lucide-react";
+import { Bell, LockKeyhole, MonitorCog, LayoutGrid } from "lucide-react";
 import { useState } from "react";
 
 import { useAppearance } from "../contexts/AppearanceContext";
+import { useLayoutMode } from "../contexts/LayoutModeContext";
 import type { ThemePreference } from "../types/settings";
 
 type Section = "appearance" | "notifications" | "security";
@@ -14,6 +15,7 @@ const sections = [
 
 export default function SettingsPage() {
   const { preferences, changePreferences } = useAppearance();
+  const { layoutMode, setLayoutMode } = useLayoutMode();
   const [section, setSection] = useState<Section>("appearance");
 
   return (
@@ -62,7 +64,6 @@ export default function SettingsPage() {
           {section === "appearance" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>01</span>
                 <div>
                   <h2>APARÊNCIA</h2>
                   <p>Personalize a apresentação da plataforma.</p>
@@ -70,59 +71,35 @@ export default function SettingsPage() {
               </div>
 
               <div className="prototype-panel__body">
-                <span className="prototype-field-title">TEMA DA INTERFACE</span>
-                <div className="prototype-theme-grid">
-                  {[
-                    {
-                      value: "original" as ThemePreference,
-                      title: "ORIGINAL",
-                      text: "Preto, azul-ciano e laranja do protótipo.",
-                    },
-                    {
-                      value: "light" as ThemePreference,
-                      title: "CLARO",
-                      text: "Variação clara mantendo as mesmas cores.",
-                    },
-                    {
-                      value: "system" as ThemePreference,
-                      title: "SISTEMA",
-                      text: "Segue automaticamente o dispositivo.",
-                    },
-                  ].map((option) => (
-                    <button
-                      className={
-                        preferences.theme === option.value
-                          ? "prototype-theme-option prototype-theme-option--active"
-                          : "prototype-theme-option"
-                      }
-                      type="button"
-                      key={option.value}
-                      onClick={() =>
-                        void changePreferences({ theme: option.value })
-                      }
-                    >
-                      <strong>{option.title}</strong>
-                      <small>{option.text}</small>
-                    </button>
-                  ))}
-                </div>
-
-                <label className="prototype-toggle-row">
-                  <span>
-                    <strong>MODO COMPACTO</strong>
-                    <small>Reduz espaços sem alterar o estilo visual.</small>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={preferences.compactMode}
-                    onChange={(event) =>
-                      void changePreferences({
-                        compactMode: event.target.checked,
-                      })
+                {/* Seletor de Versão do Layout (Moderno vs Tradicional) */}
+                <span className="prototype-field-title">ESTILO DE LAYOUT</span>
+                <div className="prototype-theme-grid" style={{ marginBottom: "22px" }}>
+                  <button
+                    className={
+                      layoutMode === "modern"
+                        ? "prototype-theme-option prototype-theme-option--active"
+                        : "prototype-theme-option"
                     }
-                  />
-                  <i />
-                </label>
+                    type="button"
+                    onClick={() => setLayoutMode("modern")}
+                  >
+                    <strong>MODERNO</strong>
+                    <small>Bordas arredondadas fluidas, sombras suaves e design contemporâneo.</small>
+                  </button>
+
+                  <button
+                    className={
+                      layoutMode === "traditional"
+                        ? "prototype-theme-option prototype-theme-option--active"
+                        : "prototype-theme-option"
+                    }
+                    type="button"
+                    onClick={() => setLayoutMode("traditional")}
+                  >
+                    <strong>TRADICIONAL</strong>
+                    <small>Visual corporativo clássico, estruturado, linhas retas e alta densidade.</small>
+                  </button>
+                </div>
               </div>
             </section>
           )}

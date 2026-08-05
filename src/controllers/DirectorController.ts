@@ -34,7 +34,7 @@ export class DirectorController {
         email,
         password: directorPassword,
         email_confirm: true,
-        user_metadata: { name: resolvedName, role: 'director' }
+        user_metadata: { name: resolvedName, role: 'director', approval_status: 'pending' }
       });
 
       if (authError) {
@@ -45,8 +45,11 @@ export class DirectorController {
 
       const director = await (DirectorProfile.create as any)({
         userId: authUserId,
+        name: resolvedName,
+        email,
         institutionId,
-        cargo: cargo || 'Diretor(a)'
+        cargo: cargo || 'Diretor(a)',
+        approvalStatus: 'pending',
       });
 
       const { data: usuarioSupabase, error: supabaseError } = await supabaseAdmin
@@ -62,7 +65,7 @@ export class DirectorController {
       }
 
       return res.status(201).json({
-        message: "Diretor cadastrado com sucesso!",
+        message: "Cadastro enviado. Aguarde a aprovaÃ§Ã£o do administrador municipal.",
         email,
         mongoData: director,
         supabaseData: usuarioSupabase

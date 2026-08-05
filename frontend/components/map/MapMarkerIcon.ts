@@ -21,3 +21,14 @@ export const userMarkerIcon = L.divIcon({
   iconAnchor: [22, 22],
   popupAnchor: [0, -24],
 });
+
+export function createAdminEntityMarkerIcon(type: 'student' | 'monitor' | 'director') {
+  const labels = { student: 'A', monitor: 'M', director: 'D' };
+  return L.divIcon({
+    className: 'entity-marker-wrapper',
+    html: `<span class="entity-marker entity-marker--${type}">${labels[type]}</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -22],
+  });
+}

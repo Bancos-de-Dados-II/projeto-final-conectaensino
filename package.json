@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed:instituicoes": "tsx src/scripts/seedInstituicoes.ts",
-    "seed:csv": "tsx src/scripts/seedInstituicoes.ts"
+    "seed:csv": "tsx src/scripts/seedInstituicoes.ts",
+    "seed:admin": "tsx src/scripts/seedAdmin.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

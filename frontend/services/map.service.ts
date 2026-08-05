@@ -89,6 +89,7 @@ function extractCollection(payload: unknown): unknown[] {
   const candidates = [
     payload.data,
     payload.items,
+    payload.entities,
     payload.results,
     payload.monitors,
     payload.monitor,
@@ -292,6 +293,8 @@ function normalizeEntity(
         "total_monitors",
       ]),
     ),
+    relatedCount: asNumber(readNested(source, ["relatedCount", "related_count"])),
+    relatedType: asString(readNested(source, ["relatedType", "related_type"])),
     address: asString(
       readNested(source, [
         "address",
@@ -338,5 +341,27 @@ export async function getInstitutions(): Promise<MapEntity[]> {
 
   return extractCollection(data)
     .map((item, index) => normalizeEntity(item, "institution", index))
+    .filter((item): item is MapEntity => item !== null);
+}
+
+export async function getAdminInstitutions(): Promise<MapEntity[]> {
+  const { data } = await api.get('/admins/institutions');
+  return extractCollection(data)
+    .map((item, index) => normalizeEntity(item, 'institution', index))
+    .filter((item): item is MapEntity => item !== null);
+}
+
+export type AdminMapFilter = 'all' | 'students' | 'monitors' | 'directors';
+
+export async function getAdminMapEntities(filter: AdminMapFilter): Promise<MapEntity[]> {
+  const { data } = await api.get('/admins/map', { params: { filter } });
+  return extractCollection(data)
+    .map((item, index) => {
+      const sourceType = isRecord(item) ? asString(item.type) : undefined;
+      const type: MapEntityType = sourceType === 'student' || sourceType === 'director' || sourceType === 'monitor'
+        ? sourceType
+        : 'institution';
+      return normalizeEntity(item, type, index);
+    })
     .filter((item): item is MapEntity => item !== null);
 }

@@ -4,6 +4,7 @@ import { Institution } from '../models/mongodb/Institution';
 import { supabase, supabaseAdmin } from '../config/supabase';
 import * as crypto from 'crypto';
 import { DirectorProfile } from '../models/mongodb/DirectorProfile';
+import { getAdminScope } from '../services/adminScope';
 
 export const MonitorController = {
   async getOwnProfile(req: Request, res: Response) {
@@ -142,6 +143,12 @@ export const MonitorController = {
           return res.status(404).json({ message: 'Perfil do diretor não encontrado.' });
         }
         req.body.institutionId = String(director.institutionId);
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((id) => String(id) === String(req.body.institutionId))) {
+          return res.status(403).json({ message: 'Selecione uma escola da cidade administrada.' });
+        }
       }
       console.log('--- INÍCIO DO CADASTRO DE MONITOR COM AUTH ---');
       if (!supabaseAdmin) {
@@ -282,7 +289,17 @@ export const MonitorController = {
       const director = req.user?.role === 'director'
         ? await DirectorProfile.findOne({ userId: req.user.id }).lean()
         : null;
-      const filter = director ? { institutionId: director.institutionId } : {};
+      const adminScope = req.user?.role === 'admin'
+        ? await getAdminScope(req.user.id)
+        : null;
+      if (req.user?.role === 'admin' && !adminScope) {
+        return res.status(403).json({ message: 'Administrador municipal sem cidade configurada.' });
+      }
+      const filter = director
+        ? { institutionId: director.institutionId }
+        : adminScope
+          ? { institutionId: { $in: adminScope.institutionIds } }
+          : {};
       const monitors = await MonitorProfile.find(filter)
         .select('+avatarData +avatarMimeType')
         .populate('institutionId', 'nome cnpj endereco')
@@ -449,6 +466,43 @@ export const MonitorController = {
     } catch (error: any) {
       console.error('Erro crítico ao excluir monitor:', error);
       return res.status(500).json({ message: 'Erro ao excluir monitor.', error: error.message });
+    }
+  },
+
+  async update(req: Request, res: Response) {
+    try {
+      const monitor = await MonitorProfile.findById(req.params.id);
+      if (!monitor) return res.status(404).json({ message: 'Monitor nÃ£o encontrado.' });
+      if (req.user?.role === 'director') {
+        const director = await DirectorProfile.findOne({ userId: req.user.id }).lean();
+        if (!director || String(director.institutionId) !== String(monitor.institutionId)) {
+          return res.status(403).json({ message: 'Monitor fora da sua escola.' });
+        }
+        req.body.institutionId = String(director.institutionId);
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((id) => String(id) === String(monitor.institutionId))) {
+          return res.status(403).json({ message: 'Monitor fora da cidade administrada.' });
+        }
+        if (req.body.institutionId && !scope.institutionIds.some((id) => String(id) === String(req.body.institutionId))) {
+          return res.status(403).json({ message: 'A escola deve pertencer Ã  cidade administrada.' });
+        }
+      }
+      if (req.body.institutionId && String(req.body.institutionId) !== String(monitor.institutionId)) {
+        const institution = await Institution.findById(req.body.institutionId).lean();
+        if (!institution) return res.status(404).json({ message: 'Nova escola nÃ£o encontrada.' });
+        monitor.location = {
+          type: 'Point',
+          coordinates: [...institution.location.coordinates] as [number, number],
+        };
+      }
+      const allowed = ['name', 'disciplinas', 'disponibilidade', 'institutionId', 'phone'];
+      for (const field of allowed) if (req.body[field] !== undefined) (monitor as any)[field] = req.body[field];
+      await monitor.save();
+      return res.json({ ...monitor.toObject(), id: String(monitor._id) });
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Erro ao editar monitor.', error: error.message });
     }
   },
 };

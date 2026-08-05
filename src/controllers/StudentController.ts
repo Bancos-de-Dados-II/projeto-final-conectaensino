@@ -7,6 +7,7 @@ import type { GeoSearchQuery } from '../schemas/GeoSearchSchema';
 import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { Session } from '../models/mongodb/Session';
+import { getAdminScope } from '../services/adminScope';
 
 type StudentGeoDTO = {
   id: string;
@@ -110,6 +111,12 @@ export class StudentController {
           return res.status(404).json({ message: 'Perfil do diretor não encontrado.' });
         }
         req.body.institutionId = String(director.institutionId);
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((id) => String(id) === String(req.body.institutionId))) {
+          return res.status(403).json({ message: 'Selecione uma escola da cidade administrada.' });
+        }
       }
       console.log("--- INÍCIO DO CADASTRO DE ALUNO COM AUTH ---");
       console.log("DADOS RECEBIDOS NO BODY:", req.body);
@@ -248,9 +255,16 @@ export class StudentController {
       const director = req.user?.role === 'director'
         ? await DirectorProfile.findOne({ userId: req.user.id }).lean()
         : null;
-      const students = await StudentProfile.find(
-        director ? { institutionId: director.institutionId } : {},
-      )
+      const adminScope = req.user?.role === 'admin' ? await getAdminScope(req.user.id) : null;
+      if (req.user?.role === 'admin' && !adminScope) {
+        return res.status(403).json({ message: 'Administrador municipal sem cidade configurada.' });
+      }
+      const filter = director
+        ? { institutionId: director.institutionId }
+        : adminScope
+          ? { institutionId: { $in: adminScope.institutionIds } }
+          : {};
+      const students = await StudentProfile.find(filter)
         .select('+avatarData +avatarMimeType')
         .populate('institutionId', 'nome')
         .lean();
@@ -323,6 +337,43 @@ export class StudentController {
         message: 'Erro ao buscar estudantes próximos.',
         error: error.message,
       });
+    }
+  }
+
+  static async update(req: Request, res: Response): Promise<Response> {
+    try {
+      const student = await StudentProfile.findById(req.params.id);
+      if (!student) return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+      if (req.user?.role === 'director') {
+        const director = await DirectorProfile.findOne({ userId: req.user.id }).lean();
+        if (!director || String(director.institutionId) !== String(student.institutionId)) {
+          return res.status(403).json({ message: 'Aluno fora da sua escola.' });
+        }
+        req.body.institutionId = String(director.institutionId);
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((id) => String(id) === String(student.institutionId))) {
+          return res.status(403).json({ message: 'Aluno fora da cidade administrada.' });
+        }
+        if (req.body.institutionId && !scope.institutionIds.some((id) => String(id) === String(req.body.institutionId))) {
+          return res.status(403).json({ message: 'A escola deve pertencer Ã  cidade administrada.' });
+        }
+      }
+      if (req.body.institutionId && String(req.body.institutionId) !== String(student.institutionId)) {
+        const institution = await Institution.findById(req.body.institutionId).lean();
+        if (!institution) return res.status(404).json({ message: 'Nova escola nÃ£o encontrada.' });
+        student.location = {
+          type: 'Point',
+          coordinates: [...institution.location.coordinates] as [number, number],
+        };
+      }
+      const allowed = ['name', 'enderecoResidencial', 'tipoDeficiencia', 'necessidadesAcessibilidade', 'institutionId'];
+      for (const field of allowed) if (req.body[field] !== undefined) (student as any)[field] = req.body[field];
+      await student.save();
+      return res.json({ ...student.toObject(), id: String(student._id) });
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Erro ao editar aluno.', error: error.message });
     }
   }
 }

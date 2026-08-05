@@ -1,5 +1,7 @@
 export type MapEntityType =
   | "monitor"
+  | "student"
+  | "director"
   | "institution";
 
 export interface MapCoordinates {
@@ -22,6 +24,8 @@ export interface MapEntity {
   rating?: number;
   available?: boolean;
   monitorCount?: number;
+  relatedCount?: number;
+  relatedType?: string;
 
   address?: string;
   city?: string;

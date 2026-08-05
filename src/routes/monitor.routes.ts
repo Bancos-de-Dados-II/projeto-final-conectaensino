@@ -36,6 +36,12 @@ monitorRoutes.post(
   validateSchema(CreateMonitorSchema),
   MonitorController.create
 );
+monitorRoutes.put(
+  '/:id',
+  requireAuth,
+  requireRoles('director', 'admin'),
+  MonitorController.update,
+);
 
 monitorRoutes.delete(
   '/:id',

@@ -1,0 +1,417 @@
+html[data-layout="traditional"] {
+  --color-primary: #E35336;
+  --color-secondary: #F4A460;
+  --color-terciary: #F5F5DC;
+
+  --background: #F5F5DC !important;
+  --surface: #FFFFFF !important;
+  --surface-soft: #EDEDDB !important;
+  --surface-hover: #E2E2CE !important;
+  --border: #D1C7BD !important;
+  --border-soft: #E0D6CB !important;
+
+  --text-primary: #2D2D2D !important;
+  --text-secondary: #4A4A4A !important;
+  --text-muted: #6B6B6B !important;
+
+  --primary: #E35336 !important;
+  --primary-hover: #c94328 !important;
+  --primary-soft: rgba(226, 178, 146, 0.479)!important;
+}
+
+html[data-layout="traditional"] .login-logo {
+  content: url("../assets/simplified-traditional-logo.png");
+}
+
+html[data-layout="traditional"],
+html[data-layout="traditional"] body,
+html[data-layout="traditional"] #root,
+html[data-layout="traditional"] .login-page,
+html[data-layout="traditional"] .login-presentation,
+html[data-layout="traditional"] .login-area,
+html[data-layout="traditional"] .main-content {
+  background-color: var(--background) !important;
+  color: var(--text-primary) !important;
+}
+
+
+html[data-layout="traditional"] .primary-button,
+html[data-layout="traditional"] .login-submit {
+  background-color: var(--color-primary) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 4px !important;
+  text-transform: uppercase;
+  font-weight: 700;
+  box-shadow: none !important;
+}
+
+html[data-layout="traditional"] *{
+  scrollbar-color: var(--color-primary) var(--surface-soft) !important;
+}
+
+html[data-layout="traditional"] .secondary-button {
+  background-color: transparent !important;
+  color: #2D2D2D !important;
+  border: 1px solid var(--color-secondary) !important;
+  border-radius: 4px !important;
+}
+
+html[data-layout="traditional"] .secondary-button:hover {
+  color: var(--color-primary) !important;
+  border: 1px solid var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] select,
+html[data-layout="traditional"] textarea {
+  background-color: #FFFFFF !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+}
+
+html[data-layout="traditional"] .login-field {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+html[data-layout="traditional"]     .login-card {
+    border-top: var(--color-primary);
+}
+
+html[data-layout="traditional"] .login-input {
+  display: flex !important;
+  align-items: center !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+  height: 45px !important;
+  padding: 0 12px !important;
+  box-shadow: none !important;
+}
+
+html[data-layout="traditional"] .login-input input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  height: 100% !important;
+  padding: 0 !important;
+  color: #2D2D2D !important;
+}
+
+html[data-layout="traditional"] .login-input input::placeholder {
+  color: #8C8C8C !important;
+}
+
+html[data-layout="traditional"] .login-input input:focus {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-layout="traditional"] .login-input svg,
+html[data-layout="traditional"] .login-password-toggle {
+  background: transparent !important;
+  border: none !important;
+  color: #555555 !important;
+}
+
+html[data-layout="traditional"] .login-card h2,
+html[data-layout="traditional"] .login-card__header h2,
+html[data-layout="traditional"] .login-card__header p,
+html[data-layout="traditional"] .login-field > span,
+html[data-layout="traditional"] .login-presentation h1 {
+  background: none !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+html[data-layout="traditional"] .login-eyebrow {
+  color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .login-eyebrow::before {
+  background-color: var(--color-primary) !important;
+  box-shadow: 0 0 12px var(--color-primary) !important;
+}
+
+
+html[data-layout="traditional"] .login-presentation .site-logo,
+html[data-layout="traditional"] .login-presentation img[alt*="Conecta Ensino"] {
+  max-width: 90vw !important;
+}
+
+html[data-layout="traditional"] .login-card, html[data-layout="traditional"] .panel, html[data-layout="traditional"] .stat-card, html[data-layout="traditional"] .crud-panel, html[data-layout="traditional"] .prototype-panel, html[data-layout="traditional"] .header, html[data-layout="traditional"] .sidebar {
+    background-color: var(--color-secondary) !important;
+    
+}
+
+html[data-layout="traditional"] .header-logo {
+  content: url("../assets/traditional-logo.png");
+}
+
+
+html[data-layout="traditional"] .header__search {
+    background: var(--background);
+}
+
+html[data-layout="traditional"] .sidebar-group__title {
+    color: #000000;
+}
+
+html[data-layout="traditional"] .sidebar-link {
+  color: #000000;
+}
+
+html[data-layout="traditional"] .sidebar-link--active {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: rgba(227, 83, 54, 0.3);
+}
+
+html[data-layout="traditional"] .sidebar-link--active::before {
+  background: var(--primary);
+}
+
+html[data-layout="traditional"] .sidebar-link--active svg {
+  color: #E35336;
+}
+
+html[data-layout="traditional"] .dashboard__eyebrow, html[data-layout="traditional"] .panel__eyebrow, html[data-layout="traditional"] .page-placeholder__eyebrow {
+    color: #f71d04;
+    letter-spacing: 0.12em;
+}
+
+html[data-layout="traditional"] .dashboard__heading h1, html[data-layout="traditional"] .page-header h1, html[data-layout="traditional"] .crud-page__header h1, html[data-layout="traditional"] .settings-heading h1 {
+    color: #000000;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+html[data-layout="traditional"] .dashboard-kanban-panel [style*="margin-top: 40px"] {
+  color: #990000 !important;
+}
+
+html[data-layout="traditional"] .stat-card__icon, .panel__icon, .page-icon {
+    color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .dashboard__support-card {
+    background: none!important;
+    border-color: rgba(227, 83, 54, 0.2)!important;
+    border: none !important;
+}
+
+html[data-layout="traditional"] .dashboard__support-icon {
+    color: var(--color-primary);
+    background: none;
+}
+
+html[data-layout="traditional"] .dashboard__support-card button {
+    color: var(--color-primary);
+    border: var(--color-primary) 1px solid;
+}
+
+html[data-layout="traditional"] .dashboard__support-card button:hover {
+    background: var(--surface-hover);
+}
+
+html[data-layout="traditional"] .sidebar__footer button {
+    color:#000000;
+}
+
+html[data-layout="traditional"] .sidebar__footer {
+    background:var(--color-secondary);
+}
+
+html[data-layout="traditional"] .stat-card__value, html[data-layout="traditional"] .panel h2, html[data-layout="traditional"] .panel h3 {
+    color: #000000;
+}
+
+html[data-layout="traditional"] .stat-card__variation {
+    color: var(--primary);
+}
+
+html[data-layout="traditional"] .notification-button {
+    background: var(--color-terciary);
+    border-color: var(--border);
+}
+
+html[data-layout="traditional"] .icon-button:hover, html[data-layout="traditional"] .notification-button:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-terciary);
+}
+
+html[data-layout="traditional"] .profile-button:hover {
+    color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .prototype-settings-page, html[data-layout="traditional"] .settings-page {
+    background: var(--color-terciary);
+}
+html[data-layout="traditional"] .prototype-settings-sidebar {
+    background: var(--color-secondary);  
+}
+
+html[data-layout="traditional"] .prototype-page-heading {
+    background: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .prototype-header-dot {
+    background: var(--color-primary);
+}
+
+html[data-layout="traditional"] .prototype-page-heading p, 
+html[data-layout="traditional"] .prototype-kicker, 
+html[data-layout="traditional"] .prototype-status,
+html[data-layout="traditional"] .prototype-settings-nav{
+    color: #000000;
+}
+
+html[data-layout="traditional"] .prototype-settings-nav:hover{
+    color:#000000;
+    border-color: var(--color-primary);
+    background: var( --surface-hover);
+   
+}
+
+html[data-layout="traditional"] .prototype-settings-nav--active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--primary-soft);
+}
+
+html[data-layout="traditional"] .prototype-theme-option--active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-terciary);
+}
+
+html[data-layout="traditional"] .prototype-theme-option--active small {
+    color: #000000;
+}
+
+html[data-layout="traditional"] .prototype-panel__header p{
+    color: #000000;
+}
+
+html[data-layout="traditional"] .profile-card, html[data-layout="traditional"] .profile-form{
+  background: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .profile-input-field > div, html[data-layout="traditional"] input {
+  background: var(--color-terciary)
+}
+
+html[data-layout="traditional"] .profile-card__role {
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-search-field{
+  background-color:#fdfdfd ;
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .map-search-field input {
+  background-color: #fdfdfd;
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-person-card__avatar--institution-without-monitors {
+  background-color: var(--color-terciary);
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .map-person-card__avatar--institution-with-monitors {
+  background-color: var(--color-primary);
+  color: var(--color-terciary);
+}
+
+html[data-layout="traditional"] .entity-marker--institution.entity-marker--no-monitors{
+  background: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .entity-marker--institution.entity-marker--has-monitors{
+  background: var(--color-primary);
+}
+
+html[data-layout="traditional"] .real-map-status{
+  background: var(--color-terciary);
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .activity-dropzone {
+  background-color: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .activity-upload-panel{
+  background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .primary-button.activity-upload-submit, html[data-layout="traditional"] .activity-dropzone small {
+  background-color: var(--color-secondary) !important;
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .activity-upload-fields span{
+  color: #000000 !important;
+ }
+
+html[data-layout="traditional"] .activity-list-panel, html[data-layout="traditional"] .activity-list-panel > header small{
+  color: #000000 !important;
+  background-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .conversation-search{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .chat-welcome > span {
+  color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .page-kicker{
+  color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .calendar-day{
+  background-color: var(--color-secondary) !important;
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .calendar-day--outside {
+  background-color: var(--color-terciary) !important;
+  color: #000000 !important;
+}
+html[data-layout="traditional"] .calendar-day__number{
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .calendar-day:hover, html[data-layout="traditional"] .calendar-day--selected, html[data-layout="traditional"] .calendar-day--today {
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .real-map-layout, html[data-layout="traditional"] .real-map-container, html[data-layout="traditional"] maps-result-panel{
+  border-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .stat-card__icon{
+  background-color:var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .crud-search{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .crud-table th{
+  background-color: var(--color-primary) !important;
+  color: #000000 !important;
+}
+
+  .director-session-panel, .domain-empty {
+    background-color: var(--color-secondary) !important;
+    color: #000000 !important;
+  }

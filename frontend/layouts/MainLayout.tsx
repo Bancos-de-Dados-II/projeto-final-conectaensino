@@ -3,9 +3,11 @@ import { Outlet } from "react-router-dom";
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import { useLayoutMode } from "../contexts/LayoutModeContext";
 
 function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { layoutMode } = useLayoutMode();
 
   function toggleSidebar() {
     setSidebarOpen((currentValue) => !currentValue);
@@ -16,7 +18,7 @@ function MainLayout() {
   }
 
   return (
-    <div className="app">
+    <div className={`app app--${layoutMode}`}>
       <Header onMenuClick={toggleSidebar} />
 
       <Sidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />

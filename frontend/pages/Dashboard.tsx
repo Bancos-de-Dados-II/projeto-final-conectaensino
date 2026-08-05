@@ -10,14 +10,16 @@ import {
   Star,
   UserRound,
   UsersRound,
+  MessageSquareText,
   ArrowRight,
   ArrowLeft,
   PlusCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import DashboardCharts from "../components/dashboard/DashboardCharts";
 import DirectorDashboard from "../components/dashboard/DirectorDashboard";
+import AdminDashboard from "../components/dashboard/AdminDashboard";
 import DashboardSkeleton from "../components/dashboard/DashboardSkeleton";
 import ReportExport from "../components/reports/ReportExport";
 import StatCard from "../components/StatCard";
@@ -78,7 +80,9 @@ export default function Dashboard() {
 
   const userRole = getApplicationRole(user);
   const isDirector = userRole === "director";
-  const isMonitor = userRole === "monitor"; 
+  const isAdmin = userRole === "admin";
+  const isMonitor = userRole === "monitor";
+  const navigate = useNavigate();
 
   const displayName =
     typeof user?.user_metadata?.name === "string"
@@ -105,7 +109,7 @@ export default function Dashboard() {
   }, [loadDashboard]);
 
   const loadAssignedTasks = useCallback(async (showError = true) => {
-    if (isDirector) return;
+    if (isDirector || isAdmin) return;
     try {
       const items = await getTasks();
       setTasks(
@@ -123,7 +127,7 @@ export default function Dashboard() {
         setErrorMessage("Não foi possível carregar as atividades atribuídas.");
       }
     }
-  }, [isDirector]);
+  }, [isAdmin, isDirector]);
 
   useEffect(() => {
     void loadAssignedTasks();
@@ -164,6 +168,9 @@ export default function Dashboard() {
   if (isDirector) {
     return <DirectorDashboard />;
   }
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -189,6 +196,8 @@ export default function Dashboard() {
   }
 
   return (
+
+
     <div className="dashboard dashboard--analytics">
       <section className="dashboard__heading">
         <div>
@@ -355,7 +364,7 @@ export default function Dashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginTop: "1rem" }}>
               
               {/* Coluna: Pendentes */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <div className="dashboard-kanban-column" style={{ background: "rgba(255, 255, 255, 0.03)", padding: "1rem", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem", fontWeight: "bold" }}>
                   <ListTodo size={18} color="#3b82f6" />
                   <span>Pendentes ({tasks.filter(t => t.status === "pending").length})</span>
@@ -507,6 +516,24 @@ export default function Dashboard() {
           </article>
         )}
       </section>
+
+         {!isDirector && <div className="dashboard__support-card">
+              <div className="das__support-icon">
+                  <MessageSquareText size={21} />
+                </div>
+                <div>
+                  <strong>Precisa de ajuda?</strong>
+                  <p>Fale com nossa equipe de suporte.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/mensagens");
+                  }}
+                >
+                  Abrir tira-dúvidas
+                </button>
+              </div>}
     </div>
   );
 }

@@ -21,7 +21,9 @@ export const studentsResource: CrudResourceConfig = {
       required: true,
     },
     {
-      key: "institution",
+      key: "institutionId",
+      type: "select",
+      required: true,
       label: "Instituição",
       placeholder: "Nome da instituição",
     },

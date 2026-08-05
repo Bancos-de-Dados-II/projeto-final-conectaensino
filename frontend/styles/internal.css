@@ -4,6 +4,49 @@
    ========================================================= */
 
 /* 01. Estrutura geral, header, sidebar e dashboard */
+@import url("https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Fonte padrão para texto e corpo */
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  
+  /* Variáveis tipográficas */
+  --font-title: "Caveat Brush", cursive, sans-serif;
+  --font-subtitle: "Montserrat", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* Aplicando Caveat Brush em títulos principais e grandes */
+h1, 
+.dashboard__heading h1, 
+.page-header h1, 
+.crud-page__header h1, 
+.settings-heading h1, 
+.real-map-toolbar h1, 
+.experience-heading h1, 
+.login-presentation h1 {
+  font-family: var(--font-title) !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Aplicando Montserrat em subtítulos, painéis e cabeçalhos de cards */
+h2, h3, h4, h5, h6,
+.panel__header h2, 
+.login-card__header h2, 
+.crud-modal__header h2, 
+.certificate-card__content h2, 
+.chat-welcome h2,
+.sidebar-group__title,
+.prototype-page-heading h1,
+.prototype-panel__header h2 {
+  font-family: var(--font-subtitle) !important;
+}
+
+/* Corpo e elementos gerais usando Inter */
+body, button, input, textarea, select, p, span, small {
+  font-family: var(--font-body);
+}
+
 .app {
   display: grid;
   grid-template-areas:
@@ -12,6 +55,10 @@
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   grid-template-rows: var(--header-height) minmax(0, calc(100vh - var(--header-height)));
   min-height: 100vh;
+}
+
+.site-logo {
+  content: url("../assets/modern-logo.png") !important;
 }
 
 .header {
@@ -30,6 +77,7 @@
   backdrop-filter: blur(18px);
 }
 
+
 .header__brand, .header__actions, .header__search, .profile-button {
   display: flex;
   align-items: center;
@@ -37,15 +85,12 @@
 
 .header__brand { gap: 12px; }
 
-.brand-logo {
+.header-logo {
+  content: url("../assets/modern-logo.png");  
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 80px;
+  height: 80px;
   place-items: center;
-  color: #fff;
-  background: linear-gradient(145deg, var(--primary), #735ce8);
-  border-radius: 13px;
-  box-shadow: 0 8px 24px rgba(91, 124, 250, 0.3);
 }
 
 .brand-text { display: flex; flex-direction: column; gap: 2px; }
@@ -228,7 +273,7 @@
 
 .sidebar-link--active svg { color: #7e99ff; }
 
-.sidebar__support-card {
+.dashboard__support-card {
   display: flex;
   margin-top: 28px;
   padding: 14px;
@@ -240,7 +285,7 @@
   border-radius: 14px;
 }
 
-.sidebar__support-icon {
+.dashboard__support-icon {
   display: grid;
   width: 38px;
   height: 38px;
@@ -250,15 +295,15 @@
   border-radius: 10px;
 }
 
-.sidebar__support-card strong { font-size: 12px; }
-.sidebar__support-card p {
+.dashboard__support-card strong { font-size: 12px; }
+.dashboard__support-card p {
   margin: 5px 0 0;
   color: var(--text-muted);
   font-size: 10px;
   line-height: 1.5;
 }
 
-.sidebar__support-card button {
+.dashboard__support-card button {
   width: 100%;
   height: 33px;
   color: #e8edff;
@@ -270,9 +315,10 @@
   font-weight: 600;
 }
 
-.sidebar__support-card button:hover { background: rgba(91, 124, 250, 0.24); }
+.dashboard__support-card button:hover { background: rgba(91, 124, 250, 0.24); }
 
 .sidebar__footer {
+  color:var(--accent);
   display: flex;
   padding: 13px;
   flex-direction: column;
@@ -425,6 +471,22 @@
 }
 
 .dashboard-grid--bottom { grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.85fr); }
+
+.dashboard__support-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  max-width: 360px;
+}
 
 .panel {
   min-width: 0;
@@ -920,6 +982,22 @@
   pointer-events: none;
 }
 
+.site-logo {
+  content: url("../assets/modern-logo.png") !important;
+}
+
+html[data-layout="modern"] .login-logo {
+  content: url("../assets/simplified-modern-logo.png");
+}
+
+.login-presentation .site-logo,
+.login-presentation img[alt*="Conecta Ensino"] {
+  max-width: 45vw;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .login-brand,
 .login-presentation__content,
 .login-presentation__footer {
@@ -977,7 +1055,7 @@
 .login-presentation__content > p {
   max-width: 530px;
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 15px;
   line-height: 1.7;
 }
@@ -1048,12 +1126,6 @@
   margin: 9px 0 7px;
   font-size: 27px;
   letter-spacing: -.04em;
-}
-
-.login-card__header p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
 }
 
 .login-form {
@@ -2033,6 +2105,8 @@
     min-height: 430px;
   }
 }
+
+.entity-marker--director { background: #7c3aed; }
 
 .student-calendar-layout {
   display: grid;
@@ -6089,19 +6163,19 @@
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-.sidebar__support-card {
+.dashboard__support-card {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.sidebar__support-icon {
+.dashboard__support-icon {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-radius: var(--radius);
 }
 
-.sidebar__support-card button {
+.dashboard__support-card button {
   color: var(--accent);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
@@ -6667,17 +6741,6 @@ select {
     var(--bg);
 }
 
-.login-area::before {
-  position: absolute;
-  top: 24px;
-  right: 28px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.61rem;
-  letter-spacing: 0.12em;
-  content: "SISTEMA // ONLINE";
-}
-
 .login-card {
   min-width: 0;
   width: min(100%, 430px);
@@ -6696,15 +6759,6 @@ select {
   border-bottom: 1px solid var(--border);
 }
 
-.login-card__header::before {
-  display: block;
-  margin-bottom: 9px;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 0.61rem;
-  letter-spacing: 0.14em;
-  content: "ACESSO À PLATAFORMA";
-}
 
 .login-card__header h2 {
   margin: 0;
@@ -6716,7 +6770,7 @@ select {
 
 .login-card__header p {
   margin-top: 7px;
-  color: var(--text-dim);
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 0.68rem;
 }
@@ -6735,7 +6789,7 @@ select {
 }
 
 .login-field > span {
-  color: var(--text-dim);
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 0.63rem;
   letter-spacing: 0.08em;

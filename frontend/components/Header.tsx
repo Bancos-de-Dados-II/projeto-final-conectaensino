@@ -61,14 +61,7 @@ function Header({ onMenuClick }: HeaderProps) {
           <Menu size={22} />
         </button>
 
-        <div className="brand-logo" aria-hidden="true">
-          <GraduationCap size={25} />
-        </div>
-
-        <div className="brand-text">
-          <strong>Conecta Ensino</strong>
-          <span>Plataforma educacional</span>
-        </div>
+        <img className="header-logo" alt="Conecta Ensino" src="" />
       </div>
 
       <GlobalSearch />

@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   Mail,
   ShieldCheck,
+  LayoutTemplate,
 } from "lucide-react";
 import {
   getInstitutions,
@@ -18,6 +19,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { getApiBaseUrl } from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
+import { useLayoutMode } from "../contexts/LayoutModeContext";
 
 interface LocationState {
   from?: string;
@@ -35,6 +37,7 @@ interface InstitutionOption {
 
 function Login() {
   const { login, isAuthenticated } = useAuth();
+  const { layoutMode, toggleLayoutMode } = useLayoutMode();
   const navigate = useNavigate();
   const location = useLocation();
   const destination =
@@ -244,45 +247,25 @@ function Login() {
   }
 
   return (
-    <main className={`login-page ${isRegistering ? "login-page--register" : ""}`}>
+    <main className={`login-page login-page--${layoutMode} ${isRegistering ? "login-page--register" : ""}`}>
+      {/* Botão flutuante para alternar o layout na tela de login */}
+      <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 10 }}>
+        <button
+          type="button"
+          onClick={toggleLayoutMode}
+          className="secondary-button"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <LayoutTemplate size={16} />
+          Layout: <strong>{layoutMode === "modern" ? "Moderno" : "Tradicional"}</strong>
+        </button>
+      </div>
+
       <section className="login-presentation">
-        <div className="login-brand">
-          <span className="login-brand__icon">
-            <GraduationCap size={29} />
-          </span>
-
-          <div>
-            <strong>Conecta Ensino</strong>
-            <span>Aprender fica mais fácil quando estamos conectados.</span>
+        <div>
+          
+          <img src="" alt="Conecta Ensino" className="login-logo" />
           </div>
-        </div>
-
-        <div className="login-presentation__content">
-          <span className="login-eyebrow">Plataforma educacional</span>
-          <h1>Encontre apoio acadêmico perto de você.</h1>
-          <p>
-            Conecte alunos, monitores, instituições e disciplinas em uma única
-            experiência.
-          </p>
-
-          <div className="login-benefits">
-            <div>
-              <ShieldCheck size={21} />
-              <span>
-                <strong>Acesso protegido</strong>
-                <small>Sessão autenticada com token JWT.</small>
-              </span>
-            </div>
-
-            <div>
-              <GraduationCap size={21} />
-              <span>
-                <strong>Monitoria conectada</strong>
-                <small>Encontre monitores e acompanhe suas sessões.</small>
-              </span>
-            </div>
-          </div>
-        </div>
 
         <span className="login-presentation__footer">
           Conecta Ensino • Desenvolvimento acadêmico
@@ -470,7 +453,7 @@ function Login() {
               <button
                 type="button"
                 className="secondary-button"
-                style={{ width: '100%', height: '42px', justifyContent: 'center', background: 'transparent', border: '1px solid #d1d5db', color: '#374151' }}
+                style={{ width: '100%', height: '42px', justifyContent: 'center', background: 'var(--bg)', color: '#d1d5db' }}
                 onClick={() => navigate('/register/director')}
               >
                 Cadastrar como Diretor(a) / Instituição
@@ -479,8 +462,6 @@ function Login() {
           </div>
 
           <footer className="login-card__footer">
-            API configurada em:
-            <code>{getApiBaseUrl()}</code>
           </footer>
         </div>
       </section>

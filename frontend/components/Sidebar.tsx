@@ -11,9 +11,9 @@ import {
   LogOut,
   MapPinned,
   MessageCircle,
-  MessageSquareText,
   Paperclip,
   Settings,
+  ShieldCheck,
   Star,
   UserRound,
   UsersRound,
@@ -33,6 +33,7 @@ interface SidebarProps {
 
 const mainItems = [
   { label: "Dashboard", path: "/dashboard", icon: Gauge },
+  { label: "Diretores", path: "/diretores", icon: ShieldCheck },
   { label: "Mapa", path: "/mapa", icon: MapPinned },
   { label: "Monitores", path: "/monitores", icon: GraduationCap },
   { label: "Favoritos", path: "/favoritos", icon: Heart },
@@ -62,8 +63,11 @@ export default function Sidebar({
   const isDirector = userRole === "director";
   const isMonitor = userRole === "monitor";
   const isStudent = userRole === "student";
+  const isAdmin = userRole === "admin";
 
   const visibleMainItems = mainItems.filter((item) => {
+    if (isAdmin && !["/dashboard", "/diretores", "/mapa", "/monitores", "/alunos"].includes(item.path)) return false;
+    if (!isAdmin && item.path === "/diretores") return false;
     if (
       isDirector
       && ["/mapa", "/mensagens", "/favoritos", "/agenda"].includes(item.path)
@@ -86,8 +90,10 @@ export default function Sidebar({
   });
   const visibleManagementItems = managementItems.filter(
     (item) =>
-      !isDirector
-      || !["/instituicoes", "/disciplinas"].includes(item.path),
+      !isAdmin && (
+        !isDirector
+        || !["/instituicoes", "/disciplinas"].includes(item.path)
+      ),
   );
 
   function handleLogout() {
@@ -130,53 +136,7 @@ export default function Sidebar({
               </div>
             ))}
           </SidebarGroup>
-
-          {canManage && (
-            <SidebarGroup title="Gerenciamento">
-              {visibleManagementItems.map((item) => (
-                <SidebarLink
-                  key={item.path}
-                  {...item}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </SidebarGroup>
-          )}
-
-          <SidebarGroup title="Conta">
-            <SidebarLink
-              label="Meu perfil"
-              path="/perfil"
-              icon={UserRound}
-              onNavigate={onNavigate}
-            />
-            <SidebarLink
-              label="Configurações"
-              path="/configuracoes"
-              icon={Settings}
-              onNavigate={onNavigate}
-            />
-          </SidebarGroup>
         </nav>
-
-        {!isDirector && <div className="sidebar__support-card">
-          <div className="sidebar__support-icon">
-            <MessageSquareText size={21} />
-          </div>
-          <div>
-            <strong>Precisa de ajuda?</strong>
-            <p>Fale com nossa equipe de suporte.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              navigate("/mensagens");
-              onNavigate();
-            }}
-          >
-            Abrir tira-dúvidas
-          </button>
-        </div>}
       </div>
 
       <div className="sidebar__footer">
