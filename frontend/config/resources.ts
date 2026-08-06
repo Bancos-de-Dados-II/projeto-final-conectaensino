@@ -28,9 +28,21 @@ export const studentsResource: CrudResourceConfig = {
       placeholder: "Nome da instituição",
     },
     {
-      key: "course",
-      label: "Curso",
-      placeholder: "Curso do aluno",
+      key: "tipoDeficiencia",
+      label: "Tipo de deficiência",
+      placeholder: "Informe ou escreva Nenhuma",
+      required: true,
+    },
+    {
+      key: "necessidadesAcessibilidade",
+      label: "Necessidades de acessibilidade",
+      placeholder: "Recursos de acessibilidade necessários",
+    },
+    {
+      key: "enderecoResidencial",
+      label: "Endereço residencial",
+      placeholder: "Rua, número e bairro",
+      required: true,
     },
   ],
 };

@@ -213,7 +213,8 @@ export const MonitorController = {
       }
 
       const createdByDirector = req.user?.role === 'director';
-      const randomPassword = createdByDirector
+      const createdByManager = createdByDirector || req.user?.role === 'admin';
+      const randomPassword = createdByManager
         ? '12345678'
         : crypto.randomBytes(6).toString('hex') + '!1A';
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
@@ -236,7 +237,7 @@ export const MonitorController = {
         ...monitorData,
         name: resolvedName,
         userId: authUserId, 
-        mustChangePassword: createdByDirector,
+        mustChangePassword: createdByManager,
         createdByDirectorId: createdByDirector ? req.user?.id : undefined,
         institutionId: isMongoId ? institutionId : undefined,
         location: monitorLocation
@@ -439,6 +440,18 @@ export const MonitorController = {
       const monitor = await MonitorProfile.findById(id);
       if (!monitor) {
         return res.status(404).json({ message: 'Monitor não encontrado.' });
+      }
+      if (req.user?.role === 'director') {
+        const director = await DirectorProfile.findOne({ userId: req.user.id }).lean();
+        if (!director || String(director.institutionId) !== String(monitor.institutionId)) {
+          return res.status(403).json({ message: 'Monitor fora da sua escola.' });
+        }
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((institutionId) => String(institutionId) === String(monitor.institutionId))) {
+          return res.status(403).json({ message: 'Monitor fora da cidade administrada.' });
+        }
       }
 
       const authUserId = monitor.userId;

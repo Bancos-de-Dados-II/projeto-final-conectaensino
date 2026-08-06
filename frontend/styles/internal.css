@@ -8312,3 +8312,9 @@ html[data-layout="modern"] .login-presentation > div {
 .leaflet-top {
   top: 40px !important;
 }
+
+/* Mantém o atalho de suporte acima do conteúdo e dos painéis flutuantes. */
+.dashboard__support-card {
+  z-index: 1300;
+  isolation: isolate;
+}
