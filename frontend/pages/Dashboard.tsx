@@ -16,6 +16,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 import DashboardCharts from "../components/dashboard/DashboardCharts";
 import DirectorDashboard from "../components/dashboard/DirectorDashboard";
@@ -517,8 +518,8 @@ export default function Dashboard() {
         )}
       </section>
 
-         {!isDirector && <div className="dashboard__support-card">
-              <div className="das__support-icon">
+         {!isDirector && createPortal(<div className="dashboard__support-card">
+              <div className="dashboard__support-icon">
                   <MessageSquareText size={21} />
                 </div>
                 <div>
@@ -533,7 +534,7 @@ export default function Dashboard() {
                 >
                   Abrir tira-dúvidas
                 </button>
-              </div>}
+              </div>, document.body)}
     </div>
   );
 }

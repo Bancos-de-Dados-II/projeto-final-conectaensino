@@ -1,6 +1,17 @@
 import { createClient } from 'redis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+function normalizeRedisUrl(value?: string): string {
+  const raw = value?.trim();
+  if (!raw) return 'redis://localhost:6379';
+  if (/^rediss?:\/\//i.test(raw)) return raw;
+
+  // O console do Upstash também fornece credenciais como senha@host:porta.
+  if (raw.includes('@')) return `rediss://default:${raw}`;
+
+  return `redis://${raw}`;
+}
+
+const redisUrl = normalizeRedisUrl(process.env.REDIS_URL);
 
 const redisClient = createClient({
   url: redisUrl,
