@@ -551,3 +551,19 @@ html[data-layout="traditional"] .session-activity-card__icon {
 html[data-layout="traditional"] .session-activity-card small{
   color: #000;
 }
+
+html[data-layout="traditional"] .monitor-subjects>div:last-child span{
+  color: var(--color-primary)
+}
+
+html[data-layout="traditional"] .calendar-event{
+  border-color:var(--color-primary) ;
+}
+
+html[data-layout="traditional"] .calendar-event span, html[data-layout="traditional"] .calendar-event b{
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .director-session-card time span, html[data-layout="traditional"] .status-pill, html[data-layout="traditional"] .director-session-card__cancel {
+    color: var(--color-primary);
+}

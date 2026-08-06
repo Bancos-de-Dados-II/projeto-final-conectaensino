@@ -316,9 +316,11 @@ export const SessionController = {
         return res.status(409).json({ message: 'Este horário acabou de ser ocupado. Escolha outro.' });
       }
 
+      // Criação da sessão injetando automaticamente o institutionId do monitor
       const session = await Session.create({
         alunoId,
         monitorId,
+        institutionId: monitor.institutionId, // <--- PREENCHIDO AUTOMATICAMENTE DO BANCO
         disciplinaId,
         dataHora,
         tipoLocal,
