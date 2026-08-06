@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import PDFDocument from 'pdfkit';
 import { supabase } from '../config/supabase';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
+import { generateMonthlyCertificatesForPreviousMonth } from '../services/certificado.service';
 
 type CertificadoCreateBody = {
   mongo_monitor_id?: string;
@@ -106,6 +107,17 @@ export const CertificadoController = {
       doc.end();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro interno ao gerar PDF do certificado.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async gerarMensal(req: Request, res: Response): Promise<Response> {
+    try {
+      const dryRun = req.body?.dryRun === true;
+      await generateMonthlyCertificatesForPreviousMonth(dryRun);
+      return res.status(200).json({ message: 'Geração mensal executada (ou agendada).', dryRun });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao executar geração mensal.';
       return res.status(500).json({ message });
     }
   },

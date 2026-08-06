@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { supabase } from './config/supabase';
 import { connectRedis } from './config/redis'; 
+import { scheduleMonthlyCertificates } from './services/certificado.service';
 import app from './app';
 import { Task } from './models/mongodb/Task';
 
@@ -89,6 +90,14 @@ async function start() {
     console.log('🟢 Conectado ao MongoDB com sucesso!');
 
     await connectRedis();
+
+    if (process.env.SCHEDULE_CERTIFICATES === 'true') {
+      try {
+        scheduleMonthlyCertificates();
+      } catch (err) {
+        console.error('Erro ao iniciar agendador de certificados:', err);
+      }
+    }
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
