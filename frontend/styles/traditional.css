@@ -483,3 +483,25 @@ html[data-layout="traditional"] .postit-card {
 html[data-layout="traditional"] .postit-card h2{
   color: #ffffff;
 }
+
+html[data-layout="traditional"] .landing-info-section {
+    background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .postit-card:nth-of-type(odd)::after {
+  background: linear-gradient(
+    135deg, 
+    transparent 50%, 
+    #dfb06c 50%, 
+    #c99a57 100%
+  );
+}
+
+html[data-layout="traditional"] .postit-card:nth-of-type(even)::after {
+  background: linear-gradient(
+    135deg, 
+    transparent 50%, 
+    #dfb06c 50%, 
+    #c99a57 100%
+  );
+}

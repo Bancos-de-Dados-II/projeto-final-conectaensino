@@ -7815,7 +7815,7 @@ button {
 }
 
 .landing-hero__cta {
-  background-color: var(--color-primary, #e35336);
+  background-color: var(--primary,);
   color: #fff;
   padding: 12px 28px;
   border-radius: 8px;
@@ -7831,9 +7831,8 @@ button {
   filter: brightness(0.95);
 }
 
-/* Seção Laranja */
 .landing-info-section {
-  background-color: var(--color-primary, #e35336);
+  background-color: var(--surface);
   padding: 80px 20px 60px;
 }
 
@@ -7882,7 +7881,7 @@ button {
 
   .postit-card {
     position: relative;
-    color: #333;
+    background-color: var(--primary);
     padding: 24px 20px 20px;
     max-width: 400px;
     width: 100%;
@@ -7928,8 +7927,8 @@ button {
     background: linear-gradient(
       225deg, 
       transparent 50%, 
-      #dfb06c 50%, 
-      #c99a57 100%
+      #1f08a3 50%, 
+      #4f04ff 100%
     );
     box-shadow: -3px 3px 6px rgba(0, 0, 0, 0.2);
     border-bottom-left-radius: 6px;
@@ -7967,8 +7966,8 @@ button {
   background: linear-gradient(
     135deg, 
     transparent 50%, 
-    #dfb06c 50%, 
-    #c99a57 100%
+    #1f08a3 50%, 
+    #4f04ff 100%
   );
   box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
   border-radius: 0 0 6px 0;
