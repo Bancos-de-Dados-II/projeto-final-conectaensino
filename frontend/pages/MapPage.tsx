@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   ArrowLeft,
+  BookOpen,
   CalendarPlus,
   GraduationCap,
   LocateFixed,
@@ -85,6 +86,13 @@ function getDistanceKm(
   return earthRadiusKm * c;
 }
 
+function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
 function MapPage() {
   const { user } = useAuth();
   const isAdmin = getApplicationRole(user) === "admin";
@@ -103,6 +111,7 @@ function MapPage() {
   const [adminFilter, setAdminFilter] = useState<AdminMapFilter>('all');
   const [selectedSchool, setSelectedSchool] = useState<MapEntity | null>(null);
   const [schoolMonitors, setSchoolMonitors] = useState<PublicMonitor[]>([]);
+  const [subjectFilter, setSubjectFilter] = useState("");
   const [isLoadingMonitors, setIsLoadingMonitors] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLocating, setIsLocating] = useState(true);
@@ -139,6 +148,7 @@ function MapPage() {
       }
       setSelectedSchool(null);
       setSchoolMonitors([]);
+      setSubjectFilter("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setErrorMessage(
@@ -228,6 +238,7 @@ function MapPage() {
   }, [loadMapData]);
 
   useEffect(() => {
+    setSubjectFilter("");
     if (!selectedSchool || (selectedSchool.monitorCount ?? 0) === 0) {
       setSchoolMonitors([]);
       setIsLoadingMonitors(false);
@@ -245,8 +256,26 @@ function MapPage() {
       .finally(() => setIsLoadingMonitors(false));
   }, [selectedSchool]);
 
+  const availableSubjects = useMemo(
+    () =>
+      [...new Set(schoolMonitors.flatMap((monitor) => monitor.subjects))]
+        .filter(Boolean)
+        .sort((first, second) => first.localeCompare(second, "pt-BR")),
+    [schoolMonitors],
+  );
+
+  const filteredSchoolMonitors = useMemo(
+    () =>
+      subjectFilter
+        ? schoolMonitors.filter((monitor) =>
+            monitor.subjects.includes(subjectFilter),
+          )
+        : schoolMonitors,
+    [schoolMonitors, subjectFilter],
+  );
+
   const filteredEntities = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    const normalizedSearch = normalizeSearch(searchTerm.trim());
 
     const entitiesWithinRadius = schools.filter((entity) => {
       if (isAdmin) return true;
@@ -269,10 +298,11 @@ function MapPage() {
         entity.name,
         entity.address,
         entity.city,
+        ...(entity.monitorSubjects ?? []),
       ]
         .filter(Boolean)
         .some((value) =>
-          String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
+          normalizeSearch(String(value)).includes(normalizedSearch),
         ),
     );
   }, [
@@ -360,6 +390,21 @@ function MapPage() {
                     </small>
                   </div>
                 </div>
+                <label className="map-subject-filter">
+                  <BookOpen size={16} />
+                  <select
+                    value={subjectFilter}
+                    onChange={(event) => setSubjectFilter(event.target.value)}
+                    aria-label="Filtrar monitores por disciplina"
+                  >
+                    <option value="">Todas as disciplinas</option>
+                    {availableSubjects.map((subject) => (
+                      <option value={subject} key={subject}>
+                        {subject}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </>
             ) : (
               <>
@@ -367,7 +412,7 @@ function MapPage() {
                   <Search size={17} />
                   <input
                     type="search"
-                    placeholder={isAdmin ? "Pesquisar no filtro..." : "Pesquisar escola..."}
+                    placeholder={isAdmin ? "Pesquisar no filtro..." : "Pesquisar escola ou disciplina..."}
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                   />
@@ -452,6 +497,9 @@ function MapPage() {
                           ? "monitor cadastrado"
                           : "monitores cadastrados"}
                       </small>}
+                      {isInstitution && school.monitorSubjects?.length ? (
+                        <small>{school.monitorSubjects.join(", ")}</small>
+                      ) : null}
                       {isAdmin && adminFilter !== 'all' && <small>
                         {school.relatedCount ?? 0} {adminFilter === 'students' ? 'aluno(s)' : adminFilter === 'monitors' ? 'monitor(es)' : 'diretor(es)'} vinculado(s)
                       </small>}
@@ -464,17 +512,21 @@ function MapPage() {
 
             {selectedSchool &&
               !isLoadingMonitors &&
-              schoolMonitors.length === 0 && (
+              filteredSchoolMonitors.length === 0 && (
                 <div className="map-list-state">
                   <UserRound size={28} />
                   <strong>Nenhum monitor encontrado</strong>
-                  <p>Ainda não há monitores cadastrados nessa instituição.</p>
+                  <p>
+                    {subjectFilter
+                      ? "Nenhum monitor atende esta disciplina."
+                      : "Ainda não há monitores cadastrados nessa instituição."}
+                  </p>
                 </div>
               )}
 
             {selectedSchool &&
               !isLoadingMonitors &&
-              schoolMonitors.map((monitor) => (
+              filteredSchoolMonitors.map((monitor) => (
                 <Link
                   className="map-monitor-result"
                   to={`/sessoes?monitor=${encodeURIComponent(monitor.id)}`}

@@ -3,8 +3,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import AppErrorBoundary from "./components/system/AppErrorBoundary";
 import { AppearanceProvider } from "./contexts/AppearanceContext";
+import { useAuth } from "./hooks/useAuth";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { getApplicationRole } from "./utils/auth-role";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Login = lazy(() => import("./pages/Login"));
@@ -156,25 +158,7 @@ export default function App() {
                   />
                   <Route path="/avaliacoes" element={<ReviewsPage />} />
 
-                  {/* Rota de perfil específica para monitores */}
-                  <Route 
-                    path="/perfil" 
-                    element={
-                      <ProtectedRoute allowedRoles={["monitor"]}>
-                        <MonitorProfilePage />
-                      </ProtectedRoute>
-                    } 
-                  />
-
-                  {/* Rota de perfil padrão para os demais papéis */}
-                  <Route 
-                    path="/perfil" 
-                    element={
-                      <ProtectedRoute deniedRoles={["monitor"]}>
-                        <ProfilePage />
-                      </ProtectedRoute>
-                    } 
-                  />
+                  <Route path="/perfil" element={<OwnProfilePage />} />
 
                   <Route
                     path="/configuracoes"
@@ -198,4 +182,12 @@ export default function App() {
       </AppearanceProvider>
     </AppErrorBoundary>
   );
+}
+
+function OwnProfilePage() {
+  const { user } = useAuth();
+
+  return getApplicationRole(user) === "monitor"
+    ? <MonitorProfilePage />
+    : <ProfilePage />;
 }

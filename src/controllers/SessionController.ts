@@ -282,16 +282,21 @@ export const SessionController = {
         return res.status(400).json({ message: 'locationMeeting deve seguir o formato GeoJSON Point.' });
       }
 
+      const monitor = await MonitorProfile.findById(monitorId);
+      if (!monitor) {
+        return res.status(404).json({ message: 'Monitor não encontrado no MongoDB.' });
+      }
+      if (monitor.userId === req.user?.id) {
+        return res.status(403).json({
+          message: 'Você não pode agendar uma aula consigo mesmo como aluno.',
+        });
+      }
+
       const student = await StudentProfile.findOne({ userId: req.user?.id });
       if (!student) {
         return res.status(404).json({ message: 'O usuário autenticado não possui perfil de aluno.' });
       }
       const alunoId = String(student._id);
-
-      const monitor = await MonitorProfile.findById(monitorId);
-      if (!monitor) {
-        return res.status(404).json({ message: 'Monitor não encontrado no MongoDB.' });
-      }
       const meetingCoordinates =
         tipoLocal === 'escola' && monitor.location?.coordinates?.length === 2
           ? monitor.location.coordinates

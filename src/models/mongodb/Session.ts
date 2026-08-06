@@ -5,7 +5,7 @@ export interface ISession extends Document {
   monitorId: string;
   disciplinaId: string;
   dataHora: Date;
-  tipoLocal: 'escola' | 'casa_aluno';
+  tipoLocal: 'escola' | 'casa_aluno' | 'local_publico';
   institutionId?: Types.ObjectId; // Opcional: preenchido apenas se o tipoLocal for 'escola'
   enderecoEncontro: string;       // Endereço da escola selecionada ou da casa do aluno
   locationMeeting: {
@@ -24,7 +24,7 @@ const SessionSchema = new Schema<ISession>({
   dataHora: { type: Date, required: true },
   tipoLocal: {
     type: String,
-    enum: ['escola', 'casa_aluno'],
+    enum: ['escola', 'casa_aluno', 'local_publico'],
     required: true
   },
   institutionId: {

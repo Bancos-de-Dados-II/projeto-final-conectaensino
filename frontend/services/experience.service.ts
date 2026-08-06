@@ -197,7 +197,7 @@ export async function scheduleMonitorSession(payload: ScheduleSessionPayload): P
     monitorId: payload.monitorId,
     disciplinaId: payload.subject,
     dataHora: `${payload.date}T${payload.time}:00-03:00`,
-    tipoLocal: payload.tipoLocal,
+    tipoLocal: payload.tipoLocal === "online" ? "local_publico" : payload.tipoLocal,
     enderecoEncontro: 
       payload.tipoLocal === "casa_aluno"
         ? payload.enderecoEncontro || "Casa do aluno"

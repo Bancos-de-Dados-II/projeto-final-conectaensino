@@ -24,6 +24,7 @@ export interface MapEntity {
   rating?: number;
   available?: boolean;
   monitorCount?: number;
+  monitorSubjects?: string[];
   relatedCount?: number;
   relatedType?: string;
 

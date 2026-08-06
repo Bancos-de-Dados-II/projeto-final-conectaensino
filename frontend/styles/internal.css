@@ -1611,6 +1611,34 @@ html[data-layout="modern"] .login-logo {
 }
 .map-selected-school small { color: var(--text-muted); font-size: 8px; }
 
+.map-subject-filter {
+  display: flex;
+  height: 40px;
+  margin-top: 13px;
+  padding: 0 10px;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.map-subject-filter select {
+  min-width: 0;
+  flex: 1;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 10px;
+}
+
+.map-subject-filter option {
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
 .map-monitor-result {
   display: grid;
   padding: 14px 15px;
@@ -7076,6 +7104,9 @@ select {
    As áreas abaixo posicionam o mapa à esquerda e o painel à direita.
 */
 .real-map-layout {
+  position: relative !important;
+  z-index: 0 !important;
+  isolation: isolate;
   display: grid !important;
   width: 100% !important;
   min-width: 0 !important;
@@ -8103,4 +8134,19 @@ html[data-layout="modern"] .login-presentation > div {
   flex-direction: column;
   align-items: center;
   gap: 12px; /* Reduz o espaço em branco entre a logo, o texto "Rede de Monitoria Inclusiva" e o botão */
+}
+
+/* Mantém panes, controles e popups do Leaflet abaixo do cabeçalho. */
+.real-map-container {
+  z-index: 0 !important;
+  isolation: isolate;
+}
+
+.header {
+  isolation: isolate;
+}
+
+.notification-center,
+.notification-popover {
+  z-index: 1200;
 }

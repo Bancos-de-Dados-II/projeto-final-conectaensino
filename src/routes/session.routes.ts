@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { SessionController } from '../controllers/SessionController';
 import { SessionActivityController } from '../controllers/SessionActivityController';
-import { requireAuth } from '../middlewares/authenticate';
+import { requireAuth, requireRoles } from '../middlewares/authenticate';
 
 const sessionRoutes = Router();
 
@@ -18,7 +18,12 @@ sessionRoutes.get(
   requireAuth,
   SessionActivityController.download,
 );
-sessionRoutes.post('/solicitar', requireAuth, SessionController.solicitarAula);
+sessionRoutes.post(
+  '/solicitar',
+  requireAuth,
+  requireRoles('student', 'authenticated'),
+  SessionController.solicitarAula,
+);
 sessionRoutes.post('/:id/atividades', requireAuth, SessionActivityController.upload);
 sessionRoutes.patch('/:id/status', requireAuth, SessionController.atualizarStatus);
 

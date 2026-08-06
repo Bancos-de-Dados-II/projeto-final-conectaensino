@@ -115,7 +115,7 @@ function nextBookableDate(availability: string[]): string {
 function SessionsPage() {
   const { user } = useAuth();
   const role = getApplicationRole(user);
-  const isManagement = role === "director" || role === "admin";
+  const isManagement = role !== "student";
   const [searchParams] = useSearchParams();
   const requestedMonitorId = searchParams.get("monitor") ?? "";
   const [monitors, setMonitors] = useState<PublicMonitor[]>([]);
@@ -315,11 +315,14 @@ function SessionsPage() {
       <div className="booking-page director-sessions-page">
         <section className="crud-page__heading">
           <div>
-            <span className="dashboard__eyebrow">Acompanhamento institucional</span>
-            <h1>Agenda dos monitores</h1>
+            <span className="dashboard__eyebrow">
+              {role === "monitor" ? "Minha agenda" : "Acompanhamento institucional"}
+            </span>
+            <h1>{role === "monitor" ? "Minhas aulas" : "Agenda dos monitores"}</h1>
             <p>
-              Acompanhe os atendimentos dos monitores cadastrados na sua
-              instituição. Você pode desmarcar uma aula quando necessário.
+              {role === "monitor"
+                ? "Acompanhe as aulas em que você foi selecionado como monitor."
+                : "Acompanhe os atendimentos dos monitores cadastrados na sua instituição. Você pode desmarcar uma aula quando necessário."}
             </p>
           </div>
         </section>

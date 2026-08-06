@@ -497,6 +497,20 @@ export const MonitorController = {
           coordinates: [...institution.location.coordinates] as [number, number],
         };
       }
+      if (req.body.disciplinas !== undefined) {
+        if (!Array.isArray(req.body.disciplinas)) {
+          return res.status(400).json({ message: 'Disciplinas deve ser uma lista.' });
+        }
+        req.body.disciplinas = [...new Set(
+          req.body.disciplinas
+            .filter((item: unknown): item is string => typeof item === 'string')
+            .map((item: string) => item.trim())
+            .filter(Boolean),
+        )];
+        if (req.body.disciplinas.length === 0) {
+          return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
+        }
+      }
       const allowed = ['name', 'disciplinas', 'disponibilidade', 'institutionId', 'phone'];
       for (const field of allowed) if (req.body[field] !== undefined) (monitor as any)[field] = req.body[field];
       await monitor.save();
