@@ -370,7 +370,7 @@ async create(req: Request, res: Response) {
           : {};
       const monitors = await MonitorProfile.find(filter)
         .select('+avatarData +avatarMimeType')
-        .populate('institutionId', 'nome cnpj endereco')
+        .populate('institutionId', 'nome cnpj endereco location')
         .lean();
 
       const { data: usuariosSupabase, error: supError } = await supabase

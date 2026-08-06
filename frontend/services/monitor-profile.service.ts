@@ -5,6 +5,7 @@ type PopulatedInstitution = {
   id?: string;
   nome?: string;
   name?: string;
+  endereco?: string;
   location?: {
     type: "Point";
     coordinates: [number, number];
