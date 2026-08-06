@@ -8150,3 +8150,43 @@ html[data-layout="modern"] .login-presentation > div {
 .notification-popover {
   z-index: 1200;
 }
+
+/* Garante o posicionamento relativo para prender a barra */
+.real-map-container {
+  position: relative;
+  border-top-left-radius: 12px;
+  overflow: hidden;
+}
+
+/* Barra Laranja Superior */
+.map-overlay-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* Fica acima dos tiles do Leaflet */
+  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  background-color: #e05333;
+  color: #ffffff;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-top-left-radius: 12px;
+}
+
+.map-overlay-bar__title {
+  font-size: 14px;
+}
+
+.map-overlay-bar__source {
+  font-weight: 300;
+  opacity: 0.95;
+}
+
+/* Ajusta o controle de zoom do Leaflet para nao encostar na barra */
+.leaflet-top {
+  top: 40px !important;
+}

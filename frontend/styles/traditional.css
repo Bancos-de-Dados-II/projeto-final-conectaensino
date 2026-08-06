@@ -61,8 +61,6 @@ html[data-layout="traditional"] .secondary-button:hover {
   color: var(--color-primary) !important;
   border: 1px solid var(--color-primary) !important;
 }
-
-html[data-layout="traditional"] select,
 html[data-layout="traditional"] textarea {
   background-color: #FFFFFF !important;
   color: var(--text-primary) !important;
@@ -365,7 +363,7 @@ html[data-layout="traditional"] .activity-upload-fields span{
 
 html[data-layout="traditional"] .activity-list-panel, html[data-layout="traditional"] .activity-list-panel > header small{
   color: #000000 !important;
-  background-color: var(--color-primary) !important;
+  background-color: var(--color-secondary) !important;
 }
 
 html[data-layout="traditional"] .conversation-search{
@@ -504,4 +502,52 @@ html[data-layout="traditional"] .postit-card:nth-of-type(even)::after {
     #dfb06c 50%, 
     #c99a57 100%
   );
+}
+
+html[data-layout="traditional"] .leaflet-touch .leaflet-bar a,
+html[data-layout="traditional"] .leaflet-control-zoom-in,
+html[data-layout="traditional"] .leaflet-control-zoom-out { 
+  background-color: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
+html[data-layout="traditional"] .leaflet-popup-content-wrapper, html[data-layout="traditional"] .leaflet-popup-tip, html[data-layout="traditional"] .entity-popup p, html[data-layout="traditional"] .entity-popup small {
+    color: #ffffff;
+    background: var(--color-primary);
+}
+
+html[data-layout="traditional"] .entity-popup span{
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-subject-filter select{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .history-filters select, html[data-layout="traditional"] .history-filters label {
+  color: #000000;
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .prototype-toggle-row input:checked + i, html[data-layout="traditional"] .prototype-toggle-row input:checked + i::after {
+  background: var(--color-terciary);
+  background: color-mix(in srgb, var(--color-primary) 56%, transparent);
+  border-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .session-activity-card{
+  background-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .session-activity-card > button {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+html[data-layout="traditional"] .session-activity-card__icon {
+  color: #ffffff;
+}
+
+html[data-layout="traditional"] .session-activity-card small{
+  color: #000;
 }

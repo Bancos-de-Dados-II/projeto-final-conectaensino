@@ -555,80 +555,116 @@ function MapPage() {
           </div>
         </aside>
 
-        <div className="real-map-container">
-          <MapContainer
-            center={[location.latitude, location.longitude]}
-            zoom={14}
-            scrollWheelZoom
-            className="leaflet-map"
-          >
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <div className="real-map-container">
+              <div className="map-overlay-bar">
+                <span className="map-overlay-bar__title">
+                  <strong>ConectaEnsino</strong> | PB
+                </span>
+                <span className="map-overlay-bar__source">
+                  Fonte de Dados: Microdados do Censo Escolar (INEP)
+                </span>
+              </div>
 
-            <MapViewport
-              latitude={location.latitude}
-              longitude={location.longitude}
-            />
+              <MapContainer
+                center={[location.latitude, location.longitude]}
+                zoom={14}
+                scrollWheelZoom
+                className="leaflet-map"
+              >
+                <TileLayer
+                  attribution="&copy; OpenStreetMap contributors"
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
 
-            {!isAdmin && <Marker
-              position={[location.latitude, location.longitude]}
-              icon={userMarkerIcon}
-            >
-              <Popup>
-                <strong>Você está aqui</strong>
-                <br />
-                {locationMessage}
-              </Popup>
-            </Marker>}
+                <MapViewport
+                  latitude={location.latitude}
+                  longitude={location.longitude}
+                />
 
-            {filteredSchools.map((school) => {
-              const distanceKm = getDistanceKm(
-                location.latitude,
-                location.longitude,
-                school.latitude,
-                school.longitude,
-              );
-              const monitorCount = school.monitorCount ?? 0;
-              const isInstitution = school.type === 'institution';
+                {!isAdmin && (
+                  <Marker
+                    position={[location.latitude, location.longitude]}
+                    icon={userMarkerIcon}
+                  >
+                    <Popup>
+                      <strong>Você está aqui</strong>
+                      <br />
+                      {locationMessage}
+                    </Popup>
+                  </Marker>
+                )}
 
-              return (
-                <Marker
-                  key={`institution-${school.id}`}
-                  position={[school.latitude, school.longitude]}
-                  icon={isInstitution
-                    ? createInstitutionMarkerIcon(monitorCount > 0)
-                    : createAdminEntityMarkerIcon(school.type as 'student' | 'monitor' | 'director')}
-                  eventHandlers={isInstitution ? { click: () => setSelectedSchool(school) } : undefined}
-                >
-                  <Popup>
-                    <div className="entity-popup">
-                      <strong>{school.name}</strong>
-                      <span>{school.type === 'student' ? 'Aluno' : school.type === 'monitor' ? 'Monitor' : school.type === 'director' ? 'Diretor' : 'Escola'}</span>
-                      {school.address && <p>{school.address}</p>}
-                      {school.city && <small>{school.city}</small>}
-                      {isInstitution && <small>
-                        {monitorCount}{" "}
-                        {monitorCount === 1
-                          ? "monitor cadastrado"
-                          : "monitores cadastrados"}
-                      </small>}
-                      {isAdmin && adminFilter !== 'all' && <small>
-                        {school.relatedCount ?? 0} {adminFilter === 'students' ? 'aluno(s)' : adminFilter === 'monitors' ? 'monitor(es)' : 'diretor(es)'} vinculado(s)
-                      </small>}
-                      {!isInstitution && school.institution && <small>{school.institution}</small>}
-                      {!isAdmin && <small>{distanceKm.toFixed(1)} km de voce</small>}
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
+                {filteredSchools.map((school) => {
+                  const distanceKm = getDistanceKm(
+                    location.latitude,
+                    location.longitude,
+                    school.latitude,
+                    school.longitude,
+                  );
+                  const monitorCount = school.monitorCount ?? 0;
+                  const isInstitution = school.type === 'institution';
 
-          </MapContainer>
-
-         
-        </div>
+                  return (
+                    <Marker
+                      key={`institution-${school.id}`}
+                      position={[school.latitude, school.longitude]}
+                      icon={
+                        isInstitution
+                          ? createInstitutionMarkerIcon(monitorCount > 0)
+                          : createAdminEntityMarkerIcon(
+                              school.type as 'student' | 'monitor' | 'director',
+                            )
+                      }
+                      eventHandlers={
+                        isInstitution
+                          ? { click: () => setSelectedSchool(school) }
+                          : undefined
+                      }
+                    >
+                      <Popup>
+                        <div className="entity-popup">
+                          <strong>{school.name}</strong>
+                          <span>
+                            {school.type === 'student'
+                              ? 'Aluno'
+                              : school.type === 'monitor'
+                              ? 'Monitor'
+                              : school.type === 'director'
+                              ? 'Diretor'
+                              : 'Escola'}
+                          </span>
+                          {school.address && <p>{school.address}</p>}
+                          {school.city && <small>{school.city}</small>}
+                          {isInstitution && (
+                            <small>
+                              {monitorCount}{' '}
+                              {monitorCount === 1
+                                ? 'monitor cadastrado'
+                                : 'monitores cadastrados'}
+                            </small>
+                          )}
+                          {isAdmin && adminFilter !== 'all' && (
+                            <small>
+                              {school.relatedCount ?? 0}{' '}
+                              {adminFilter === 'students'
+                                ? 'aluno(s)'
+                                : adminFilter === 'monitors'
+                                ? 'monitor(es)'
+                                : 'diretor(es)'}{' '}
+                              vinculado(s)
+                            </small>
+                          )}
+                          {!isInstitution && school.institution && (
+                            <small>{school.institution}</small>
+                          )}
+                          {!isAdmin && <small>{distanceKm.toFixed(1)} km de você</small>}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
       </section>
     </div>
   );

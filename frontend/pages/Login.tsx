@@ -365,7 +365,6 @@ function Login() {
                   </label>
 
                   <label className="login-field">
-                    <span>Escola da cidade</span>
                     <select
                       value={selectedSchoolId}
                       onChange={(e) => setSelectedSchoolId(e.target.value)}

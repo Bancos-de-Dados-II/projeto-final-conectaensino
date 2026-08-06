@@ -107,7 +107,6 @@ export default function SettingsPage() {
           {section === "notifications" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>02</span>
                 <div>
                   <h2>NOTIFICAÇÕES</h2>
                   <p>Escolha quais alertas deseja receber.</p>
@@ -155,7 +154,6 @@ export default function SettingsPage() {
           {section === "security" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>03</span>
                 <div>
                   <h2>SEGURANÇA</h2>
                   <p>Controles de acesso e proteção da sua conta.</p>
