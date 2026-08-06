@@ -106,7 +106,10 @@ export async function getSessionHistory(): Promise<ExperienceSession[]> {
   return getSessions();
 }
 
-export async function updateMonitorPreferences(data: { aceitaMonitoriaCasa: boolean }) {
+export async function updateMonitorPreferences(data: {
+  aceitaMonitoriaCasa?: boolean;
+  disciplinas?: string[];
+}) {
   const response = await api.put("/profile", data);
   return response.data;
 }
