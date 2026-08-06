@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
 import { Institution } from '../models/mongodb/Institution';
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import crypto from 'crypto';
 import type { GeoSearchQuery } from '../schemas/GeoSearchSchema';
 import { DirectorProfile } from '../models/mongodb/DirectorProfile';
@@ -103,6 +103,11 @@ export class StudentController {
 
   static async create(req: Request, res: Response): Promise<Response> {
     try {
+      if (!supabaseAdmin) {
+        return res.status(503).json({
+          message: 'Cadastro de usuários indisponível. Configure SUPABASE_SERVICE_ROLE_KEY.',
+        });
+      }
       if (req.user?.role === 'director') {
         const director = await DirectorProfile.findOne({
           userId: req.user.id,
@@ -136,7 +141,7 @@ export class StudentController {
         return res.status(400).json({ message: 'O campo email é obrigatório.' });
       }
 
-      const { data: existingUser } = await supabase
+      const { data: existingUser } = await supabaseAdmin
         .from('usuarios')
         .select('email')
         .eq('email', email)
@@ -173,12 +178,13 @@ export class StudentController {
       }
 
       const createdByDirector = req.user?.role === 'director';
-      const studentPassword = createdByDirector
+      const createdByManager = createdByDirector || req.user?.role === 'admin';
+      const studentPassword = createdByManager
         ? '12345678'
         : password || (crypto.randomBytes(6).toString('hex') + '!1A');
       const resolvedName = name || email.split('@')[0];
 
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: studentPassword,
         email_confirm: true,
@@ -196,7 +202,7 @@ export class StudentController {
           userId: authUserId, 
           name: resolvedName,
           email,
-          mustChangePassword: createdByDirector,
+          mustChangePassword: createdByManager,
           createdByDirectorId: createdByDirector ? req.user?.id : undefined,
           institutionId: isMongoId ? institutionId : undefined,
           enderecoResidencial,
@@ -207,7 +213,7 @@ export class StudentController {
 
       const mongoProfileId = student._id.toString();
 
-      const { data: usuarioSupabase, error: supabaseError } = await supabase
+      const { data: usuarioSupabase, error: supabaseError } = await supabaseAdmin
         .from('usuarios')
         .insert([
           { 
@@ -220,7 +226,7 @@ export class StudentController {
         .single();
 
       if (supabaseError) {
-        await supabase.auth.admin.deleteUser(authUserId);
+        await supabaseAdmin.auth.admin.deleteUser(authUserId);
         await StudentProfile.findByIdAndDelete(student._id);
         
         return res.status(400).json({
@@ -232,7 +238,7 @@ export class StudentController {
       return res.status(201).json({
         message: "Estudante cadastrado com sucesso em ambos os bancos com acesso ao sistema!",
         email: email,
-        senhaTemporaria: createdByDirector
+        senhaTemporaria: createdByManager
           ? '12345678'
           : password
             ? undefined
@@ -374,6 +380,47 @@ export class StudentController {
       return res.json({ ...student.toObject(), id: String(student._id) });
     } catch (error: any) {
       return res.status(500).json({ message: 'Erro ao editar aluno.', error: error.message });
+    }
+  }
+
+  static async delete(req: Request, res: Response): Promise<Response> {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(503).json({
+          message: 'Exclusão de usuários indisponível. Configure SUPABASE_SERVICE_ROLE_KEY.',
+        });
+      }
+      const student = await StudentProfile.findById(req.params.id);
+      if (!student) return res.status(404).json({ message: 'Aluno não encontrado.' });
+
+      if (req.user?.role === 'director') {
+        const director = await DirectorProfile.findOne({ userId: req.user.id }).lean();
+        if (!director || String(director.institutionId) !== String(student.institutionId)) {
+          return res.status(403).json({ message: 'Aluno fora da sua escola.' });
+        }
+      }
+      if (req.user?.role === 'admin') {
+        const scope = await getAdminScope(req.user.id);
+        if (!scope || !scope.institutionIds.some((id) => String(id) === String(student.institutionId))) {
+          return res.status(403).json({ message: 'Aluno fora da cidade administrada.' });
+        }
+      }
+
+      const { error: tableError } = await supabaseAdmin
+        .from('usuarios')
+        .delete()
+        .eq('mongo_profile_id', String(student._id));
+      if (tableError) {
+        return res.status(502).json({ message: 'Não foi possível remover o cadastro relacional.', error: tableError.message });
+      }
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(student.userId);
+      if (authError) {
+        return res.status(502).json({ message: 'Não foi possível remover as credenciais.', error: authError.message });
+      }
+      await student.deleteOne();
+      return res.status(200).json({ message: 'Aluno excluído com sucesso.' });
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Erro ao excluir aluno.', error: error.message });
     }
   }
 }

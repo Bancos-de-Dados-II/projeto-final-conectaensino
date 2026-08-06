@@ -27,6 +27,12 @@ studentRoutes.put(
   requireRoles('director', 'admin'),
   StudentController.update,
 );
+studentRoutes.delete(
+  '/:id',
+  requireAuth,
+  requireRoles('director', 'admin'),
+  StudentController.delete,
+);
 studentRoutes.get(
   '/:id/profile',
   requireAuth,
