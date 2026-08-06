@@ -133,7 +133,60 @@ export const MonitorController = {
     }
   },
 
-  async create(req: Request, res: Response) {
+  // NOVO MÉTODO: Atualização de preferências pelo próprio monitor (PUT /profile)
+  async updateOwnPreferences(req: Request, res: Response) {
+    try {
+      const monitor = await MonitorProfile.findOne({ userId: req.user?.id });
+      if (!monitor) {
+        return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+      }
+
+      if (req.body.habilidadesPcd !== undefined) {
+        if (!Array.isArray(req.body.habilidadesPcd)) {
+          return res.status(400).json({ message: 'Habilidades PCD deve ser uma lista.' });
+        }
+        monitor.habilidadesPcd = [
+          ...new Set<string>(
+            req.body.habilidadesPcd
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean)
+          ),
+        ];
+      }
+
+      if (req.body.disciplinas !== undefined) {
+        if (!Array.isArray(req.body.disciplinas)) {
+          return res.status(400).json({ message: 'Disciplinas deve ser uma lista.' });
+        }
+       monitor.disciplinas = [
+          ...new Set<string>(
+            req.body.disciplinas
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean)
+          ),
+        ];
+      }
+
+      if (req.body.aceitaMonitoriaCasa !== undefined) {
+        monitor.aceitaMonitoriaCasa = Boolean(req.body.aceitaMonitoriaCasa);
+      }
+
+      await monitor.save();
+      return res.status(200).json({
+        message: 'Preferências do perfil atualizadas com sucesso!',
+        monitor,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: 'Erro ao atualizar preferências do perfil.',
+        error: error.message,
+      });
+    }
+  },
+
+async create(req: Request, res: Response) {
     try {
       if (req.user?.role === 'director') {
         const director = await DirectorProfile.findOne({
@@ -158,6 +211,8 @@ export const MonitorController = {
             'Configure SUPABASE_SERVICE_ROLE_KEY no backend. A chave pública não pode criar usuários.',
         });
       }
+
+      // Extrai habilidadesPcd de req.body de forma explícita
       const { 
         email, 
         institutionId, 
@@ -166,7 +221,8 @@ export const MonitorController = {
         name, 
         nome, 
         fullName, 
-        nomeCompleto, 
+        nomeCompleto,
+        habilidadesPcd: rawHabilidadesPcd, 
         ...monitorData 
       } = req.body;
 
@@ -219,6 +275,16 @@ export const MonitorController = {
         : crypto.randomBytes(6).toString('hex') + '!1A';
       const resolvedName = name || nome || fullName || nomeCompleto || email.split('@')[0];
 
+      // TRATAMENTO E HIGIENIZAÇÃO DE HABILIDADES PCD
+      const habilidadesPcd = Array.isArray(rawHabilidadesPcd)
+        ? [...new Set(
+            rawHabilidadesPcd
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean)
+          )]
+        : [];
+
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: randomPassword,
@@ -240,7 +306,8 @@ export const MonitorController = {
         mustChangePassword: createdByManager,
         createdByDirectorId: createdByDirector ? req.user?.id : undefined,
         institutionId: isMongoId ? institutionId : undefined,
-        location: monitorLocation
+        location: monitorLocation,
+        habilidadesPcd, // PASSA O ARRAY TRATADO PARA O MONGOOSE
       };
 
       const monitor = await MonitorProfile.create(finalMonitorData);
@@ -485,7 +552,8 @@ export const MonitorController = {
   async update(req: Request, res: Response) {
     try {
       const monitor = await MonitorProfile.findById(req.params.id);
-      if (!monitor) return res.status(404).json({ message: 'Monitor nÃ£o encontrado.' });
+      if (!monitor) return res.status(404).json({ message: 'Monitor não encontrado.' });
+      
       if (req.user?.role === 'director') {
         const director = await DirectorProfile.findOne({ userId: req.user.id }).lean();
         if (!director || String(director.institutionId) !== String(monitor.institutionId)) {
@@ -499,12 +567,12 @@ export const MonitorController = {
           return res.status(403).json({ message: 'Monitor fora da cidade administrada.' });
         }
         if (req.body.institutionId && !scope.institutionIds.some((id) => String(id) === String(req.body.institutionId))) {
-          return res.status(403).json({ message: 'A escola deve pertencer Ã  cidade administrada.' });
+          return res.status(403).json({ message: 'A escola deve pertencer à cidade administrada.' });
         }
       }
       if (req.body.institutionId && String(req.body.institutionId) !== String(monitor.institutionId)) {
         const institution = await Institution.findById(req.body.institutionId).lean();
-        if (!institution) return res.status(404).json({ message: 'Nova escola nÃ£o encontrada.' });
+        if (!institution) return res.status(404).json({ message: 'Nova escola não encontrada.' });
         monitor.location = {
           type: 'Point',
           coordinates: [...institution.location.coordinates] as [number, number],
@@ -524,12 +592,25 @@ export const MonitorController = {
           return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
         }
       }
-      const allowed = ['name', 'disciplinas', 'disponibilidade', 'institutionId', 'phone'];
+      if (req.body.habilidadesPcd !== undefined) {
+        if (!Array.isArray(req.body.habilidadesPcd)) {
+          return res.status(400).json({ message: 'Habilidades PCD deve ser uma lista.' });
+        }
+        req.body.habilidadesPcd = [...new Set(
+          req.body.habilidadesPcd
+            .filter((item: unknown): item is string => typeof item === 'string')
+            .map((item: string) => item.trim())
+            .filter(Boolean),
+        )];
+      }
+
+      const allowed = ['name', 'disciplinas', 'disponibilidade', 'institutionId', 'phone', 'habilidadesPcd', 'aceitaMonitoriaCasa'];
       for (const field of allowed) if (req.body[field] !== undefined) (monitor as any)[field] = req.body[field];
+      
       await monitor.save();
       return res.json({ ...monitor.toObject(), id: String(monitor._id) });
     } catch (error: any) {
       return res.status(500).json({ message: 'Erro ao editar monitor.', error: error.message });
     }
-  },
+  }
 };

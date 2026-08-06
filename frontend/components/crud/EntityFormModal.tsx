@@ -10,6 +10,7 @@ import type {
   CrudEntity,
   CrudField,
 } from "../../types/crud";
+import { api } from "../../api/axios";
 import { getAdminInstitutions, getInstitutions } from "../../services/map.service";
 import { getOwnAccountProfile } from "../../services/monitor-profile.service";
 import { useAuth } from "../../hooks/useAuth";
@@ -28,9 +29,16 @@ interface EntityFormModalProps {
 function getInitialValues(
   fields: CrudField[],
   entity: CrudEntity | null,
-): Record<string, string> {
-  return fields.reduce<Record<string, string>>((values, field) => {
+): Record<string, unknown> {
+  return fields.reduce<Record<string, unknown>>((values, field) => {
     const currentValue = entity?.[field.key];
+
+    if (field.type === "checkbox-group") {
+      values[field.key] = Array.isArray(currentValue)
+        ? currentValue.map(String)
+        : [];
+      return values;
+    }
 
     if (field.key === "institutionId" && typeof currentValue === "object" && currentValue !== null) {
       const institution = currentValue as Record<string, unknown>;
@@ -62,10 +70,12 @@ function EntityFormModal({
     [entity, fields],
   );
 
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState<Record<string, unknown>>(initialValues);
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [dynamicOptions, setDynamicOptions] = useState<Record<string, any[]>>({});
 
+  // Carrega Instituições (apenas para o campo institutionId)
   useEffect(() => {
     if (open) {
       setLoadingInstitutions(true);
@@ -98,6 +108,27 @@ function EntityFormModal({
     }
   }, [open, user]);
 
+  // Carrega opções dinâmicas para outros selects (ex: /disciplinas/catalog)
+  useEffect(() => {
+    if (open) {
+      fields.forEach((field) => {
+        if (field.type === "select" && field.key !== "institutionId" && field.optionsEndpoint) {
+          api
+            .get(field.optionsEndpoint)
+            .then((res) => {
+              setDynamicOptions((prev) => ({
+                ...prev,
+                [field.key]: Array.isArray(res.data) ? res.data : [],
+              }));
+            })
+            .catch((err) =>
+              console.error(`Erro ao carregar opções de ${field.key}:`, err)
+            );
+        }
+      });
+    }
+  }, [open, fields]);
+
   useEffect(() => {
     setValues(initialValues);
   }, [initialValues, open]);
@@ -106,12 +137,30 @@ function EntityFormModal({
     return null;
   }
 
-async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleCheckboxToggle = (fieldKey: string, optionValue: string) => {
+    setValues((current) => {
+      const existing = Array.isArray(current[fieldKey])
+        ? (current[fieldKey] as string[])
+        : [];
+      const updated = existing.includes(optionValue)
+        ? existing.filter((val) => val !== optionValue)
+        : [...existing, optionValue];
+      return { ...current, [fieldKey]: updated };
+    });
+  };
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const rawValues = fields.reduce<Record<string, unknown>>(
       (result, field) => {
         const val = values[field.key];
+
+        if (field.type === "checkbox-group") {
+          result[field.key] = Array.isArray(val) ? val : [];
+          return result;
+        }
+
         const value = typeof val === "string" ? val.trim() : val ?? "";
 
         if (field.type === "number") {
@@ -154,10 +203,13 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
       userId: rawValues.userId || "temp-user-id",
       disciplinas: typeof rawValues.disciplinas === "string" 
         ? rawValues.disciplinas.split(",").map((d: string) => d.trim()).filter(Boolean)
-        : rawValues.disciplinas,
+        : Array.isArray(rawValues.disciplinas) ? rawValues.disciplinas : [rawValues.disciplinas].filter(Boolean),
       disponibilidade: typeof rawValues.disponibilidade === "string"
         ? rawValues.disponibilidade.split(",").map((d: string) => d.trim()).filter(Boolean)
         : rawValues.disponibilidade,
+      habilidadesPcd: Array.isArray(rawValues.habilidadesPcd)
+        ? rawValues.habilidadesPcd
+        : [],
       location: {
         type: "Point",
         coordinates: [lng, lat],
@@ -205,12 +257,33 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         <form className="crud-form" onSubmit={handleSubmit}>
           <div className="crud-form__fields">
             {fields.map((field) => (
-              <label className="crud-form-field" key={field.key}>
+              <div className="crud-form-field" key={field.key}>
                 <span>{field.label}</span>
 
-                {field.key === "institutionId" || field.type === "select" ? (
+                  {field.type === "checkbox-group" ? (
+                    <div className="crud-checkbox-grid">
+                      {field.options?.map((option) => {
+                        const optionVal = String(option.value);
+                        const currentSelected = Array.isArray(values[field.key])
+                          ? (values[field.key] as string[])
+                          : [];
+                        const isChecked = currentSelected.includes(optionVal);
+
+                        return (
+                          <label key={optionVal} className="crud-checkbox-card">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleCheckboxToggle(field.key, optionVal)}
+                            />
+                            <span>{option.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : field.key === "institutionId" ? (
                   <select
-                    value={values[field.key] ?? ""}
+                    value={String(values[field.key] ?? "")}
                     required={field.required}
                     disabled={loadingInstitutions}
                     onChange={(event) =>
@@ -233,9 +306,38 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                       );
                     })}
                   </select>
+                ) : field.type === "select" ? (
+                  <select
+                    value={String(values[field.key] ?? "")}
+                    required={field.required}
+                    onChange={(event) =>
+                      setValues((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">{field.placeholder || "Selecione..."}</option>
+
+                    {field.options?.map((opt) => (
+                      <option key={String(opt.value)} value={String(opt.value)}>
+                        {opt.label}
+                      </option>
+                    ))}
+
+                    {dynamicOptions[field.key]?.map((item: any) => {
+                      const val = typeof item === "string" ? item : (item.nome || item.name || item.id);
+                      const label = typeof item === "string" ? item : (item.nome || item.name || item.label);
+                      return (
+                        <option key={val} value={val}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
                 ) : field.type === "textarea" ? (
                   <textarea
-                    value={values[field.key] ?? ""}
+                    value={String(values[field.key] ?? "")}
                     placeholder={field.placeholder}
                     required={field.required}
                     onChange={(event) =>
@@ -248,7 +350,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                 ) : (
                   <input
                     type={field.type || "text"}
-                    value={values[field.key] ?? ""}
+                    value={String(values[field.key] ?? "")}
                     placeholder={field.placeholder}
                     required={field.required}
                     onChange={(event) =>
@@ -259,7 +361,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     }
                   />
                 )}
-              </label>
+              </div>
             ))}
           </div>
 

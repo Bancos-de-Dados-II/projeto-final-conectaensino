@@ -567,3 +567,30 @@ html[data-layout="traditional"] .calendar-event span, html[data-layout="traditio
 html[data-layout="traditional"] .director-session-card time span, html[data-layout="traditional"] .status-pill, html[data-layout="traditional"] .director-session-card__cancel {
     color: var(--color-primary);
 }
+
+html[data-layout="traditional"] .crud-modal {
+  background-color: var(--color-secondary);
+  border-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .crud-checkbox-grid {
+  background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .crud-checkbox-card {
+  background-color: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .crud-modal .crud-checkbox-card span {
+  color: #000 !important;
+}
+
+html[data-layout="traditional"] .crud-modal .crud-checkbox-card:hover {
+  background-color: color-mix(in srgb, var(--color-secondary) 50%, transparent);
+  border-color: #e05333;
+}
+
+html[data-layout="traditional"] .chat-composer__field {
+  background-color: #FFFFFF;
+  border: none;
+}

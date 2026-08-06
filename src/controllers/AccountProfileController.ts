@@ -178,8 +178,9 @@ export const AccountProfileController = {
           rating: (monitorProfile as any).rating ?? 5.0,
           sessions: (monitorProfile as any).sessions ?? 0,
           certificates: (monitorProfile as any).certificates ?? 0,
-          subjects: (monitorProfile as any).subjects || [],
+          subjects: (monitorProfile as any).subjects || (monitorProfile as any).disciplinas || [],
           aceitaMonitoriaCasa: (monitorProfile as any).aceitaMonitoriaCasa ?? false,
+          habilidadesPcd: monitorProfile.habilidadesPcd || [],
         });
       }
 
@@ -210,106 +211,117 @@ export const AccountProfileController = {
   },
 
   async update(req: Request, res: Response): Promise<Response> {
-  try {
-    const userId = req.user?.id;
-    const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+    try {
+      const userId = req.user?.id;
+      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
 
-    const clean = (value: unknown, maxLength: number) =>
-      typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined;
+      const clean = (value: unknown, maxLength: number) =>
+        typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined;
 
-    const name = clean(req.body?.name, 120);
-    const email = req.body?.email !== undefined ? clean(req.body?.email, 254)?.toLocaleLowerCase('pt-BR') : undefined;
-    const phone = clean(req.body?.phone, 30);
-    const course = clean(req.body?.course, 120);
-    const specialty = clean(req.body?.specialty, 120);
-    const aceitaMonitoriaCasa = typeof req.body?.aceitaMonitoriaCasa === 'boolean' 
-      ? req.body.aceitaMonitoriaCasa 
-      : undefined;
-    const disciplinas = Array.isArray(req.body?.disciplinas)
-      ? [...new Set(
-          req.body.disciplinas
-            .filter((item: unknown): item is string => typeof item === 'string')
-            .map((item: string) => item.trim())
-            .filter(Boolean),
-        )]
-      : undefined;
+      const name = clean(req.body?.name, 120);
+      const email = req.body?.email !== undefined ? clean(req.body?.email, 254)?.toLocaleLowerCase('pt-BR') : undefined;
+      const phone = clean(req.body?.phone, 30);
+      const course = clean(req.body?.course, 120);
+      const specialty = clean(req.body?.specialty, 120);
+      const aceitaMonitoriaCasa = typeof req.body?.aceitaMonitoriaCasa === 'boolean' 
+        ? req.body.aceitaMonitoriaCasa 
+        : undefined;
 
-    if (req.body?.disciplinas !== undefined && (!disciplinas || disciplinas.length === 0)) {
-      return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
-    }
+      const disciplinas = Array.isArray(req.body?.disciplinas)
+        ? [...new Set(
+            req.body.disciplinas
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean),
+          )]
+        : undefined;
 
-    // Se o cliente tentar atualizar expressamente o nome para vazio
-    if (req.body?.name !== undefined && !name) {
-      return res.status(400).json({ message: 'Informe o nome do perfil.' });
-    }
-    if (email !== undefined && email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: 'Informe um e-mail válido.' });
-    }
+      const habilidadesPcd = Array.isArray(req.body?.habilidadesPcd)
+        ? [...new Set(
+            req.body.habilidadesPcd
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean),
+          )]
+        : undefined;
 
-    let matched = false;
+      if (req.body?.disciplinas !== undefined && (!disciplinas || disciplinas.length === 0)) {
+        return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
+      }
 
-    if (role === 'monitor') {
-      const updateData: Record<string, any> = {};
-      if (name !== undefined) updateData.name = name;
-      if (email !== undefined) updateData.email = email;
-      if (phone !== undefined) updateData.telefoneContato = phone;
-      if (course !== undefined) updateData.course = course;
-      if (aceitaMonitoriaCasa !== undefined) updateData.aceitaMonitoriaCasa = aceitaMonitoriaCasa;
-      if (disciplinas !== undefined) updateData.disciplinas = disciplinas;
+      if (req.body?.name !== undefined && !name) {
+        return res.status(400).json({ message: 'Informe o nome do perfil.' });
+      }
+      if (email !== undefined && email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: 'Informe um e-mail válido.' });
+      }
 
-      const result = await MonitorProfile.updateOne({ userId }, { $set: updateData });
-      matched = result.matchedCount > 0;
-    } else if (role === 'director') {
-      const updateData: Record<string, any> = {};
-      if (name !== undefined) updateData.name = name;
-      if (email !== undefined) updateData.email = email;
-      if (phone !== undefined) updateData.phone = phone;
+      let matched = false;
 
-      const result = await DirectorProfile.updateOne({ userId }, { $set: updateData });
-      matched = result.matchedCount > 0;
-    } else {
-      const updateData: Record<string, any> = {};
-      if (name !== undefined) updateData.name = name;
-      if (email !== undefined) updateData.email = email;
-      if (phone !== undefined) updateData.phone = phone;
-      if (specialty !== undefined) updateData.tipoDeficiencia = specialty;
+      if (role === 'monitor') {
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.telefoneContato = phone;
+        if (course !== undefined) updateData.course = course;
+        if (aceitaMonitoriaCasa !== undefined) updateData.aceitaMonitoriaCasa = aceitaMonitoriaCasa;
+        if (disciplinas !== undefined) updateData.disciplinas = disciplinas;
+        if (habilidadesPcd !== undefined) updateData.habilidadesPcd = habilidadesPcd;
 
-      const result = await StudentProfile.updateOne({ userId }, { $set: updateData });
-      matched = result.matchedCount > 0;
-    }
+        const result = await MonitorProfile.updateOne({ userId }, { $set: updateData });
+        matched = result.matchedCount > 0;
+      } else if (role === 'director') {
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
 
-    if (!matched) {
-      return res.status(404).json({ message: 'Perfil não encontrado.' });
-    }
+        const result = await DirectorProfile.updateOne({ userId }, { $set: updateData });
+        matched = result.matchedCount > 0;
+      } else {
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
+        if (specialty !== undefined) updateData.tipoDeficiencia = specialty;
 
-    if (supabaseAdmin && userId && (name !== undefined || email !== undefined)) {
-      const attributes: {
-        email?: string;
-        user_metadata?: { name?: string };
-      } = {};
-      if (name !== undefined) attributes.user_metadata = { name };
-      if (email && email !== req.user?.email) attributes.email = email;
+        const result = await StudentProfile.updateOne({ userId }, { $set: updateData });
+        matched = result.matchedCount > 0;
+      }
 
-      if (Object.keys(attributes).length > 0) {
-        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, attributes);
-        if (error) {
-          return res.status(400).json({
-            message: 'Os dados foram salvos, mas não foi possível atualizar as credenciais.',
-            error: error.message,
-          });
+      if (!matched) {
+        return res.status(404).json({ message: 'Perfil não encontrado.' });
+      }
+
+      if (supabaseAdmin && userId && (name !== undefined || email !== undefined)) {
+        const attributes: {
+          email?: string;
+          user_metadata?: { name?: string };
+        } = {};
+        if (name !== undefined) attributes.user_metadata = { name };
+        if (email && email !== req.user?.email) attributes.email = email;
+
+        if (Object.keys(attributes).length > 0) {
+          const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, attributes);
+          if (error) {
+            return res.status(400).json({
+              message: 'Os dados foram salvos, mas não foi possível atualizar as credenciais.',
+              error: error.message,
+            });
+          }
         }
       }
-    }
 
-    return res.status(200).json({
-      message: 'Perfil atualizado com sucesso.',
-      aceitaMonitoriaCasa,
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil.';
-    return res.status(500).json({ message });
-  }
-},
+      return res.status(200).json({
+        message: 'Perfil atualizado com sucesso.',
+        aceitaMonitoriaCasa,
+        habilidadesPcd,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil.';
+      return res.status(500).json({ message });
+    }
+  },
 
   async avatar(req: Request, res: Response): Promise<Response> {
     try {

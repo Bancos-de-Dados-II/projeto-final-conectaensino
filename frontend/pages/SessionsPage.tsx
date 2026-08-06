@@ -13,6 +13,7 @@ import {
   School,
   Globe,
   MapPin,
+  Accessibility, // <--- Importado para o cabeçalho das habilidades
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -506,58 +507,58 @@ function SessionsPage() {
             />
           </label>
 
-            <div className="booking-field">
-              <span>Local da Aula</span>
-              <div className="booking-location-options">
-                {/* Opção 1: Na instituição */}
-                <label className="booking-location-radio">
+          <div className="booking-field">
+            <span>Local da Aula</span>
+            <div className="booking-location-options">
+              {/* Opção 1: Na instituição */}
+              <label className="booking-location-radio">
+                <input
+                  type="radio"
+                  name="tipoLocal"
+                  value="escola"
+                  checked={tipoLocal === "escola"}
+                  onChange={() => setTipoLocal("escola")}
+                />
+                <School size={16} />
+                <span>Na instituição</span>
+              </label>
+
+              <div className="booking-location-wrapper">
+                <label 
+                  className={`booking-location-radio ${!selectedMonitor?.aceitaMonitoriaCasa ? "booking-location-radio--disabled" : ""}`}
+                >
                   <input
                     type="radio"
                     name="tipoLocal"
-                    value="escola"
-                    checked={tipoLocal === "escola"}
-                    onChange={() => setTipoLocal("escola")}
+                    value="casa_aluno"
+                    disabled={!selectedMonitor?.aceitaMonitoriaCasa}
+                    checked={tipoLocal === "casa_aluno"}
+                    onChange={() => setTipoLocal("casa_aluno")}
                   />
-                  <School size={16} />
-                  <span>Na instituição</span>
+                  <Home size={16} />
+                  <span>Na minha casa</span>
                 </label>
 
-                <div className="booking-location-wrapper">
-                  <label 
-                    className={`booking-location-radio ${!selectedMonitor?.aceitaMonitoriaCasa ? "booking-location-radio--disabled" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="tipoLocal"
-                      value="casa_aluno"
-                      disabled={!selectedMonitor?.aceitaMonitoriaCasa}
-                      checked={tipoLocal === "casa_aluno"}
-                      onChange={() => setTipoLocal("casa_aluno")}
-                    />
-                    <Home size={16} />
-                    <span>Na minha casa</span>
-                  </label>
-
-                  {selectedMonitor && !selectedMonitor.aceitaMonitoriaCasa && (
-                    <small className="booking-location-warning">
-                      * Este monitor não realiza atendimentos em domicílio.
-                    </small>
-                  )}
-                </div>
-
-                <label className="booking-location-radio">
-                  <input
-                    type="radio"
-                    name="tipoLocal"
-                    value="online"
-                    checked={tipoLocal === "online"}
-                    onChange={() => setTipoLocal("online")}
-                  />
-                  <Globe size={16} />
-                  <span>Online</span>
-                </label>
+                {selectedMonitor && !selectedMonitor.aceitaMonitoriaCasa && (
+                  <small className="booking-location-warning">
+                    * Este monitor não realiza atendimentos em domicílio.
+                  </small>
+                )}
               </div>
+
+              <label className="booking-location-radio">
+                <input
+                  type="radio"
+                  name="tipoLocal"
+                  value="online"
+                  checked={tipoLocal === "online"}
+                  onChange={() => setTipoLocal("online")}
+                />
+                <Globe size={16} />
+                <span>Online</span>
+              </label>
             </div>
+          </div>
 
           {tipoLocal === "casa_aluno" && (
             <label className="booking-field">
@@ -576,29 +577,52 @@ function SessionsPage() {
           )}
 
               {selectedMonitor && (
-              <article className="booking-monitor-card">
-                {selectedMonitor.avatar ? (
-                  <img 
-                    src={selectedMonitor.avatar} 
-                    alt={selectedMonitor.name} 
-                    className="booking-monitor-avatar"
-                  />
-                ) : (
-                  <span><UserRound size={22} /></span>
-                )}
-                <div>
-                  <strong>{selectedMonitor.name}</strong>
-                  <small>
-                    <GraduationCap size={13} />
-                    {selectedMonitor.institution || "Instituição não informada"}
-                  </small>
-                  <small>
-                    <BookOpen size={13} />
-                    {selectedMonitor.subjects.join(", ") || "Disciplinas sob consulta"}
-                  </small>
-                </div>
-              </article>
-            )}
+                <article className="booking-monitor-card">
+                  {selectedMonitor.avatar ? (
+                    <img 
+                      src={selectedMonitor.avatar} 
+                      alt={selectedMonitor.name} 
+                      className="booking-monitor-avatar"
+                    />
+                  ) : (
+                    <span className="booking-monitor-avatar-placeholder">
+                      <UserRound size={22} />
+                    </span>
+                  )}
+                  
+                  <div className="booking-monitor-details">
+                    <strong className="booking-monitor-name">
+                      {selectedMonitor.name}
+                    </strong>
+                    
+                    <small className="booking-monitor-meta">
+                      <GraduationCap size={13} />
+                      {selectedMonitor.institution || "Instituição não informada"}
+                    </small>
+                    
+                    <small className="booking-monitor-meta">
+                      <BookOpen size={13} />
+                      {selectedMonitor.subjects.join(", ") || "Disciplinas sob consulta"}
+                    </small>
+
+                    {Array.isArray(selectedMonitor.habilidadesPcd) && selectedMonitor.habilidadesPcd.length > 0 && (
+                      <div className="booking-monitor-pcd">
+                        <small className="booking-monitor-pcd__title">
+                          <Accessibility size={13} /> Recursos de Acessibilidade:
+                        </small>
+                        
+                        <div className="booking-monitor-pcd__badges">
+                          {selectedMonitor.habilidadesPcd.map((habilidade, index) => (
+                            <span key={index} className="booking-monitor-pcd__badge">
+                              {habilidade}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )}
 
           <button
             className="primary-button booking-submit"

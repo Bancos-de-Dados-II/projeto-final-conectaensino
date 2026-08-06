@@ -109,13 +109,16 @@ export async function getSessionHistory(): Promise<ExperienceSession[]> {
 export async function updateMonitorPreferences(data: {
   aceitaMonitoriaCasa?: boolean;
   disciplinas?: string[];
+  habilidadesPcd?: string[];
 }) {
   const response = await api.put("/profile", data);
   return response.data;
 }
 
-export async function getMyMonitorProfile(): Promise<PublicMonitor & { aceitaMonitoriaCasa?: boolean }> {
-  const { data } = await api.get("/profile");
+export async function getMyMonitorProfile(): Promise<
+  PublicMonitor & { aceitaMonitoriaCasa?: boolean; habilidadesPcd?: string[] }
+> {
+  const { data } = await api.get("/monitors/me");
   if (isObject(data)) {
     const inner = isObject(data.data) ? data.data : data;
     return normalizeMonitor(inner);
@@ -123,7 +126,7 @@ export async function getMyMonitorProfile(): Promise<PublicMonitor & { aceitaMon
   throw new Error("Não foi possível carregar os dados do seu perfil.");
 }
 
-export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceitaMonitoriaCasa?: boolean } {
+export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceitaMonitoriaCasa?: boolean; habilidadesPcd?: string[] } {
   const rawSubjects = get(item, ["subjects", "disciplinas", "specialties"]);
   const subjects = Array.isArray(rawSubjects)
     ? rawSubjects.map((subject) => isObject(subject) ? str(get(subject, ["name", "nome"])) : str(subject)).filter(Boolean)
@@ -133,6 +136,12 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceit
   const availability = Array.isArray(rawAvailability)
     ? rawAvailability.map((item) => str(item)).filter(Boolean)
     : str(rawAvailability).split(",").map((item) => item.trim()).filter(Boolean);
+
+  // EXTRAÇÃO DO ARRAY DE HABILIDADES PCD:
+  const rawPcd = get(item, ["habilidadesPcd", "habilidades_pcd"]);
+  const habilidadesPcd = Array.isArray(rawPcd)
+    ? rawPcd.map((item) => str(item)).filter(Boolean)
+    : [];
 
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `monitor-${index}`),
@@ -157,6 +166,7 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceit
     city: str(get(item, ["city", "cidade", "address.city", "endereco.cidade"])),
     availability,
     aceitaMonitoriaCasa: Boolean(get(item, ["aceitaMonitoriaCasa", "aceita_monitoria_casa"])),
+    habilidadesPcd, 
   };
 }
 

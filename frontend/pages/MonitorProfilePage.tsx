@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, BookOpen, CalendarPlus, GraduationCap, Home, MapPin, PenLine, Save, Star, X } from "lucide-react";
+import { Accessibility, Award, BookOpen, CalendarPlus, Check, GraduationCap, Home, MapPin, PenLine, Plus, Save, Star, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import { getMonitor, getMyMonitorProfile, updateMonitorPreferences } from "../services/experience.service";
@@ -7,17 +7,34 @@ import type { PublicMonitor } from "../types/experience";
 import SubjectSuggestionForm from "../components/subjects/SubjectSuggestionForm";
 import { getSubjectCatalog } from "../services/subject.service";
 
+const HABILIDADES_PCD_OPCOES = [
+  "Libras (Língua Brasileira de Sinais)",
+  "Material em Braille / Texto Ampliado",
+  "Suporte para TEA (Autismo)",
+  "Metodologias para TDAH / Dislexia",
+  "Comunicação Alternativa (CAA)",
+  "Audiodescrição",
+];
+
 export default function MonitorProfilePage() {
   const { id } = useParams();
   const [monitor, setMonitor] = useState<PublicMonitor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [aceitaCasa, setAceitaCasa] = useState(false);
+  
+  // Estado para disciplinas
   const [editingSubjects, setEditingSubjects] = useState(false);
   const [subjectsInput, setSubjectsInput] = useState("");
   const [savingSubjects, setSavingSubjects] = useState(false);
   const [subjectsMessage, setSubjectsMessage] = useState("");
   const [subjectCatalog, setSubjectCatalog] = useState<string[]>([]);
+
+  // Estado para Habilidades PCD
+  const [editingPcd, setEditingPcd] = useState(false);
+  const [pcdSelected, setPcdSelected] = useState<string[]>([]);
+  const [savingPcd, setSavingPcd] = useState(false);
+  const [pcdMessage, setPcdMessage] = useState("");
 
   const isMyProfile = !id;
 
@@ -30,7 +47,8 @@ export default function MonitorProfilePage() {
       .then((data: any) => {
         setMonitor(data);
         setAceitaCasa(data.aceitaMonitoriaCasa ?? false);
-        setSubjectsInput(data.subjects.join(", "));
+        setSubjectsInput(data.subjects?.join(", ") || "");
+        setPcdSelected(data.habilidadesPcd || []);
       })
       .catch((err) => {
         console.error("Erro na busca de perfil:", err);
@@ -74,6 +92,27 @@ export default function MonitorProfilePage() {
       setSubjectsMessage("Não foi possível atualizar as disciplinas.");
     } finally {
       setSavingSubjects(false);
+    }
+  };
+
+  const togglePcdHabilidade = (opcao: string) => {
+    setPcdSelected((prev) =>
+      prev.includes(opcao) ? prev.filter((item) => item !== opcao) : [...prev, opcao]
+    );
+  };
+
+  const handleSavePcd = async () => {
+    setSavingPcd(true);
+    setPcdMessage("");
+    try {
+      await updateMonitorPreferences({ habilidadesPcd: pcdSelected });
+      setMonitor((current) => current ? { ...current, habilidadesPcd: pcdSelected } : current);
+      setEditingPcd(false);
+      setPcdMessage("Habilidades PCD atualizadas com sucesso.");
+    } catch {
+      setPcdMessage("Não foi possível atualizar as habilidades PCD.");
+    } finally {
+      setSavingPcd(false);
     }
   };
 
@@ -137,17 +176,19 @@ export default function MonitorProfilePage() {
             </span>
           </div>
 
-          <div className= "monitor-checkbox" style={{ marginTop: "12px" }}>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem", fontWeight: 500 }}>
-              <input 
-                type="checkbox" 
-                checked={aceitaCasa} 
-                onChange={handleToggleHomeTutoring}
-                className="monitor-checkbox-input"
+          {isMyProfile && (
+            <div className="monitor-checkbox" style={{ marginTop: "12px" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem", fontWeight: 500 }}>
+                <input 
+                  type="checkbox" 
+                  checked={aceitaCasa} 
+                  onChange={handleToggleHomeTutoring}
+                  className="monitor-checkbox-input"
                 />
-              <Home size={16} /> Aceita monitoria na casa do aluno
-            </label>
-          </div>
+                <Home size={16} /> Aceita monitoria na casa do aluno
+              </label>
+            </div>
+          )}
         </div>
         
         <div className="monitor-hero__actions">
@@ -181,6 +222,7 @@ export default function MonitorProfilePage() {
         </div>
       </section>
 
+      {/* PAINEL DE DISCIPLINAS */}
       <article className="panel monitor-subjects">
         <div className="panel__header">
           <div>
@@ -243,6 +285,107 @@ export default function MonitorProfilePage() {
         )}
         {subjectsMessage && <p className="monitor-subjects__message" role="status">{subjectsMessage}</p>}
       </article>
+
+      {/* NOVO PAINEL: HABILIDADES PCD E ACESSIBILIDADE */}
+      <article className="panel monitor-pcd" style={{ marginTop: "20px" }}>
+        <div className="panel__header">
+          <div>
+            <span className="panel__eyebrow">Acessibilidade</span>
+            <h2>Recursos e Habilidades PCD</h2>
+          </div>
+          {isMyProfile && !editingPcd && (
+            <button className="secondary-button" type="button" onClick={() => { setPcdMessage(""); setEditingPcd(true); }}>
+              <PenLine size={16} />
+              Editar Habilidades PCD
+            </button>
+          )}
+        </div>
+
+        {isMyProfile && editingPcd ? (
+          <div className="monitor-pcd__editor" style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
+            <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>Selecione os recursos e metodologias de acessibilidade que você utiliza em suas aulas:</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {HABILIDADES_PCD_OPCOES.map((opcao) => {
+                const isSelected = pcdSelected.includes(opcao);
+                return (
+                  <button
+                    key={opcao}
+                    type="button"
+                    onClick={() => togglePcdHabilidade(opcao)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "8px 14px",
+                      borderRadius: "20px",
+                      border: isSelected ? "1px solid var(--color-primary, #e05333)" : "1px solid rgba(255,255,255,0.2)",
+                      backgroundColor: isSelected ? "var(--color-primary, #e05333)" : "transparent",
+                      color: "#fff",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    {isSelected ? <Check size={14} /> : <Plus size={14} />}
+                    {opcao}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button 
+                className="secondary-button" 
+                type="button" 
+                disabled={savingPcd} 
+                onClick={() => { 
+                  setPcdSelected(monitor.habilidadesPcd || []); 
+                  setPcdMessage(""); 
+                  setEditingPcd(false); 
+                }}
+              >
+                <X size={16} /> Cancelar
+              </button>
+              <button 
+                className="primary-button" 
+                type="button" 
+                disabled={savingPcd} 
+                onClick={() => void handleSavePcd()}
+              >
+                <Save size={16} /> {savingPcd ? "Salvando..." : "Salvar Habilidades"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "12px" }}>
+            {monitor.habilidadesPcd && monitor.habilidadesPcd.length > 0 ? (
+              monitor.habilidadesPcd.map((habilidade) => (
+                <span 
+                  key={habilidade}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    borderRadius: "16px",
+                    backgroundColor: "rgba(224, 83, 51, 0.15)",
+                    border: "1px solid var(--color-primary, #e05333)",
+                    color: "var(--color-primary, #e05333)",
+                    fontSize: "0.85rem",
+                    fontWeight: 500
+                  }}
+                >
+                  <Accessibility size={14} />
+                  {habilidade}
+                </span>
+              ))
+            ) : (
+              <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>Nenhum recurso de acessibilidade PCD cadastrado.</p>
+            )}
+          </div>
+        )}
+        {pcdMessage && <p className="monitor-subjects__message" role="status" style={{ marginTop: "10px" }}>{pcdMessage}</p>}
+      </article>
+
       {isMyProfile && <SubjectSuggestionForm />}
     </section>
   );

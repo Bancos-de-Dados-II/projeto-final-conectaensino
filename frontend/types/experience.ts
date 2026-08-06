@@ -28,6 +28,7 @@ export interface PublicMonitor {
   city?: string;
   availability: string[];
   aceitaMonitoriaCasa?: boolean;
+  habilidadesPcd?: string[]; 
 }
 
 export interface ScheduleSlot {
