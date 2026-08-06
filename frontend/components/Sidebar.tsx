@@ -42,6 +42,7 @@ const mainItems = [
   { label: "Sessões", path: "/sessoes", icon: CalendarDays },
   { label: "Agenda", path: "/agenda", icon: CalendarDays },
   { label: "Histórico", path: "/historico", icon: History },
+  { label: "Certificados", path: "/certificados", icon: Award },
 ];
 
 const managementItems = [
@@ -66,6 +67,7 @@ export default function Sidebar({
   const isAdmin = userRole === "admin";
 
   const visibleMainItems = mainItems.filter((item) => {
+    if (item.path === "/certificados" && !isMonitor) return false;
     if (isAdmin && !["/dashboard", "/diretores", "/mapa", "/monitores", "/alunos"].includes(item.path)) return false;
     if (!isAdmin && item.path === "/diretores") return false;
     if (

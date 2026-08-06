@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 import { supabase } from '../config/supabase';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
@@ -11,6 +12,35 @@ type CertificadoCreateBody = {
 };
 
 export const CertificadoController = {
+  async buscarMeuUltimo(req: Request, res: Response): Promise<Response> {
+    try {
+      const monitor = await MonitorProfile.findOne({ userId: req.user?.id }).select('_id userId').lean();
+      if (!monitor) {
+        return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+      }
+
+      const monitorIds = [String(monitor._id), monitor.userId];
+      const { data: certificado, error } = await supabase
+        .from('certificados')
+        .select('id, mongo_monitor_id, disciplina_id, horas_validadas, emitido_em, created_at')
+        .in('mongo_monitor_id', monitorIds)
+        .order('emitido_em', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        return res.status(400).json({ message: 'Erro ao buscar certificado.', error: error.message });
+      }
+      if (!certificado) {
+        return res.status(404).json({ message: 'Nenhum certificado disponível para este monitor.' });
+      }
+      return res.status(200).json(certificado);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro interno ao buscar certificado.';
+      return res.status(500).json({ message });
+    }
+  },
+
   async gerarCertificado(req: Request, res: Response): Promise<Response> {
     try {
       const body = req.body as CertificadoCreateBody;
@@ -83,9 +113,16 @@ export const CertificadoController = {
         return res.status(404).json({ message: 'Disciplina vinculada ao certificado não encontrada.' });
       }
 
-      const monitor = await MonitorProfile.findById(certificado.mongo_monitor_id).lean();
-      const nomeDestinatario = req.user?.name ?? req.user?.email ?? 'Aluno não informado';
-      const nomeMonitor = monitor ? monitor.userId : certificado.mongo_monitor_id;
+      const monitorReference = String(certificado.mongo_monitor_id);
+      const monitor = await MonitorProfile.findOne({
+        $or: [
+          { userId: monitorReference },
+          ...(mongoose.Types.ObjectId.isValid(monitorReference)
+            ? [{ _id: monitorReference }]
+            : []),
+        ],
+      }).lean();
+      const nomeMonitor = monitor?.name || monitor?.email || certificado.mongo_monitor_id;
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="certificado-${certificado.id}.pdf"`);
@@ -96,10 +133,11 @@ export const CertificadoController = {
       doc.fontSize(22).text('Certificado', { align: 'center' });
       doc.moveDown(1.5);
       doc.fontSize(12).text(`Identificador: ${certificado.id}`);
-      doc.text(`Nome do aluno: ${nomeDestinatario}`);
+      doc.moveDown();
+      doc.text(`Certificamos que ${nomeMonitor} atuou como monitor(a) na plataforma Conecta Ensino.`);
+      doc.moveDown();
       doc.text(`Disciplina: ${disciplina.nome}`);
       doc.text(`Carga horária: ${certificado.horas_validadas} horas`);
-      doc.text(`Monitor responsável: ${nomeMonitor}`);
       doc.text(`Emitido em: ${certificado.emitido_em ?? new Date().toISOString()}`);
       doc.moveDown(2);
       doc.text('Documento gerado automaticamente pelo backend Conecta Ensino.', { align: 'center' });
