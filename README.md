@@ -198,6 +198,14 @@ Servidor disponível em:
 http://localhost:3000
 ```
 
+## Documentacao da API
+
+A documentacao Swagger fica disponivel em:
+
+```text
+http://localhost:3000/api/docs
+```
+
 ---
 
 ## 5. Execute o Front-end
