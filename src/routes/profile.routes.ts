@@ -26,6 +26,27 @@ profileRoutes.patch(
 );
 
 profileRoutes.patch(
+  '/security/password',
+  requireAuth,
+  requireRoles('student', 'authenticated', 'monitor', 'director', 'admin'),
+  AccountProfileController.changePassword,
+);
+
+profileRoutes.post(
+  '/security/revoke-sessions',
+  requireAuth,
+  requireRoles('student', 'authenticated', 'monitor', 'director', 'admin'),
+  AccountProfileController.revokeOtherSessions,
+);
+
+profileRoutes.delete(
+  '/security/account',
+  requireAuth,
+  requireRoles('student', 'authenticated', 'monitor', 'director', 'admin'),
+  AccountProfileController.deleteAccount,
+);
+
+profileRoutes.patch(
   '/avatar',
   requireAuth,
   requireRoles('student', 'authenticated', 'monitor', 'director'),

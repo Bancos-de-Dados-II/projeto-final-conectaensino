@@ -6131,6 +6131,17 @@ html[data-layout="modern"] .login-logo {
   border-color: color-mix(in srgb, var(--prototype-accent-2) 50%, transparent);
 }
 
+.security-action-panel { display:grid; margin-top:14px; padding:18px; gap:14px; background:var(--surface-soft); border:1px solid var(--border-soft); border-radius:6px; }
+.security-action-panel label { display:grid; gap:7px; color:var(--text-secondary); font-size:10px; font-weight:700; }
+.security-action-panel input { width:100%; min-height:42px; padding:0 12px; color:var(--text-primary); background:var(--surface); border:1px solid var(--border); border-radius:5px; outline:0; }
+.security-action-panel input:focus { border-color:var(--primary); }
+.security-action-panel > div { display:flex; justify-content:flex-end; gap:9px; }
+.security-action-panel p { margin:0; color:var(--text-muted); line-height:1.6; }
+.security-action-panel--danger { border-color:rgba(239,68,68,.45); }
+.security-feedback { margin-top:12px; padding:11px 13px; border-radius:5px; font-size:10px; }
+.security-feedback--success { color:#16794c; background:rgba(34,197,94,.12); }
+.security-feedback--error { color:#b42318; background:rgba(239,68,68,.12); }
+
 .prototype-system-page {
   display: grid;
   min-height: 100vh;

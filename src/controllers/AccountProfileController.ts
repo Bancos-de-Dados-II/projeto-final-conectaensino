@@ -3,7 +3,9 @@ import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { Institution } from '../models/mongodb/Institution';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
-import { supabaseAdmin } from '../config/supabase';
+import { AdminProfile } from '../models/mongodb/AdminProfile';
+import { supabase, supabaseAdmin } from '../config/supabase';
+import redisClient from '../config/redis';
 
 function distanceKm(a: [number, number], b: [number, number]): number {
   const toRadians = (value: number) => (value * Math.PI) / 180;
@@ -35,6 +37,105 @@ function parseAvatar(value: unknown) {
 }
 
 export const AccountProfileController = {
+  async changePassword(req: Request, res: Response): Promise<Response> {
+    try {
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+      const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword : '';
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'A nova senha deve possuir pelo menos 8 caracteres.' });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: 'As senhas não coincidem.' });
+      }
+      if (!supabaseAdmin || !req.user?.id) {
+        return res.status(503).json({ message: 'Atualização de senha indisponível no servidor.' });
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+        password: newPassword,
+      });
+      if (error) return res.status(400).json({ message: error.message });
+
+      await Promise.all([
+        MonitorProfile.updateOne({ userId: req.user.id }, { $set: { mustChangePassword: false } }),
+        StudentProfile.updateOne({ userId: req.user.id }, { $set: { mustChangePassword: false } }),
+      ]);
+      return res.status(200).json({ message: 'Senha atualizada com sucesso.' });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao atualizar senha.',
+      });
+    }
+  },
+
+  async revokeOtherSessions(req: Request, res: Response): Promise<Response> {
+    try {
+      const currentToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+      let revoked = 0;
+      for await (const keys of redisClient.scanIterator({ MATCH: 'session:*', COUNT: 100 })) {
+        for (const key of keys) {
+          if (key === `session:${currentToken}`) continue;
+          const raw = await redisClient.get(key);
+          if (!raw) continue;
+          const session = JSON.parse(raw) as { userId?: string };
+          if (session.userId === req.user?.id) {
+            await redisClient.del(key);
+            revoked += 1;
+          }
+        }
+      }
+      return res.status(200).json({ message: `${revoked} sessão(ões) encerrada(s).`, revoked });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao encerrar sessões.',
+      });
+    }
+  },
+
+  async deleteAccount(req: Request, res: Response): Promise<Response> {
+    try {
+      const password = typeof req.body?.password === 'string' ? req.body.password : '';
+      if (!password) {
+        return res.status(400).json({ message: 'Informe sua senha para confirmar.' });
+      }
+      if (!supabaseAdmin || !req.user?.id || !req.user.email) {
+        return res.status(503).json({ message: 'Exclusão indisponível no servidor.' });
+      }
+
+      const { error: authenticationError } = await supabase.auth.signInWithPassword({
+        email: req.user.email,
+        password,
+      });
+      if (authenticationError) {
+        return res.status(401).json({ message: 'Senha incorreta.' });
+      }
+
+      const userId = req.user.id;
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (error) return res.status(400).json({ message: error.message });
+
+      await Promise.all([
+        MonitorProfile.deleteOne({ userId }),
+        StudentProfile.deleteOne({ userId }),
+        DirectorProfile.deleteOne({ userId }),
+        AdminProfile.deleteOne({ userId }),
+      ]);
+      for await (const keys of redisClient.scanIterator({ MATCH: 'session:*', COUNT: 100 })) {
+        for (const key of keys) {
+          const raw = await redisClient.get(key);
+          if (raw && (JSON.parse(raw) as { userId?: string }).userId === userId) {
+            await redisClient.del(key);
+          }
+        }
+      }
+      return res.status(200).json({ message: 'Conta excluída com sucesso.' });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao excluir conta.',
+      });
+    }
+  },
+
   async get(req: Request, res: Response): Promise<Response> {
     try {
       const role = req.user?.role?.toLocaleLowerCase('pt-BR');
