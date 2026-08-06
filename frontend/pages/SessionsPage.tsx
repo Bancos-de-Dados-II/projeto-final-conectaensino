@@ -31,6 +31,14 @@ import type {
 } from "../types/experience";
 import { useAuth } from "../hooks/useAuth";
 import { getApplicationRole } from "../utils/auth-role";
+import { getOwnAccountProfile } from "../services/monitor-profile.service";
+
+type BookingInstitution = {
+  id: string;
+  name: string;
+  address?: string;
+  coordinates?: [number, number];
+};
 
 const sessionStatusLabels = {
   scheduled: "Agendada",
@@ -127,6 +135,8 @@ function SessionsPage() {
   // Novos estados para a localização
   const [tipoLocal, setTipoLocal] = useState<"escola" | "casa_aluno" | "online">("escola");
   const [enderecoEncontro, setEnderecoEncontro] = useState("");
+  const [studentInstitution, setStudentInstitution] = useState<BookingInstitution | null>(null);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState("");
 
   const [schedule, setSchedule] = useState<MonitorSchedule | null>(null);
   const [loadingMonitors, setLoadingMonitors] = useState(true);
@@ -141,6 +151,21 @@ function SessionsPage() {
     () => monitors.find((monitor) => monitor.id === monitorId) ?? null,
     [monitorId, monitors],
   );
+  const availableInstitutions = useMemo(() => {
+    const items: BookingInstitution[] = [];
+    if (studentInstitution?.id) items.push(studentInstitution);
+    if (selectedMonitor?.institutionId) {
+      items.push({
+        id: selectedMonitor.institutionId,
+        name: selectedMonitor.institution || "Instituição do monitor",
+        address: selectedMonitor.institutionAddress,
+        coordinates: selectedMonitor.institutionCoordinates,
+      });
+    }
+    return items.filter(
+      (item, index) => items.findIndex((candidate) => candidate.id === item.id) === index,
+    );
+  }, [selectedMonitor, studentInstitution]);
   
   const hasAvailableSlots = schedule
     ? Object.values(schedule.periods)
@@ -159,18 +184,35 @@ function SessionsPage() {
       return;
     }
 
-    void getMonitors()
-      .then((items) => {
+    void Promise.all([getMonitors(), getOwnAccountProfile()])
+      .then(([items, profile]) => {
         setMonitors(items);
         setMonitorId((current) =>
           items.some((item) => item.id === current)
             ? current
             : items[0]?.id ?? "",
         );
+        const institution = profile.institutionId;
+        if (institution && typeof institution === "object") {
+          setStudentInstitution({
+            id: String(institution._id ?? institution.id ?? ""),
+            name: institution.nome ?? institution.name ?? "Minha instituição",
+            address: institution.endereco,
+            coordinates: institution.location?.coordinates,
+          });
+        }
       })
       .catch(() => setErrorMessage("Não foi possível carregar os monitores."))
       .finally(() => setLoadingMonitors(false));
   }, [isManagement]);
+
+  useEffect(() => {
+    setSelectedInstitutionId((current) =>
+      availableInstitutions.some((institution) => institution.id === current)
+        ? current
+        : availableInstitutions[0]?.id ?? "",
+    );
+  }, [availableInstitutions]);
 
   useEffect(() => {
     if (isManagement) return;
@@ -253,6 +295,10 @@ function SessionsPage() {
       setErrorMessage("Informe o endereço da sua casa para a monitoria.");
       return;
     }
+    if (tipoLocal === "escola" && !selectedInstitutionId) {
+      setErrorMessage("Selecione a instituição onde a aula será realizada.");
+      return;
+    }
 
     setSubmitting(true);
     setErrorMessage("");
@@ -265,7 +311,11 @@ function SessionsPage() {
         date,
         time: selectedTime,
         tipoLocal,
+        institutionId: tipoLocal === "escola" ? selectedInstitutionId : undefined,
         enderecoEncontro: tipoLocal === "casa_aluno" ? enderecoEncontro : undefined,
+        coordinates: tipoLocal === "escola"
+          ? availableInstitutions.find((institution) => institution.id === selectedInstitutionId)?.coordinates
+          : undefined,
       });
       setSuccessMessage(
         `Aula solicitada com ${selectedMonitor?.name ?? "o monitor"} em ${date
@@ -558,6 +608,28 @@ function SessionsPage() {
                 </label>
               </div>
             </div>
+
+          {tipoLocal === "escola" && availableInstitutions.length > 0 && (
+            <label className="booking-field">
+              <span>Instituição da aula</span>
+              <select
+                value={selectedInstitutionId}
+                disabled={availableInstitutions.length === 1}
+                onChange={(event) => setSelectedInstitutionId(event.target.value)}
+              >
+                {availableInstitutions.map((institution) => (
+                  <option value={institution.id} key={institution.id}>
+                    {institution.name}
+                  </option>
+                ))}
+              </select>
+              {availableInstitutions.length === 1 && (
+                <small className="booking-location-warning">
+                  Instituição vinculada ao aluno e ao monitor.
+                </small>
+              )}
+            </label>
+          )}
 
           {tipoLocal === "casa_aluno" && (
             <label className="booking-field">

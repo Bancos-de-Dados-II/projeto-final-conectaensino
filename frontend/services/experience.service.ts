@@ -88,6 +88,7 @@ export interface ScheduleSessionPayload {
   date: string;
   time: string;
   tipoLocal: "escola" | "casa_aluno" | "online";
+  institutionId?: string;
   enderecoEncontro?: string;
   coordinates?: [number, number]; 
 }
@@ -150,6 +151,14 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceit
         "instituicao",
       ]),
     ),
+    institutionId: str(get(item, ["institutionId._id", "institutionId.id", "institution.id"])),
+    institutionAddress: str(get(item, ["institutionId.endereco", "institution.address", "instituicao.endereco"])),
+    institutionCoordinates: (() => {
+      const coordinates = get(item, ["institutionId.location.coordinates", "institution.location.coordinates"]);
+      return Array.isArray(coordinates) && coordinates.length === 2
+        ? [Number(coordinates[0]), Number(coordinates[1])] as [number, number]
+        : undefined;
+    })(),
     subjects,
     rating: num(get(item, ["rating", "average_rating", "media_avaliacoes", "nota"])),
     sessions: num(get(item, ["sessions", "sessions_count", "total_sessoes", "monitorias"])),
@@ -201,6 +210,7 @@ export async function scheduleMonitorSession(payload: ScheduleSessionPayload): P
     disciplinaId: payload.subject,
     dataHora: `${payload.date}T${payload.time}:00-03:00`,
     tipoLocal: payload.tipoLocal === "online" ? "local_publico" : payload.tipoLocal,
+    institutionId: payload.tipoLocal === "escola" ? payload.institutionId : undefined,
     enderecoEncontro: 
       payload.tipoLocal === "casa_aluno"
         ? payload.enderecoEncontro || "Casa do aluno"

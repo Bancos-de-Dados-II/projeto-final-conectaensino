@@ -21,6 +21,9 @@ export interface PublicMonitor {
   avatar?: string;
   bio?: string;
   institution?: string;
+  institutionId?: string;
+  institutionAddress?: string;
+  institutionCoordinates?: [number, number];
   subjects: string[];
   rating: number;
   sessions: number;
