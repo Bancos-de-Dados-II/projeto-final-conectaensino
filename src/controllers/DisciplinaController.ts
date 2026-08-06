@@ -1,5 +1,26 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
+import { SubjectSuggestion } from '../models/mongodb/SubjectSuggestion';
+
+const BASIC_SUBJECTS = [
+  'Artes',
+  'Biologia',
+  'Ciências',
+  'Educação Física',
+  'Filosofia',
+  'Física',
+  'Geografia',
+  'História',
+  'Inglês',
+  'Língua Portuguesa',
+  'Matemática',
+  'Química',
+  'Sociologia',
+];
+
+function normalizeSubject(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+}
 
 type DisciplinaCreateBody = {
   nome?: string;
@@ -12,6 +33,70 @@ type VincularUsuarioBody = {
 };
 
 export const DisciplinaController = {
+  async catalog(_req: Request, res: Response): Promise<Response> {
+    try {
+      const approved = await SubjectSuggestion.find({ status: 'approved' })
+        .select('name')
+        .sort({ name: 1 })
+        .lean();
+      const names = [...new Set([...BASIC_SUBJECTS, ...approved.map((item) => item.name)])]
+        .sort((first, second) => first.localeCompare(second, 'pt-BR'));
+      return res.status(200).json(names);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao carregar catálogo.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async suggest(req: Request, res: Response): Promise<Response> {
+    try {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 80) : '';
+      if (name.length < 2) return res.status(400).json({ message: 'Informe uma disciplina válida.' });
+      const normalizedName = normalizeSubject(name);
+      const isBasic = BASIC_SUBJECTS.some((subject) => normalizeSubject(subject) === normalizedName);
+      const existing = await SubjectSuggestion.findOne({ normalizedName, status: { $in: ['pending', 'approved'] } }).lean();
+      if (isBasic || existing) return res.status(409).json({ message: 'Esta disciplina já existe ou aguarda aprovação.' });
+      const suggestion = await SubjectSuggestion.create({
+        name,
+        normalizedName,
+        suggestedBy: req.user?.id,
+        suggestedByRole: req.user?.role ?? 'authenticated',
+      });
+      return res.status(201).json(suggestion);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao enviar sugestão.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async listSuggestions(_req: Request, res: Response): Promise<Response> {
+    try {
+      const suggestions = await SubjectSuggestion.find({}).sort({ status: 1, createdAt: -1 }).lean();
+      return res.status(200).json(suggestions);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao listar sugestões.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async reviewSuggestion(req: Request, res: Response): Promise<Response> {
+    try {
+      const status = req.body?.status;
+      if (status !== 'approved' && status !== 'rejected') {
+        return res.status(400).json({ message: 'Decisão inválida.' });
+      }
+      const suggestion = await SubjectSuggestion.findByIdAndUpdate(
+        req.params.id,
+        { status, reviewedBy: req.user?.id, reviewedAt: new Date() },
+        { new: true },
+      );
+      if (!suggestion) return res.status(404).json({ message: 'Sugestão não encontrada.' });
+      return res.status(200).json(suggestion);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao revisar sugestão.';
+      return res.status(500).json({ message });
+    }
+  },
   async create(req: Request, res: Response): Promise<Response> {
     try {
       const body = req.body as DisciplinaCreateBody;

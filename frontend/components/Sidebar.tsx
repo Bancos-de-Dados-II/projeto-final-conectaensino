@@ -43,6 +43,7 @@ const mainItems = [
   { label: "Agenda", path: "/agenda", icon: CalendarDays },
   { label: "Histórico", path: "/historico", icon: History },
   { label: "Certificados", path: "/certificados", icon: Award },
+  { label: "Aprovar disciplinas", path: "/disciplinas", icon: BookOpen },
 ];
 
 const managementItems = [
@@ -68,7 +69,8 @@ export default function Sidebar({
 
   const visibleMainItems = mainItems.filter((item) => {
     if (item.path === "/certificados" && !isMonitor) return false;
-    if (isAdmin && !["/dashboard", "/diretores", "/mapa", "/monitores", "/alunos"].includes(item.path)) return false;
+    if (item.path === "/disciplinas" && !isAdmin) return false;
+    if (isAdmin && !["/dashboard", "/diretores", "/mapa", "/monitores", "/alunos", "/disciplinas"].includes(item.path)) return false;
     if (!isAdmin && item.path === "/diretores") return false;
     if (
       isDirector

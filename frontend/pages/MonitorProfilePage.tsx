@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Award, BookOpen, CalendarPlus, GraduationCap, Home, MapPin, Star } from "lucide-react";
+import { Award, BookOpen, CalendarPlus, GraduationCap, Home, MapPin, PenLine, Save, Star, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import { getMonitor, getMyMonitorProfile, updateMonitorPreferences } from "../services/experience.service";
 import type { PublicMonitor } from "../types/experience";
+import SubjectSuggestionForm from "../components/subjects/SubjectSuggestionForm";
+import { getSubjectCatalog } from "../services/subject.service";
 
 export default function MonitorProfilePage() {
   const { id } = useParams();
@@ -11,6 +13,11 @@ export default function MonitorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [aceitaCasa, setAceitaCasa] = useState(false);
+  const [editingSubjects, setEditingSubjects] = useState(false);
+  const [subjectsInput, setSubjectsInput] = useState("");
+  const [savingSubjects, setSavingSubjects] = useState(false);
+  const [subjectsMessage, setSubjectsMessage] = useState("");
+  const [subjectCatalog, setSubjectCatalog] = useState<string[]>([]);
 
   const isMyProfile = !id;
 
@@ -23,6 +30,7 @@ export default function MonitorProfilePage() {
       .then((data: any) => {
         setMonitor(data);
         setAceitaCasa(data.aceitaMonitoriaCasa ?? false);
+        setSubjectsInput(data.subjects.join(", "));
       })
       .catch((err) => {
         console.error("Erro na busca de perfil:", err);
@@ -31,6 +39,11 @@ export default function MonitorProfilePage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (!isMyProfile) return;
+    void getSubjectCatalog().then(setSubjectCatalog).catch(() => setSubjectCatalog([]));
+  }, [isMyProfile]);
+
   const handleToggleHomeTutoring = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const novoValor = e.target.checked;
     setAceitaCasa(novoValor);
@@ -38,6 +51,29 @@ export default function MonitorProfilePage() {
       await updateMonitorPreferences({ aceitaMonitoriaCasa: novoValor });
     } catch {
       setAceitaCasa(!novoValor);
+    }
+  };
+
+  const handleSaveSubjects = async () => {
+    const subjects = [...new Set(
+      subjectsInput.split(",").map((subject) => subject.trim()).filter(Boolean),
+    )];
+    if (!subjects.length) {
+      setSubjectsMessage("Informe pelo menos uma disciplina.");
+      return;
+    }
+    setSavingSubjects(true);
+    setSubjectsMessage("");
+    try {
+      await updateMonitorPreferences({ disciplinas: subjects });
+      setMonitor((current) => current ? { ...current, subjects } : current);
+      setSubjectsInput(subjects.join(", "));
+      setEditingSubjects(false);
+      setSubjectsMessage("Disciplinas atualizadas com sucesso.");
+    } catch {
+      setSubjectsMessage("Não foi possível atualizar as disciplinas.");
+    } finally {
+      setSavingSubjects(false);
     }
   };
 
@@ -151,8 +187,48 @@ export default function MonitorProfilePage() {
             <span className="panel__eyebrow">Especialidades</span>
             <h2>Disciplinas atendidas</h2>
           </div>
+          {isMyProfile && !editingSubjects && (
+            <button className="secondary-button" type="button" onClick={() => { setSubjectsMessage(""); setEditingSubjects(true); }}>
+              <PenLine size={16} />
+              Editar disciplinas
+            </button>
+          )}
         </div>
-        <div>
+        {isMyProfile && editingSubjects ? (
+          <div className="monitor-subjects__editor">
+            <fieldset>
+              <legend>Selecione as disciplinas que você leciona</legend>
+              <div className="monitor-subjects__options">
+                {subjectCatalog.map((subject) => {
+                  const selected = subjectsInput.split(",").map((item) => item.trim()).includes(subject);
+                  return (
+                    <label key={subject}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => {
+                          const current = subjectsInput.split(",").map((item) => item.trim()).filter(Boolean);
+                          const next = selected ? current.filter((item) => item !== subject) : [...current, subject];
+                          setSubjectsInput(next.join(", "));
+                        }}
+                      />
+                      <span>{subject}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <div>
+              <button className="secondary-button" type="button" disabled={savingSubjects} onClick={() => { setSubjectsInput(monitor.subjects.join(", ")); setSubjectsMessage(""); setEditingSubjects(false); }}>
+                <X size={16} /> Cancelar
+              </button>
+              <button className="primary-button" type="button" disabled={savingSubjects} onClick={() => void handleSaveSubjects()}>
+                <Save size={16} /> {savingSubjects ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
           {monitor.subjects.length ? (
             monitor.subjects.map((subject) => (
               <span key={subject}>
@@ -163,8 +239,11 @@ export default function MonitorProfilePage() {
           ) : (
             <p>Nenhuma disciplina informada.</p>
           )}
-        </div>
+          </div>
+        )}
+        {subjectsMessage && <p className="monitor-subjects__message" role="status">{subjectsMessage}</p>}
       </article>
+      {isMyProfile && <SubjectSuggestionForm />}
     </section>
   );
 }

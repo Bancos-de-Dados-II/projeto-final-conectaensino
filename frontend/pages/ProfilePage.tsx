@@ -29,6 +29,7 @@ import {
 } from "../services/monitor-profile.service";
 import type { MapEntity } from "../types/map";
 import { getApplicationRole } from "../utils/auth-role";
+import SubjectSuggestionForm from "../components/subjects/SubjectSuggestionForm";
 
 function ProfilePage() {
   const { user } = useAuth();
@@ -467,6 +468,7 @@ function ProfilePage() {
           </footer>
         </form>
       </section>
+      {(isStudent || isDirector) && <SubjectSuggestionForm />}
     </div>
   );
 }

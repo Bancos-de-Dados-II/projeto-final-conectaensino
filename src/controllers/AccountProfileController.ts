@@ -112,6 +112,18 @@ export const AccountProfileController = {
     const aceitaMonitoriaCasa = typeof req.body?.aceitaMonitoriaCasa === 'boolean' 
       ? req.body.aceitaMonitoriaCasa 
       : undefined;
+    const disciplinas = Array.isArray(req.body?.disciplinas)
+      ? [...new Set(
+          req.body.disciplinas
+            .filter((item: unknown): item is string => typeof item === 'string')
+            .map((item: string) => item.trim())
+            .filter(Boolean),
+        )]
+      : undefined;
+
+    if (req.body?.disciplinas !== undefined && (!disciplinas || disciplinas.length === 0)) {
+      return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
+    }
 
     // Se o cliente tentar atualizar expressamente o nome para vazio
     if (req.body?.name !== undefined && !name) {
@@ -130,6 +142,7 @@ export const AccountProfileController = {
       if (phone !== undefined) updateData.telefoneContato = phone;
       if (course !== undefined) updateData.course = course;
       if (aceitaMonitoriaCasa !== undefined) updateData.aceitaMonitoriaCasa = aceitaMonitoriaCasa;
+      if (disciplinas !== undefined) updateData.disciplinas = disciplinas;
 
       const result = await MonitorProfile.updateOne({ userId }, { $set: updateData });
       matched = result.matchedCount > 0;
