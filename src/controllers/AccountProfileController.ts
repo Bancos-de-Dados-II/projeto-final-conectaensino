@@ -39,16 +39,28 @@ function parseAvatar(value: unknown) {
 export const AccountProfileController = {
   async changePassword(req: Request, res: Response): Promise<Response> {
     try {
+      const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
       const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
       const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword : '';
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Informe sua senha atual.' });
+      }
       if (newPassword.length < 8) {
         return res.status(400).json({ message: 'A nova senha deve possuir pelo menos 8 caracteres.' });
       }
       if (newPassword !== confirmPassword) {
         return res.status(400).json({ message: 'As senhas não coincidem.' });
       }
-      if (!supabaseAdmin || !req.user?.id) {
+      if (!supabaseAdmin || !req.user?.id || !req.user.email) {
         return res.status(503).json({ message: 'Atualização de senha indisponível no servidor.' });
+      }
+
+      const { error: authenticationError } = await supabase.auth.signInWithPassword({
+        email: req.user.email,
+        password: currentPassword,
+      });
+      if (authenticationError) {
+        return res.status(401).json({ message: 'Senha atual incorreta.' });
       }
 
       const { error } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {

@@ -1,10 +1,12 @@
 import { api } from "../api/axios";
 
 export async function changeAccountPassword(
+  currentPassword: string,
   newPassword: string,
   confirmPassword: string,
 ): Promise<string> {
   const { data } = await api.patch<{ message: string }>("/profile/security/password", {
+    currentPassword,
     newPassword,
     confirmPassword,
   });

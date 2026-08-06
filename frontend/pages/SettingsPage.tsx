@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const { layoutMode, setLayoutMode } = useLayoutMode();
   const [section, setSection] = useState<Section>("appearance");
   const [securityAction, setSecurityAction] = useState<"password" | "sessions" | "delete" | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
@@ -38,12 +39,13 @@ export default function SettingsPage() {
 
   async function handlePasswordChange() {
     setSecurityError(""); setSecurityMessage("");
+    if (!currentPassword) return setSecurityError("Informe sua senha atual.");
     if (newPassword.length < 8) return setSecurityError("A nova senha deve possuir pelo menos 8 caracteres.");
     if (newPassword !== confirmPassword) return setSecurityError("As senhas não coincidem.");
     setSecurityLoading(true);
     try {
-      setSecurityMessage(await changeAccountPassword(newPassword, confirmPassword));
-      setNewPassword(""); setConfirmPassword(""); setSecurityAction(null);
+      setSecurityMessage(await changeAccountPassword(currentPassword, newPassword, confirmPassword));
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setSecurityAction(null);
     } catch (error) { setSecurityError(errorMessage(error)); }
     finally { setSecurityLoading(false); }
   }
@@ -238,6 +240,7 @@ export default function SettingsPage() {
                 </article>
                 {securityAction === "password" && (
                   <div className="security-action-panel">
+                    <label>Senha atual<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></label>
                     <label>Nova senha<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></label>
                     <label>Confirmar senha<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></label>
                     <div><button type="button" onClick={() => setSecurityAction(null)}>CANCELAR</button><button type="button" disabled={securityLoading} onClick={() => void handlePasswordChange()}>{securityLoading ? "SALVANDO..." : "ALTERAR SENHA"}</button></div>
