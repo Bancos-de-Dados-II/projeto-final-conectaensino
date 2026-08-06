@@ -27,6 +27,7 @@ export interface PublicMonitor {
   certificates: number;
   city?: string;
   availability: string[];
+  aceitaMonitoriaCasa?: boolean;
 }
 
 export interface ScheduleSlot {

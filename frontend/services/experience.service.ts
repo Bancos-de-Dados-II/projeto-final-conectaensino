@@ -46,7 +46,20 @@ function normalizeStatus(value: unknown): SessionStatus {
 }
 
 export function normalizeSession(item: Dict, index = 0): ExperienceSession {
-  const start = str(get(item, ["start", "date", "data", "scheduled_at", "dataHora", "data_hora", "created_at"]), new Date().toISOString());
+  const start = str(
+    get(item, ["start", "date", "data", "scheduled_at", "dataHora", "data_hora", "created_at"]),
+    new Date().toISOString()
+  );
+
+  const tipoLocal = str(get(item, ["tipoLocal", "tipo_local"]));
+  let locationLabel = str(get(item, ["location", "local", "enderecoEncontro", "endereco_encontro", "meeting_url", "link"]));
+
+  if (!locationLabel) {
+    if (tipoLocal === "casa_aluno") locationLabel = "Domicílio (Casa do Aluno)";
+    else if (tipoLocal === "online") locationLabel = "Online";
+    else locationLabel = "Instituição de Ensino";
+  }
+
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `session-${index}`),
     title: str(get(item, ["title", "titulo", "subject.name", "disciplina.nome", "disciplinaId"]), "Sessão de monitoria"),
@@ -64,9 +77,19 @@ export function normalizeSession(item: Dict, index = 0): ExperienceSession {
     start,
     end: str(get(item, ["end", "ends_at", "end_at", "data_fim"])),
     status: normalizeStatus(get(item, ["status", "situacao"])),
-    location: str(get(item, ["location", "local", "meeting_url", "link"])),
+    location: locationLabel,
     description: str(get(item, ["description", "descricao", "notes", "observacoes"])),
   };
+}
+
+export interface ScheduleSessionPayload {
+  monitorId: string;
+  subject: string;
+  date: string;
+  time: string;
+  tipoLocal: "escola" | "casa_aluno" | "online";
+  enderecoEncontro?: string;
+  coordinates?: [number, number]; 
 }
 
 export async function getSessions(): Promise<ExperienceSession[]> {
@@ -83,11 +106,26 @@ export async function getSessionHistory(): Promise<ExperienceSession[]> {
   return getSessions();
 }
 
-export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
+export async function updateMonitorPreferences(data: { aceitaMonitoriaCasa: boolean }) {
+  const response = await api.put("/profile", data);
+  return response.data;
+}
+
+export async function getMyMonitorProfile(): Promise<PublicMonitor & { aceitaMonitoriaCasa?: boolean }> {
+  const { data } = await api.get("/profile");
+  if (isObject(data)) {
+    const inner = isObject(data.data) ? data.data : data;
+    return normalizeMonitor(inner);
+  }
+  throw new Error("Não foi possível carregar os dados do seu perfil.");
+}
+
+export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceitaMonitoriaCasa?: boolean } {
   const rawSubjects = get(item, ["subjects", "disciplinas", "specialties"]);
   const subjects = Array.isArray(rawSubjects)
     ? rawSubjects.map((subject) => isObject(subject) ? str(get(subject, ["name", "nome"])) : str(subject)).filter(Boolean)
     : str(rawSubjects).split(",").map((item) => item.trim()).filter(Boolean);
+
   const rawAvailability = get(item, ["availability", "disponibilidade"]);
   const availability = Array.isArray(rawAvailability)
     ? rawAvailability.map((item) => str(item)).filter(Boolean)
@@ -115,22 +153,23 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
     certificates: num(get(item, ["certificates", "certificates_count", "total_certificados"])),
     city: str(get(item, ["city", "cidade", "address.city", "endereco.cidade"])),
     availability,
+    aceitaMonitoriaCasa: Boolean(get(item, ["aceitaMonitoriaCasa", "aceita_monitoria_casa"])),
   };
 }
 
-export async function getMonitors(): Promise<PublicMonitor[]> {
+export async function getMonitors(): Promise<Array<PublicMonitor & { aceitaMonitoriaCasa?: boolean }>> {
   const { data } = await api.get("/monitors");
   return list(data).map(normalizeMonitor);
 }
 
 export async function getMonitorsByInstitution(
   institutionId: string,
-): Promise<PublicMonitor[]> {
+): Promise<Array<PublicMonitor & { aceitaMonitoriaCasa?: boolean }>> {
   const { data } = await api.get(`/monitors/institution/${institutionId}`);
   return list(data).map(normalizeMonitor);
 }
 
-export async function getMonitor(id: string): Promise<PublicMonitor> {
+export async function getMonitor(id: string): Promise<PublicMonitor & { aceitaMonitoriaCasa?: boolean }> {
   try {
     const { data } = await api.get(`/monitors/${id}`);
     if (isObject(data)) {
@@ -153,21 +192,21 @@ export async function getMonitorSchedule(
   return data;
 }
 
-export async function scheduleMonitorSession(payload: {
-  monitorId: string;
-  subject: string;
-  date: string;
-  time: string;
-}): Promise<void> {
+export async function scheduleMonitorSession(payload: ScheduleSessionPayload): Promise<void> {
   await api.post("/sessoes/solicitar", {
     monitorId: payload.monitorId,
     disciplinaId: payload.subject,
     dataHora: `${payload.date}T${payload.time}:00-03:00`,
-    tipoLocal: "escola",
-    enderecoEncontro: "Instituição do monitor",
+    tipoLocal: payload.tipoLocal,
+    enderecoEncontro: 
+      payload.tipoLocal === "casa_aluno"
+        ? payload.enderecoEncontro || "Casa do aluno"
+        : payload.tipoLocal === "online"
+        ? "Plataforma Online"
+        : "Instituição de ensino",
     locationMeeting: {
       type: "Point",
-      coordinates: [0, 0],
+      coordinates: payload.coordinates || [0, 0],
     },
   });
 }
