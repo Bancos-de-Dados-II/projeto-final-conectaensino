@@ -1,9 +1,12 @@
-import { Bell, LockKeyhole, MonitorCog, LayoutGrid } from "lucide-react";
+import { Bell, LockKeyhole, MonitorCog } from "lucide-react";
+import axios from "axios";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAppearance } from "../contexts/AppearanceContext";
 import { useLayoutMode } from "../contexts/LayoutModeContext";
-import type { ThemePreference } from "../types/settings";
+import { useAuth } from "../hooks/useAuth";
+import { changeAccountPassword, deleteOwnAccount, revokeOtherSessions } from "../services/security.service";
 
 type Section = "appearance" | "notifications" | "security";
 
@@ -17,6 +20,58 @@ export default function SettingsPage() {
   const { preferences, changePreferences } = useAppearance();
   const { layoutMode, setLayoutMode } = useLayoutMode();
   const [section, setSection] = useState<Section>("appearance");
+  const [securityAction, setSecurityAction] = useState<"password" | "sessions" | "delete" | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [securityMessage, setSecurityMessage] = useState("");
+  const [securityError, setSecurityError] = useState("");
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function errorMessage(error: unknown): string {
+    return axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data?.message ?? "Não foi possível concluir a operação."
+      : "Não foi possível concluir a operação.";
+  }
+
+  async function handlePasswordChange() {
+    setSecurityError(""); setSecurityMessage("");
+    if (!currentPassword) return setSecurityError("Informe sua senha atual.");
+    if (newPassword.length < 8) return setSecurityError("A nova senha deve possuir pelo menos 8 caracteres.");
+    if (newPassword !== confirmPassword) return setSecurityError("As senhas não coincidem.");
+    setSecurityLoading(true);
+    try {
+      setSecurityMessage(await changeAccountPassword(currentPassword, newPassword, confirmPassword));
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setSecurityAction(null);
+    } catch (error) { setSecurityError(errorMessage(error)); }
+    finally { setSecurityLoading(false); }
+  }
+
+  async function handleRevokeSessions() {
+    setSecurityError(""); setSecurityMessage(""); setSecurityLoading(true);
+    try {
+      setSecurityMessage(await revokeOtherSessions());
+      setSecurityAction(null);
+    } catch (error) { setSecurityError(errorMessage(error)); }
+    finally { setSecurityLoading(false); }
+  }
+
+  async function handleDeleteAccount() {
+    setSecurityError(""); setSecurityMessage("");
+    if (!deletePassword) return setSecurityError("Informe sua senha para confirmar a exclusão da conta.");
+    setSecurityLoading(true);
+    try {
+      await deleteOwnAccount(deletePassword);
+      logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      setSecurityError(errorMessage(error));
+      setSecurityLoading(false);
+    }
+  }
 
   return (
     <div className="prototype-settings-page">
@@ -107,7 +162,6 @@ export default function SettingsPage() {
           {section === "notifications" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>02</span>
                 <div>
                   <h2>NOTIFICAÇÕES</h2>
                   <p>Escolha quais alertas deseja receber.</p>
@@ -155,7 +209,6 @@ export default function SettingsPage() {
           {section === "security" && (
             <section className="prototype-panel">
               <div className="prototype-panel__header">
-                <span>03</span>
                 <div>
                   <h2>SEGURANÇA</h2>
                   <p>Controles de acesso e proteção da sua conta.</p>
@@ -167,22 +220,45 @@ export default function SettingsPage() {
                     <strong>ALTERAR SENHA</strong>
                     <p>Atualize a senha usada no acesso à plataforma.</p>
                   </div>
-                  <button type="button">CONFIGURAR</button>
+                  <button type="button" onClick={() => setSecurityAction("password")}>CONFIGURAR</button>
                 </article>
                 <article>
                   <div>
                     <strong>SESSÕES CONECTADAS</strong>
                     <p>Encerre acessos ativos em outros dispositivos.</p>
                   </div>
-                  <button type="button">VER SESSÕES</button>
+                  <button type="button" onClick={() => setSecurityAction("sessions")}>VER SESSÕES</button>
                 </article>
                 <article className="prototype-danger-row">
                   <div>
                     <strong>EXCLUIR CONTA</strong>
                     <p>A ação será permanente após a confirmação.</p>
                   </div>
-                  <button type="button">SOLICITAR EXCLUSÃO</button>
+                  <button type="button" onClick={() => setSecurityAction("delete")}>SOLICITAR EXCLUSÃO</button>
                 </article>
+                {securityAction === "password" && (
+                  <div className="security-action-panel">
+                    <label>Senha atual<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></label>
+                    <label>Nova senha<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></label>
+                    <label>Confirmar senha<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></label>
+                    <div><button type="button" onClick={() => setSecurityAction(null)}>CANCELAR</button><button type="button" disabled={securityLoading} onClick={() => void handlePasswordChange()}>{securityLoading ? "SALVANDO..." : "ALTERAR SENHA"}</button></div>
+                  </div>
+                )}
+                {securityAction === "sessions" && (
+                  <div className="security-action-panel">
+                    <p>O acesso deste dispositivo será mantido. Todos os outros acessos da sua conta serão encerrados.</p>
+                    <div><button type="button" onClick={() => setSecurityAction(null)}>CANCELAR</button><button type="button" disabled={securityLoading} onClick={() => void handleRevokeSessions()}>{securityLoading ? "ENCERRANDO..." : "ENCERRAR OUTRAS SESSÕES"}</button></div>
+                  </div>
+                )}
+                {securityAction === "delete" && (
+                  <div className="security-action-panel security-action-panel--danger">
+                    <p>Esta ação é permanente. Informe sua senha atual para confirmar.</p>
+                    <label>Senha atual<input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" /></label>
+                    <div><button type="button" onClick={() => setSecurityAction(null)}>CANCELAR</button><button type="button" disabled={securityLoading || !deletePassword} onClick={() => void handleDeleteAccount()}>{securityLoading ? "EXCLUINDO..." : "EXCLUIR CONTA"}</button></div>
+                  </div>
+                )}
+                {securityMessage && <div className="security-feedback security-feedback--success">{securityMessage}</div>}
+                {securityError && <div className="security-feedback security-feedback--error">{securityError}</div>}
               </div>
             </section>
           )}

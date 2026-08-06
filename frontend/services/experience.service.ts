@@ -46,7 +46,20 @@ function normalizeStatus(value: unknown): SessionStatus {
 }
 
 export function normalizeSession(item: Dict, index = 0): ExperienceSession {
-  const start = str(get(item, ["start", "date", "data", "scheduled_at", "dataHora", "data_hora", "created_at"]), new Date().toISOString());
+  const start = str(
+    get(item, ["start", "date", "data", "scheduled_at", "dataHora", "data_hora", "created_at"]),
+    new Date().toISOString()
+  );
+
+  const tipoLocal = str(get(item, ["tipoLocal", "tipo_local"]));
+  let locationLabel = str(get(item, ["location", "local", "enderecoEncontro", "endereco_encontro", "meeting_url", "link"]));
+
+  if (!locationLabel) {
+    if (tipoLocal === "casa_aluno") locationLabel = "Domicílio (Casa do Aluno)";
+    else if (tipoLocal === "online") locationLabel = "Online";
+    else locationLabel = "Instituição de Ensino";
+  }
+
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `session-${index}`),
     title: str(get(item, ["title", "titulo", "subject.name", "disciplina.nome", "disciplinaId"]), "Sessão de monitoria"),
@@ -64,9 +77,20 @@ export function normalizeSession(item: Dict, index = 0): ExperienceSession {
     start,
     end: str(get(item, ["end", "ends_at", "end_at", "data_fim"])),
     status: normalizeStatus(get(item, ["status", "situacao"])),
-    location: str(get(item, ["location", "local", "meeting_url", "link"])),
+    location: locationLabel,
     description: str(get(item, ["description", "descricao", "notes", "observacoes"])),
   };
+}
+
+export interface ScheduleSessionPayload {
+  monitorId: string;
+  subject: string;
+  date: string;
+  time: string;
+  tipoLocal: "escola" | "casa_aluno" | "online";
+  institutionId?: string;
+  enderecoEncontro?: string;
+  coordinates?: [number, number]; 
 }
 
 export async function getSessions(): Promise<ExperienceSession[]> {
@@ -83,15 +107,42 @@ export async function getSessionHistory(): Promise<ExperienceSession[]> {
   return getSessions();
 }
 
-export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
+export async function updateMonitorPreferences(data: {
+  aceitaMonitoriaCasa?: boolean;
+  disciplinas?: string[];
+  habilidadesPcd?: string[];
+}) {
+  const response = await api.put("/profile", data);
+  return response.data;
+}
+
+export async function getMyMonitorProfile(): Promise<
+  PublicMonitor & { aceitaMonitoriaCasa?: boolean; habilidadesPcd?: string[] }
+> {
+  const { data } = await api.get("/monitors/me");
+  if (isObject(data)) {
+    const inner = isObject(data.data) ? data.data : data;
+    return normalizeMonitor(inner);
+  }
+  throw new Error("Não foi possível carregar os dados do seu perfil.");
+}
+
+export function normalizeMonitor(item: Dict, index = 0): PublicMonitor & { aceitaMonitoriaCasa?: boolean; habilidadesPcd?: string[] } {
   const rawSubjects = get(item, ["subjects", "disciplinas", "specialties"]);
   const subjects = Array.isArray(rawSubjects)
     ? rawSubjects.map((subject) => isObject(subject) ? str(get(subject, ["name", "nome"])) : str(subject)).filter(Boolean)
     : str(rawSubjects).split(",").map((item) => item.trim()).filter(Boolean);
+
   const rawAvailability = get(item, ["availability", "disponibilidade"]);
   const availability = Array.isArray(rawAvailability)
     ? rawAvailability.map((item) => str(item)).filter(Boolean)
     : str(rawAvailability).split(",").map((item) => item.trim()).filter(Boolean);
+
+  // EXTRAÇÃO DO ARRAY DE HABILIDADES PCD:
+  const rawPcd = get(item, ["habilidadesPcd", "habilidades_pcd"]);
+  const habilidadesPcd = Array.isArray(rawPcd)
+    ? rawPcd.map((item) => str(item)).filter(Boolean)
+    : [];
 
   return {
     id: str(get(item, ["id", "_id", "uuid"]), `monitor-${index}`),
@@ -109,28 +160,38 @@ export function normalizeMonitor(item: Dict, index = 0): PublicMonitor {
         "instituicao",
       ]),
     ),
+    institutionId: str(get(item, ["institutionId._id", "institutionId.id", "institution.id"])),
+    institutionAddress: str(get(item, ["institutionId.endereco", "institution.address", "instituicao.endereco"])),
+    institutionCoordinates: (() => {
+      const coordinates = get(item, ["institutionId.location.coordinates", "institution.location.coordinates"]);
+      return Array.isArray(coordinates) && coordinates.length === 2
+        ? [Number(coordinates[0]), Number(coordinates[1])] as [number, number]
+        : undefined;
+    })(),
     subjects,
     rating: num(get(item, ["rating", "average_rating", "media_avaliacoes", "nota"])),
     sessions: num(get(item, ["sessions", "sessions_count", "total_sessoes", "monitorias"])),
     certificates: num(get(item, ["certificates", "certificates_count", "total_certificados"])),
     city: str(get(item, ["city", "cidade", "address.city", "endereco.cidade"])),
     availability,
+    aceitaMonitoriaCasa: Boolean(get(item, ["aceitaMonitoriaCasa", "aceita_monitoria_casa"])),
+    habilidadesPcd, 
   };
 }
 
-export async function getMonitors(): Promise<PublicMonitor[]> {
+export async function getMonitors(): Promise<Array<PublicMonitor & { aceitaMonitoriaCasa?: boolean }>> {
   const { data } = await api.get("/monitors");
   return list(data).map(normalizeMonitor);
 }
 
 export async function getMonitorsByInstitution(
   institutionId: string,
-): Promise<PublicMonitor[]> {
+): Promise<Array<PublicMonitor & { aceitaMonitoriaCasa?: boolean }>> {
   const { data } = await api.get(`/monitors/institution/${institutionId}`);
   return list(data).map(normalizeMonitor);
 }
 
-export async function getMonitor(id: string): Promise<PublicMonitor> {
+export async function getMonitor(id: string): Promise<PublicMonitor & { aceitaMonitoriaCasa?: boolean }> {
   try {
     const { data } = await api.get(`/monitors/${id}`);
     if (isObject(data)) {
@@ -153,21 +214,22 @@ export async function getMonitorSchedule(
   return data;
 }
 
-export async function scheduleMonitorSession(payload: {
-  monitorId: string;
-  subject: string;
-  date: string;
-  time: string;
-}): Promise<void> {
+export async function scheduleMonitorSession(payload: ScheduleSessionPayload): Promise<void> {
   await api.post("/sessoes/solicitar", {
     monitorId: payload.monitorId,
     disciplinaId: payload.subject,
     dataHora: `${payload.date}T${payload.time}:00-03:00`,
-    tipoLocal: "escola",
-    enderecoEncontro: "Instituição do monitor",
+    tipoLocal: payload.tipoLocal === "online" ? "local_publico" : payload.tipoLocal,
+    institutionId: payload.tipoLocal === "escola" ? payload.institutionId : undefined,
+    enderecoEncontro: 
+      payload.tipoLocal === "casa_aluno"
+        ? payload.enderecoEncontro || "Casa do aluno"
+        : payload.tipoLocal === "online"
+        ? "Plataforma Online"
+        : "Instituição de ensino",
     locationMeeting: {
       type: "Point",
-      coordinates: [0, 0],
+      coordinates: payload.coordinates || [0, 0],
     },
   });
 }

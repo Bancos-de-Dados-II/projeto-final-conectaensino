@@ -1,4 +1,4 @@
-export type FieldType = "text" | "number" | "email" | "textarea" | "select";
+export type FieldType = "text" | "number" | "email" | "textarea" | "select" | 'checkbox-group';
 
 export interface CrudField {
   key: string;

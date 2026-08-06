@@ -58,29 +58,35 @@ export const InstitutionController = {
       }).lean();
 
       const institutionIds = institutions.map((institution) => institution._id);
-      const monitorTotals = institutionIds.length
-        ? await MonitorProfile.aggregate<{ _id: unknown; total: number }>([
-            {
-              $match: {
-                institutionId: { $in: institutionIds },
-              },
-            },
-            {
-              $group: {
-                _id: '$institutionId',
-                total: { $sum: 1 },
-              },
-            },
-          ])
+      const institutionMonitors = institutionIds.length
+        ? await MonitorProfile.find({
+            institutionId: { $in: institutionIds },
+            ativo: true,
+          }).select('institutionId disciplinas').lean()
         : [];
-      const monitorCountByInstitution = new Map(
-        monitorTotals.map(({ _id, total }) => [String(_id), total]),
-      );
+      const monitorCountByInstitution = new Map<string, number>();
+      const monitorSubjectsByInstitution = new Map<string, Set<string>>();
+      for (const monitor of institutionMonitors) {
+        const institutionId = String(monitor.institutionId);
+        monitorCountByInstitution.set(
+          institutionId,
+          (monitorCountByInstitution.get(institutionId) ?? 0) + 1,
+        );
+        const subjects = monitorSubjectsByInstitution.get(institutionId) ?? new Set<string>();
+        for (const subject of monitor.disciplinas ?? []) {
+          const normalized = subject.trim();
+          if (normalized) subjects.add(normalized);
+        }
+        monitorSubjectsByInstitution.set(institutionId, subjects);
+      }
 
       const institutionsWithMonitorCount = institutions.map((institution) => ({
         ...institution,
         monitorCount:
           monitorCountByInstitution.get(String(institution._id)) ?? 0,
+        monitorSubjects: [
+          ...(monitorSubjectsByInstitution.get(String(institution._id)) ?? []),
+        ].sort((first, second) => first.localeCompare(second, 'pt-BR')),
       }));
 
       return res.status(200).json(institutionsWithMonitorCount);

@@ -21,12 +21,17 @@ export interface PublicMonitor {
   avatar?: string;
   bio?: string;
   institution?: string;
+  institutionId?: string;
+  institutionAddress?: string;
+  institutionCoordinates?: [number, number];
   subjects: string[];
   rating: number;
   sessions: number;
   certificates: number;
   city?: string;
   availability: string[];
+  aceitaMonitoriaCasa?: boolean;
+  habilidadesPcd?: string[]; 
 }
 
 export interface ScheduleSlot {

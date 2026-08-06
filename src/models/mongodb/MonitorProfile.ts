@@ -11,12 +11,14 @@ export interface IMonitorProfile extends Document {
   institutionId: Types.ObjectId; 
   disciplinas: string[];
   disponibilidade: string[];
+  habilidadesPcd?: string[]; // <--- Adicionado na Interface
   telefoneContato?: string;
   enderecoResidencial: string;
   location: {
     type: 'Point';
     coordinates: [number, number];
   };
+  aceitaMonitoriaCasa: boolean;
   ativo: boolean;
   avatarMimeType?: 'image/jpeg' | 'image/png';
   avatarData?: Buffer;
@@ -60,7 +62,7 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
       type: Schema.Types.ObjectId,
       ref: 'Institution',
       required: false, 
-  },
+    },
     disciplinas: {
       type: [String],
       required: true,
@@ -69,6 +71,10 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
     disponibilidade: {
       type: [String],
       required: true,
+      default: [],
+    },
+    habilidadesPcd: { 
+      type: [String],
       default: [],
     },
     telefoneContato: {
@@ -91,6 +97,10 @@ const MonitorProfileSchema = new Schema<IMonitorProfile>(
         type: [Number],
         required: true,
       },
+    },
+    aceitaMonitoriaCasa: {
+      type: Boolean,
+      default: false,
     },
     ativo: {
       type: Boolean,

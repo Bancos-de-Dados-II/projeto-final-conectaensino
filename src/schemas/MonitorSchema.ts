@@ -5,8 +5,9 @@ export const CreateMonitorSchema = z.object({
   institutionId: z.string({ error: 'institutionId é obrigatório.' }),
   email: z.string({ error: 'E-mail é obrigatório.' }).email('E-mail inválido.'),
   disciplinas: z
-    .array(z.string(), { error: 'Informe ao menos uma disciplina.' })
-    .min(1, 'Informe pelo menos uma disciplina.'),
+    .array(z.string().trim().min(1), { error: 'Informe ao menos uma disciplina.' })
+    .min(1, 'Informe pelo menos uma disciplina.')
+    .transform((items) => [...new Set(items)]),
   disponibilidade: z
     .array(z.string(), { error: 'Informe a disponibilidade.' })
     .min(1, 'Informe pelo menos um horário de disponibilidade.'),

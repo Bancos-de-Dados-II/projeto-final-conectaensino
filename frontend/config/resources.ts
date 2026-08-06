@@ -1,5 +1,7 @@
 import type { CrudResourceConfig } from "../types/crud";
 
+
+
 export const studentsResource: CrudResourceConfig = {
   title: "Alunos",
   description: "Gerencie os estudantes cadastrados na plataforma.",
@@ -28,12 +30,51 @@ export const studentsResource: CrudResourceConfig = {
       placeholder: "Nome da instituição",
     },
     {
-      key: "course",
-      label: "Curso",
-      placeholder: "Curso do aluno",
+      key: "tipoDeficiencia",
+      label: "Tipo de deficiência",
+      placeholder: "Informe ou escreva Nenhuma",
+      required: true,
+    },
+    {
+      key: "necessidadesAcessibilidade",
+      label: "Necessidades de acessibilidade",
+      placeholder: "Recursos de acessibilidade necessários",
+    },
+    {
+      key: "enderecoResidencial",
+      label: "Endereço residencial",
+      placeholder: "Rua, número e bairro",
+      required: true,
     },
   ],
 };
+
+export const HABILIDADES_PCD_OPTIONS = [
+  {
+    label: "Libras (Língua Brasileira de Sinais)",
+    value: "Libras (Língua Brasileira de Sinais)",
+  },
+  {
+    label: "Material em Braille / Texto Ampliado",
+    value: "Material em Braille / Texto Ampliado",
+  },
+  {
+    label: "Suporte para TEA (Autismo)",
+    value: "Suporte para TEA (Autismo)",
+  },
+  {
+    label: "Metodologias para TDAH / Dislexia",
+    value: "Metodologias para TDAH / Dislexia",
+  },
+  {
+    label: "Comunicação Alternativa (CAA)",
+    value: "Comunicação Alternativa (CAA)",
+  },
+  {
+    label: "Audiodescrição",
+    value: "Audiodescrição",
+  },
+];
 
 export const monitorsResource: CrudResourceConfig = {
   title: "Monitores",
@@ -44,6 +85,7 @@ export const monitorsResource: CrudResourceConfig = {
     "name",
     "email",
     "disciplinas",
+    "habilidadesPcd",
     "telefoneContato",
     "enderecoResidencial",
   ],
@@ -72,14 +114,24 @@ export const monitorsResource: CrudResourceConfig = {
     {
       key: "disciplinas",
       label: "Disciplinas",
-      placeholder: "Ex: Matemática, Física",
+      type: "select",
+      placeholder: "Selecione a disciplina",
       required: true,
+      optionsEndpoint: "/disciplinas/catalog",
     },
     {
       key: "disponibilidade",
       label: "Disponibilidade",
       placeholder: "Ex: Segunda Manhã, Terça Tarde",
       required: true,
+    },
+    {
+      key: "habilidadesPcd",
+      label: "Recursos de Acessibilidade (Atendimento PCD)",
+      type: "checkbox-group",
+      placeholder: "Selecione as habilidades de acessibilidade",
+      required: false,
+      options: HABILIDADES_PCD_OPTIONS,
     },
     {
       key: "telefoneContato",

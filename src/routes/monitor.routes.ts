@@ -50,4 +50,26 @@ monitorRoutes.delete(
   MonitorController.delete,
 );
 
+
+monitorRoutes.get(
+  '/me',
+  requireAuth,
+  requireRoles('monitor', 'authenticated'), 
+  MonitorController.getOwnProfile,
+);
+
+monitorRoutes.put(
+  '/me',
+  requireAuth,
+  requireRoles('monitor', 'authenticated'), 
+  MonitorController.updateOwnPreferences,
+);
+
+monitorRoutes.patch(
+  '/me/institution',
+  requireAuth,
+  requireRoles('monitor'),
+  MonitorController.updateOwnInstitution,
+);
+
 export { monitorRoutes };

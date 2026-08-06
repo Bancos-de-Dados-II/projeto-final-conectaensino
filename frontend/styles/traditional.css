@@ -61,8 +61,6 @@ html[data-layout="traditional"] .secondary-button:hover {
   color: var(--color-primary) !important;
   border: 1px solid var(--color-primary) !important;
 }
-
-html[data-layout="traditional"] select,
 html[data-layout="traditional"] textarea {
   background-color: #FFFFFF !important;
   color: var(--text-primary) !important;
@@ -144,7 +142,10 @@ html[data-layout="traditional"] .login-presentation img[alt*="Conecta Ensino"] {
 
 html[data-layout="traditional"] .login-card, html[data-layout="traditional"] .panel, html[data-layout="traditional"] .stat-card, html[data-layout="traditional"] .crud-panel, html[data-layout="traditional"] .prototype-panel, html[data-layout="traditional"] .header, html[data-layout="traditional"] .sidebar {
     background-color: var(--color-secondary) !important;
-    
+}
+
+html[data-layout="traditional"] .register-fields .login-field>input{
+  background-color: #FFFFFF !important;
 }
 
 html[data-layout="traditional"] .header-logo {
@@ -362,7 +363,7 @@ html[data-layout="traditional"] .activity-upload-fields span{
 
 html[data-layout="traditional"] .activity-list-panel, html[data-layout="traditional"] .activity-list-panel > header small{
   color: #000000 !important;
-  background-color: var(--color-primary) !important;
+  background-color: var(--color-secondary) !important;
 }
 
 html[data-layout="traditional"] .conversation-search{
@@ -411,7 +412,185 @@ html[data-layout="traditional"] .crud-table th{
   color: #000000 !important;
 }
 
-  .director-session-panel, .domain-empty {
+html[data-layout="traditional"] .director-session-panel, html[data-layout="traditional"] .domain-empty {
     background-color: var(--color-secondary) !important;
     color: #000000 !important;
   }
+
+html[data-layout="traditional"] select:disabled,
+html[data-layout="traditional"] select.disabled {
+  opacity: 1 !important;
+}
+
+html[data-layout="traditional"] .booking-form-card, html[data-layout="traditional"] .booking-form-card > header small{
+  background-color: var(--color-primary) !important;
+  color: #FFFFFF  ;
+}
+
+html[data-layout="traditional"] .booking-field span {
+  color: #FFFFFF !important;
+}
+
+html[data-layout="traditional"] .booking-monitor-card, html[data-layout="traditional"] .booking-monitor-card small{
+  background-color: var(--color-secondary) !important;
+  color: #000000  ;
+}
+
+html[data-layout="traditional"] .primary-button.booking-submit {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html[data-layout="traditional"] .booking-monitor-card span{
+  background-color: #ffffff !important;
+}
+
+/* Cor para o layout tradicional */
+html[data-layout="traditional"] input.monitor-checkbox-input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary); /* Pega a cor primária do tema tradicional */
+  cursor: pointer;
+}
+
+html[data-layout="traditional"] .monitor-stat-grid .panel svg {
+  color: var(--color-primary); /* ou stroke: var(--color-primary); */
+}
+
+html[data-layout="traditional"] .monitor-hero p, html[data-layout="traditional"] .monitor-stat-grid small  {
+  color: #000000;
+}
+
+html[data-layout="traditional"] .monitor-meta span:first-child {
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .landing-logo {
+  content: url("../assets/simplified-traditional-logo.png");
+}
+
+html[data-layout="traditional"] .landing-hero {
+  background-color: var(--color-terciary);
+}
+
+html[data-layout="traditional"] .postit-card {
+  position: relative;
+  background-color: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .postit-card h2{
+  color: #ffffff;
+}
+
+html[data-layout="traditional"] .landing-info-section {
+    background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .postit-card:nth-of-type(odd)::after {
+  background: linear-gradient(
+    135deg, 
+    transparent 50%, 
+    #dfb06c 50%, 
+    #c99a57 100%
+  );
+}
+
+html[data-layout="traditional"] .postit-card:nth-of-type(even)::after {
+  background: linear-gradient(
+    135deg, 
+    transparent 50%, 
+    #dfb06c 50%, 
+    #c99a57 100%
+  );
+}
+
+html[data-layout="traditional"] .leaflet-touch .leaflet-bar a,
+html[data-layout="traditional"] .leaflet-control-zoom-in,
+html[data-layout="traditional"] .leaflet-control-zoom-out { 
+  background-color: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
+html[data-layout="traditional"] .leaflet-popup-content-wrapper, html[data-layout="traditional"] .leaflet-popup-tip, html[data-layout="traditional"] .entity-popup p, html[data-layout="traditional"] .entity-popup small {
+    color: #ffffff;
+    background: var(--color-primary);
+}
+
+html[data-layout="traditional"] .entity-popup span{
+  color: #000000;
+}
+
+html[data-layout="traditional"] .map-subject-filter select{
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .history-filters select, html[data-layout="traditional"] .history-filters label {
+  color: #000000;
+  background-color: var(--color-terciary) !important;
+}
+
+html[data-layout="traditional"] .prototype-toggle-row input:checked + i, html[data-layout="traditional"] .prototype-toggle-row input:checked + i::after {
+  background: var(--color-terciary);
+  background: color-mix(in srgb, var(--color-primary) 56%, transparent);
+  border-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .session-activity-card{
+  background-color: var(--color-primary) !important;
+}
+
+html[data-layout="traditional"] .session-activity-card > button {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+html[data-layout="traditional"] .session-activity-card__icon {
+  color: #ffffff;
+}
+
+html[data-layout="traditional"] .session-activity-card small{
+  color: #000;
+}
+
+html[data-layout="traditional"] .monitor-subjects>div:last-child span{
+  color: var(--color-primary)
+}
+
+html[data-layout="traditional"] .calendar-event{
+  border-color:var(--color-primary) ;
+}
+
+html[data-layout="traditional"] .calendar-event span, html[data-layout="traditional"] .calendar-event b{
+  color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .director-session-card time span, html[data-layout="traditional"] .status-pill, html[data-layout="traditional"] .director-session-card__cancel {
+    color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .crud-modal {
+  background-color: var(--color-secondary);
+  border-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .crud-checkbox-grid {
+  background-color: var(--color-primary);
+}
+
+html[data-layout="traditional"] .crud-checkbox-card {
+  background-color: var(--color-secondary);
+}
+
+html[data-layout="traditional"] .crud-modal .crud-checkbox-card span {
+  color: #000 !important;
+}
+
+html[data-layout="traditional"] .crud-modal .crud-checkbox-card:hover {
+  background-color: color-mix(in srgb, var(--color-secondary) 50%, transparent);
+  border-color: #e05333;
+}
+
+html[data-layout="traditional"] .chat-composer__field {
+  background-color: #FFFFFF;
+  border: none;
+}

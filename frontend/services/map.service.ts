@@ -55,6 +55,14 @@ function asBoolean(value: unknown): boolean | undefined {
   return undefined;
 }
 
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function readNested(record: UnknownRecord, paths: string[]): unknown {
   for (const path of paths) {
     const keys = path.split(".");
@@ -292,6 +300,9 @@ function normalizeEntity(
         "totalMonitors",
         "total_monitors",
       ]),
+    ),
+    monitorSubjects: asStringArray(
+      readNested(source, ["monitorSubjects", "monitor_subjects"]),
     ),
     relatedCount: asNumber(readNested(source, ["relatedCount", "related_count"])),
     relatedType: asString(readNested(source, ["relatedType", "related_type"])),

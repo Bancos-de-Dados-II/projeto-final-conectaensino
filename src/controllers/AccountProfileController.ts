@@ -3,7 +3,9 @@ import { DirectorProfile } from '../models/mongodb/DirectorProfile';
 import { Institution } from '../models/mongodb/Institution';
 import { MonitorProfile } from '../models/mongodb/MonitorProfile';
 import { StudentProfile } from '../models/mongodb/StudentProfile';
-import { supabaseAdmin } from '../config/supabase';
+import { AdminProfile } from '../models/mongodb/AdminProfile';
+import { supabase, supabaseAdmin } from '../config/supabase';
+import redisClient from '../config/redis';
 
 function distanceKm(a: [number, number], b: [number, number]): number {
   const toRadians = (value: number) => (value * Math.PI) / 180;
@@ -35,16 +37,155 @@ function parseAvatar(value: unknown) {
 }
 
 export const AccountProfileController = {
+  async changePassword(req: Request, res: Response): Promise<Response> {
+    try {
+      const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+      const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword : '';
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Informe sua senha atual.' });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'A nova senha deve possuir pelo menos 8 caracteres.' });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: 'As senhas não coincidem.' });
+      }
+      if (!supabaseAdmin || !req.user?.id || !req.user.email) {
+        return res.status(503).json({ message: 'Atualização de senha indisponível no servidor.' });
+      }
+
+      const { error: authenticationError } = await supabase.auth.signInWithPassword({
+        email: req.user.email,
+        password: currentPassword,
+      });
+      if (authenticationError) {
+        return res.status(401).json({ message: 'Senha atual incorreta.' });
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+        password: newPassword,
+      });
+      if (error) return res.status(400).json({ message: error.message });
+
+      await Promise.all([
+        MonitorProfile.updateOne({ userId: req.user.id }, { $set: { mustChangePassword: false } }),
+        StudentProfile.updateOne({ userId: req.user.id }, { $set: { mustChangePassword: false } }),
+      ]);
+      return res.status(200).json({ message: 'Senha atualizada com sucesso.' });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao atualizar senha.',
+      });
+    }
+  },
+
+  async revokeOtherSessions(req: Request, res: Response): Promise<Response> {
+    try {
+      const currentToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+      let revoked = 0;
+      for await (const keys of redisClient.scanIterator({ MATCH: 'session:*', COUNT: 100 })) {
+        for (const key of keys) {
+          if (key === `session:${currentToken}`) continue;
+          const raw = await redisClient.get(key);
+          if (!raw) continue;
+          const session = JSON.parse(raw) as { userId?: string };
+          if (session.userId === req.user?.id) {
+            await redisClient.del(key);
+            revoked += 1;
+          }
+        }
+      }
+      return res.status(200).json({ message: `${revoked} sessão(ões) encerrada(s).`, revoked });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao encerrar sessões.',
+      });
+    }
+  },
+
+  async deleteAccount(req: Request, res: Response): Promise<Response> {
+    try {
+      const password = typeof req.body?.password === 'string' ? req.body.password : '';
+      if (!password) {
+        return res.status(400).json({ message: 'Informe sua senha para confirmar.' });
+      }
+      if (!supabaseAdmin || !req.user?.id || !req.user.email) {
+        return res.status(503).json({ message: 'Exclusão indisponível no servidor.' });
+      }
+
+      const { error: authenticationError } = await supabase.auth.signInWithPassword({
+        email: req.user.email,
+        password,
+      });
+      if (authenticationError) {
+        return res.status(401).json({ message: 'Senha incorreta.' });
+      }
+
+      const userId = req.user.id;
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (error) return res.status(400).json({ message: error.message });
+
+      await Promise.all([
+        MonitorProfile.deleteOne({ userId }),
+        StudentProfile.deleteOne({ userId }),
+        DirectorProfile.deleteOne({ userId }),
+        AdminProfile.deleteOne({ userId }),
+      ]);
+      for await (const keys of redisClient.scanIterator({ MATCH: 'session:*', COUNT: 100 })) {
+        for (const key of keys) {
+          const raw = await redisClient.get(key);
+          if (raw && (JSON.parse(raw) as { userId?: string }).userId === userId) {
+            await redisClient.del(key);
+          }
+        }
+      }
+      return res.status(200).json({ message: 'Conta excluída com sucesso.' });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Erro ao excluir conta.',
+      });
+    }
+  },
+
   async get(req: Request, res: Response): Promise<Response> {
     try {
       const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+      
+      if (role === 'monitor') {
+        const monitorProfile = await MonitorProfile.findOne({ userId: req.user?.id })
+          .select('+avatarData +avatarMimeType')
+          .populate('institutionId', 'nome endereco location')
+          .lean();
+
+        if (!monitorProfile) {
+          return res.status(404).json({ message: 'Perfil de monitor não encontrado.' });
+        }
+
+        const avatar =
+          monitorProfile.avatarData && monitorProfile.avatarMimeType
+            ? `data:${monitorProfile.avatarMimeType};base64,${monitorProfile.avatarData.toString('base64')}`
+            : undefined;
+
+        return res.status(200).json({
+          id: monitorProfile._id?.toString() || req.user?.id,
+          name: monitorProfile.name || '',
+          email: monitorProfile.email || req.user?.email || '',
+          bio: (monitorProfile as any).bio || 'Monitor cadastrado na plataforma.',
+          avatar,
+          institution: (monitorProfile.institutionId as any)?.nome || (monitorProfile as any).institution || '',
+          city: (monitorProfile as any).city || 'Sertãozinho',
+          rating: (monitorProfile as any).rating ?? 5.0,
+          sessions: (monitorProfile as any).sessions ?? 0,
+          certificates: (monitorProfile as any).certificates ?? 0,
+          subjects: (monitorProfile as any).subjects || (monitorProfile as any).disciplinas || [],
+          aceitaMonitoriaCasa: (monitorProfile as any).aceitaMonitoriaCasa ?? false,
+          habilidadesPcd: monitorProfile.habilidadesPcd || [],
+        });
+      }
+
       const profile =
-        role === 'monitor'
-          ? await MonitorProfile.findOne({ userId: req.user?.id })
-              .select('+avatarData +avatarMimeType')
-              .populate('institutionId', 'nome endereco location')
-              .lean()
-          : role === 'director'
+        role === 'director'
           ? await DirectorProfile.findOne({ userId: req.user?.id })
               .select('+avatarData +avatarMimeType')
               .populate('institutionId', 'nome endereco location')
@@ -53,12 +194,14 @@ export const AccountProfileController = {
               .select('+avatarData +avatarMimeType')
               .populate('institutionId', 'nome endereco location')
               .lean();
+
       if (!profile) return res.status(404).json({ message: 'Perfil não encontrado.' });
 
       const avatar =
         profile.avatarData && profile.avatarMimeType
           ? `data:${profile.avatarMimeType};base64,${profile.avatarData.toString('base64')}`
           : undefined;
+
       const { avatarData: _avatarData, ...safeProfile } = profile;
       return res.status(200).json({ ...safeProfile, avatar });
     } catch (error: unknown) {
@@ -69,41 +212,80 @@ export const AccountProfileController = {
 
   async update(req: Request, res: Response): Promise<Response> {
     try {
+      const userId = req.user?.id;
+      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+
       const clean = (value: unknown, maxLength: number) =>
-        typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+        typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined;
+
       const name = clean(req.body?.name, 120);
-      const email = clean(req.body?.email, 254).toLocaleLowerCase('pt-BR');
+      const email = req.body?.email !== undefined ? clean(req.body?.email, 254)?.toLocaleLowerCase('pt-BR') : undefined;
       const phone = clean(req.body?.phone, 30);
       const course = clean(req.body?.course, 120);
       const specialty = clean(req.body?.specialty, 120);
+      const aceitaMonitoriaCasa = typeof req.body?.aceitaMonitoriaCasa === 'boolean' 
+        ? req.body.aceitaMonitoriaCasa 
+        : undefined;
 
-      if (!name) {
+      const disciplinas = Array.isArray(req.body?.disciplinas)
+        ? [...new Set(
+            req.body.disciplinas
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean),
+          )]
+        : undefined;
+
+      const habilidadesPcd = Array.isArray(req.body?.habilidadesPcd)
+        ? [...new Set(
+            req.body.habilidadesPcd
+              .filter((item: unknown): item is string => typeof item === 'string')
+              .map((item: string) => item.trim())
+              .filter(Boolean),
+          )]
+        : undefined;
+
+      if (req.body?.disciplinas !== undefined && (!disciplinas || disciplinas.length === 0)) {
+        return res.status(400).json({ message: 'Informe pelo menos uma disciplina.' });
+      }
+
+      if (req.body?.name !== undefined && !name) {
         return res.status(400).json({ message: 'Informe o nome do perfil.' });
       }
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (email !== undefined && email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: 'Informe um e-mail válido.' });
       }
 
-      const userId = req.user?.id;
-      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
       let matched = false;
+
       if (role === 'monitor') {
-        const result = await MonitorProfile.updateOne(
-          { userId },
-          { $set: { name, email, telefoneContato: phone, course } },
-        );
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.telefoneContato = phone;
+        if (course !== undefined) updateData.course = course;
+        if (aceitaMonitoriaCasa !== undefined) updateData.aceitaMonitoriaCasa = aceitaMonitoriaCasa;
+        if (disciplinas !== undefined) updateData.disciplinas = disciplinas;
+        if (habilidadesPcd !== undefined) updateData.habilidadesPcd = habilidadesPcd;
+
+        const result = await MonitorProfile.updateOne({ userId }, { $set: updateData });
         matched = result.matchedCount > 0;
       } else if (role === 'director') {
-        const result = await DirectorProfile.updateOne(
-          { userId },
-          { $set: { name, email, phone } },
-        );
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
+
+        const result = await DirectorProfile.updateOne({ userId }, { $set: updateData });
         matched = result.matchedCount > 0;
       } else {
-        const result = await StudentProfile.updateOne(
-          { userId },
-          { $set: { name, email, phone, tipoDeficiencia: specialty } },
-        );
+        const updateData: Record<string, any> = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
+        if (specialty !== undefined) updateData.tipoDeficiencia = specialty;
+
+        const result = await StudentProfile.updateOne({ userId }, { $set: updateData });
         matched = result.matchedCount > 0;
       }
 
@@ -111,39 +293,65 @@ export const AccountProfileController = {
         return res.status(404).json({ message: 'Perfil não encontrado.' });
       }
 
-      if (supabaseAdmin && userId) {
+      if (supabaseAdmin && userId && (name !== undefined || email !== undefined)) {
         const attributes: {
           email?: string;
-          user_metadata: { name: string };
-        } = { user_metadata: { name } };
+          user_metadata?: { name?: string };
+        } = {};
+        if (name !== undefined) attributes.user_metadata = { name };
         if (email && email !== req.user?.email) attributes.email = email;
-        const { error } = await supabaseAdmin.auth.admin.updateUserById(
-          userId,
-          attributes,
-        );
-        if (error) {
-          return res.status(400).json({
-            message: 'Os dados foram salvos, mas não foi possível atualizar as credenciais.',
-            error: error.message,
-          });
+
+        if (Object.keys(attributes).length > 0) {
+          const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, attributes);
+          if (error) {
+            return res.status(400).json({
+              message: 'Os dados foram salvos, mas não foi possível atualizar as credenciais.',
+              error: error.message,
+            });
+          }
         }
       }
 
       return res.status(200).json({
         message: 'Perfil atualizado com sucesso.',
-        profile: {
-          name,
-          email,
-          phone,
-          course: role === 'monitor' ? course : undefined,
-          specialty: role !== 'monitor' && role !== 'director'
-            ? specialty
-            : undefined,
-        },
+        aceitaMonitoriaCasa,
+        habilidadesPcd,
       });
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'Erro ao atualizar perfil.';
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil.';
+      return res.status(500).json({ message });
+    }
+  },
+
+  async avatar(req: Request, res: Response): Promise<Response> {
+    try {
+      const parsed = parseAvatar(req.body?.contentBase64);
+      if (!parsed.data.length || parsed.data.length > 2 * 1024 * 1024) {
+        return res.status(400).json({ message: 'A foto deve possuir no máximo 2 MB.' });
+      }
+      if (!parsed.mimeType) {
+        return res.status(400).json({ message: 'Envie uma foto JPEG ou PNG.' });
+      }
+      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
+      
+      const profile =
+        role === 'monitor'
+          ? await MonitorProfile.findOne({ userId: req.user?.id }).select('+avatarData +avatarMimeType')
+          : role === 'director'
+          ? await DirectorProfile.findOne({ userId: req.user?.id }).select('+avatarData +avatarMimeType')
+          : await StudentProfile.findOne({ userId: req.user?.id }).select('+avatarData +avatarMimeType');
+
+      if (!profile) return res.status(404).json({ message: 'Perfil não encontrado.' });
+      
+      profile.avatarData = parsed.data;
+      profile.avatarMimeType = parsed.mimeType;
+      await profile.save();
+
+      return res.status(200).json({
+        avatar: `data:${parsed.mimeType};base64,${parsed.data.toString('base64')}`,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao salvar foto.';
       return res.status(500).json({ message });
     }
   },
@@ -197,35 +405,6 @@ export const AccountProfileController = {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Erro ao atualizar senha.';
-      return res.status(500).json({ message });
-    }
-  },
-
-  async avatar(req: Request, res: Response): Promise<Response> {
-    try {
-      const parsed = parseAvatar(req.body?.contentBase64);
-      if (!parsed.data.length || parsed.data.length > 2 * 1024 * 1024) {
-        return res.status(400).json({ message: 'A foto deve possuir no máximo 2 MB.' });
-      }
-      if (!parsed.mimeType) {
-        return res.status(400).json({ message: 'Envie uma foto JPEG ou PNG.' });
-      }
-      const role = req.user?.role?.toLocaleLowerCase('pt-BR');
-      const profile =
-        role === 'director'
-          ? await DirectorProfile.findOne({ userId: req.user?.id })
-              .select('+avatarData +avatarMimeType')
-          : await StudentProfile.findOne({ userId: req.user?.id })
-              .select('+avatarData +avatarMimeType');
-      if (!profile) return res.status(404).json({ message: 'Perfil não encontrado.' });
-      profile.avatarData = parsed.data;
-      profile.avatarMimeType = parsed.mimeType;
-      await profile.save();
-      return res.status(200).json({
-        avatar: `data:${parsed.mimeType};base64,${parsed.data.toString('base64')}`,
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erro ao salvar foto.';
       return res.status(500).json({ message });
     }
   },

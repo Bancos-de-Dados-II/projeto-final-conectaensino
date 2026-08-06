@@ -163,6 +163,32 @@ export async function deleteCertificate(id: string): Promise<void> {
   await api.delete(`/certificados/${id}`);
 }
 
+export async function downloadCertificate(id: string): Promise<void> {
+  const response = await api.get<Blob>(`/certificados/${id}/download`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `certificado-${id}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function getMyLatestCertificateId(): Promise<string> {
+  const { data } = await api.get<unknown>("/certificados/me");
+  if (!isRecord(data)) {
+    throw new Error("Certificado não encontrado.");
+  }
+  const id = asString(data.id);
+  if (!id) {
+    throw new Error("Certificado sem identificador.");
+  }
+  return id;
+}
+
 export async function listReviews(): Promise<ReviewRecord[]> {
   const { data } = await api.get("/avaliacoes");
 

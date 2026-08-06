@@ -11,6 +11,7 @@ type SessionCreateBody = {
   disciplinaId?: string;
   dataHora?: string;
   tipoLocal?: 'casa_aluno' | 'escola' | 'local_publico';
+  institutionId?: string;
   enderecoEncontro?: string;
   locationMeeting?: {
     type?: 'Point';
@@ -254,6 +255,7 @@ export const SessionController = {
       const tipoLocal = body.tipoLocal;
       const enderecoEncontro = typeof body.enderecoEncontro === 'string' ? body.enderecoEncontro.trim() : '';
       const locationMeeting = body.locationMeeting;
+      const institutionId = typeof body.institutionId === 'string' ? body.institutionId.trim() : '';
 
       if (!monitorId || !disciplinaId || !body.dataHora || !tipoLocal || !enderecoEncontro || !locationMeeting) {
         return res.status(400).json({ message: 'Todos os campos da sessão são obrigatórios.' });
@@ -282,20 +284,40 @@ export const SessionController = {
         return res.status(400).json({ message: 'locationMeeting deve seguir o formato GeoJSON Point.' });
       }
 
+      const monitor = await MonitorProfile.findById(monitorId);
+      if (!monitor) {
+        return res.status(404).json({ message: 'Monitor não encontrado no MongoDB.' });
+      }
+      if (monitor.userId === req.user?.id) {
+        return res.status(403).json({
+          message: 'Você não pode agendar uma aula consigo mesmo como aluno.',
+        });
+      }
+
       const student = await StudentProfile.findOne({ userId: req.user?.id });
       if (!student) {
         return res.status(404).json({ message: 'O usuário autenticado não possui perfil de aluno.' });
       }
       const alunoId = String(student._id);
-
-      const monitor = await MonitorProfile.findById(monitorId);
-      if (!monitor) {
-        return res.status(404).json({ message: 'Monitor não encontrado no MongoDB.' });
+      let selectedInstitution = null;
+      if (tipoLocal === 'escola') {
+        if (!isValidObjectId(institutionId)) {
+          return res.status(400).json({ message: 'Selecione a instituição onde a aula será realizada.' });
+        }
+        const allowedInstitutionIds = [monitor.institutionId, student.institutionId]
+          .filter(Boolean)
+          .map((id) => String(id));
+        if (!allowedInstitutionIds.includes(institutionId)) {
+          return res.status(403).json({ message: 'A instituição deve pertencer ao aluno ou ao monitor.' });
+        }
+        selectedInstitution = await Institution.findById(institutionId).lean();
+        if (!selectedInstitution || selectedInstitution.ativa === false) {
+          return res.status(404).json({ message: 'Instituição não encontrada ou inativa.' });
+        }
       }
-      const meetingCoordinates =
-        tipoLocal === 'escola' && monitor.location?.coordinates?.length === 2
-          ? monitor.location.coordinates
-          : locationMeeting.coordinates;
+      const meetingCoordinates = selectedInstitution
+        ? selectedInstitution.location.coordinates
+        : locationMeeting.coordinates;
 
       const allowedSlots = slotsAllowedByMonitor(monitor.disponibilidade ?? [], localDateTime.date);
       if (!allowedSlots.includes(localDateTime.time)) {
@@ -311,13 +333,17 @@ export const SessionController = {
         return res.status(409).json({ message: 'Este horário acabou de ser ocupado. Escolha outro.' });
       }
 
+      // Criação da sessão injetando automaticamente o institutionId do monitor
       const session = await Session.create({
         alunoId,
         monitorId,
+        institutionId: selectedInstitution?._id,
         disciplinaId,
         dataHora,
         tipoLocal,
-        enderecoEncontro,
+        enderecoEncontro: selectedInstitution
+          ? selectedInstitution.endereco || selectedInstitution.nome
+          : enderecoEncontro,
         locationMeeting: {
           type: 'Point',
           coordinates: meetingCoordinates,

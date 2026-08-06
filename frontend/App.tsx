@@ -3,9 +3,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import AppErrorBoundary from "./components/system/AppErrorBoundary";
 import { AppearanceProvider } from "./contexts/AppearanceContext";
+import { useAuth } from "./hooks/useAuth";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { getApplicationRole } from "./utils/auth-role";
 
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Login = lazy(() => import("./pages/Login"));
 const RegisterDirector = lazy(() => import("./pages/RegisterDirector"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -68,15 +71,14 @@ export default function App() {
             <MaintenancePage />
           ) : (
             <Routes>
+              {/* Rotas Públicas */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register/director" element={<RegisterDirector />} />
 
+              {/* Rotas Protegidas (Requerem login) */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
-                  <Route
-                    index
-                    element={<Navigate to="/dashboard" replace />}
-                  />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route
                     path="/mapa"
@@ -155,13 +157,13 @@ export default function App() {
                     element={<CertificatesPage />}
                   />
                   <Route path="/avaliacoes" element={<ReviewsPage />} />
-                  <Route path="/perfil" element={<ProfilePage />} />
+
+                  <Route path="/perfil" element={<OwnProfilePage />} />
+
                   <Route
                     path="/configuracoes"
                     element={<SettingsPage />}
                   />
-                  
-                  {/* Nova rota restrita para criação de atividades */}
                   <Route
                     path="/atividades/nova"
                     element={
@@ -180,4 +182,12 @@ export default function App() {
       </AppearanceProvider>
     </AppErrorBoundary>
   );
+}
+
+function OwnProfilePage() {
+  const { user } = useAuth();
+
+  return getApplicationRole(user) === "monitor"
+    ? <MonitorProfilePage />
+    : <ProfilePage />;
 }
